@@ -3,12 +3,16 @@ module Crosstab exposing
     , Spec
     , Dimensions
     , Comparator
+    , Table
+    , TableRow
+    , TableSummaryRow
     , crosstab
     , crosstabWithDimensions
     , dimensionsOf
     , map
     -- , innerJoin
     , mapCompare
+    , toTable
     )
 
 import Matrix exposing (Matrix)
@@ -287,6 +291,88 @@ mapCompare default func (Crosstab tab) =
                 , crossValues = Matrix.indexedMap (crossCompare func) tab.crossValues
                 , value = func (tableComparator tab.value) tab.value
             }
+
+
+-- TRANSFORMING
+            
+{-| 
+
+A flat structure suitable for rendering crosstab data, for instance as an HTML 
+table.
+
+  - **cols** is a list of column headers
+  - **rows** is a list of "detail" rows (see `TableRow` below)
+  - **summaryRow** is the column summary row (see `TableSummaryRow` below)
+
+-}
+type alias Table a comparable1 comparable2 =
+    { cols : List comparable2
+    , rows : List (TableRow a comparable1)
+    , summaryRow : TableSummaryRow a
+    }
+
+
+{-|
+
+Detail row of the table.
+
+  - **row** is the row header
+  - **values** is a list of results, ordered in crosstab column order
+  - **summary** is the row summary result
+
+-}
+type alias TableRow a comparable =
+    { row : comparable
+    , values : List a
+    , summary : a
+    }
+
+
+{-|
+
+Summary row of the table (i.e., column and table summaries).
+
+  - **values** is a list of column summary results
+  - **summary** is the table summary result
+
+-}
+type alias TableSummaryRow a =
+    { values : List a
+    , summary : a
+    }
+
+
+{-|
+
+Transform a Crosstab into a flat Table structure for rendering.
+
+-}
+toTable : Crosstab a comparable1 comparable2 -> Table a comparable1 comparable2
+toTable (Crosstab { rows, cols, rowValues, colValues, crossValues, value }) =
+    let
+        toTableRow i row =
+            let
+                mvals =
+                    Matrix.getColumn i crossValues |> Maybe.map (Array.toList)
+
+                msum =
+                    Array.get i rowValues
+            in
+                Maybe.map2 (TableRow row) mvals msum
+    in
+        { cols = Array.toList cols
+        , rows =
+            rows
+                |> Array.indexedMap toTableRow
+                |> Array.toList
+                |> List.filterMap identity
+        , summaryRow =
+            { values = colValues |> Array.toList
+            , summary = value
+            }
+        }
+
+
 
 
 -- TYPICAL SPECS
