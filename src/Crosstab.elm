@@ -1,384 +1,401 @@
 module Crosstab exposing
     ( Crosstab
-    , CrossValue
-    , OuterCrossValue
-    , RowValue
-    , OuterRowValue
-    , ColValue
-    , OuterColValue
+    , Spec
+    , Dimensions
+    , Comparator
     , crosstab
-    , crosstabOptions
+    , crosstabWithDimensions
+    , dimensionsOf
     , map
+    -- , innerJoin
     , mapCompare
-    , transpose
-    , foldr
-    , foldrRows
-    , foldrCols
-    , foldrOuter
-    , foldrOuterRows
-    , foldrOuterCols
     )
 
+import Matrix exposing (Matrix)
+import Array exposing (Array)
 import Dict exposing (Dict)
 import Set exposing (Set)
+import Tuple
 
--- TYPES
-
-type Crosstab record comparable1 comparable2 =
+type Crosstab a comparable1 comparable2 =
     Crosstab
-        { rows : List comparable1
-        , cols : List comparable2
-        , rowValues : Dict comparable1 record
-        , colValues : Dict comparable2 record
-        , crossValues : Dict (comparable1, comparable2) record
-        , value : record
+        { rows : Array comparable1
+        , cols : Array comparable2
+        , crossValues : Matrix a
+        , rowValues : Array a
+        , colValues : Array a
+        , value : a
         }
 
-type CrosstabOptions input output comparable1 comparable2 =
-    CrosstabOptions
-        { row : (input -> comparable1)
-        , col : (input -> comparable2)
-        , value : (List input -> output)
+type Spec a b comparable1 comparable2
+    = Spec 
+        { row : (a -> comparable1)
+        , col : (a -> comparable2)
+        , fold : (a -> b -> b)
+        , init : b
         }
-
-type alias CrossValue record comparable1 comparable2 =
-    { row : comparable1
-    , col : comparable2
-    , value : record
+      
+type alias Dimensions comparable1 comparable2 =
+    { rows : Array comparable1
+    , cols : Array comparable2
     }
-   
-type alias OuterCrossValue record comparable1 comparable2 =
-    { row : comparable1
-    , col : comparable2
-    , value : Maybe record
-    }
-   
-type alias RowValue record comparable =
-    { row : comparable
-    , value : record
-    }
-
-type alias OuterRowValue record comparable =
-    { row : comparable
-    , value : Maybe record
-    }
-
-type alias ColValue record comparable =
-    { col : comparable
-    , value : record
-    }
-
-type alias OuterColValue record comparable =
-    { col : comparable
-    , value : Maybe record
-    }
-
-
--- CONSTRUCTORS
 
 crosstab : 
-    CrosstabOptions input output comparable1 comparable2 -> 
-    List input -> 
-    Crosstab output comparable1 comparable2
-crosstab (CrosstabOptions {row,col,value}) records =
-    let 
-        accum record data =
-            let
-                row_ = row record
-                col_ = col record
-                appendOrInit = Maybe.map ((::) record) >> Maybe.withDefault [record] >> Just
-            in
-                { data
-                    | rows = Set.insert row_ data.rows
-                    , cols = Set.insert col_ data.cols
-                    , rowValues = Dict.update row_ appendOrInit data.rowValues
-                    , colValues = Dict.update col_ appendOrInit data.colValues 
-                    , crossValues = Dict.update (row_,col_) appendOrInit data.crossValues
-                    , raw = (record :: data.raw)
-                }
+    Spec a b comparable1 comparable2 -> 
+    List a -> 
+    Crosstab b comparable1 comparable2
+crosstab (Spec spec) input =
+    crosstabWithDimensions 
+        (dimensionsOf { row = spec.row, col = spec.col } input)
+        (Spec spec) 
+        input
+        
+crosstabWithDimensions : 
+    Dimensions comparable1 comparable2 ->
+    Spec a b comparable1 comparable2 -> 
+    List a -> 
+    Crosstab b comparable1 comparable2
+crosstabWithDimensions {rows,cols} (Spec {row, col, fold, init}) records =
+    let
+        toIndexMap array =
+            array
+                |> Array.foldl (\a (i,d) -> (i + 1, Dict.insert a i d)) (0,Dict.empty)
+                |> Tuple.second
 
-        empty =
-            { rows = Set.empty
-            , cols = Set.empty
-            , rowValues = Dict.empty
-            , colValues = Dict.empty
-            , crossValues = Dict.empty
-            , raw = []
+        rowMap = 
+          toIndexMap rows
+
+        colMap =
+          toIndexMap cols
+
+        mrow record =
+          row record |> flip Dict.get rowMap
+
+        mcol record =
+          col record |> flip Dict.get colMap
+
+        accum a data =
+            Maybe.map2 (\r c -> accumHelp r c a data) (mrow a) (mcol a)
+              |> Maybe.withDefault data
+
+        accumHelp r c a { crossValues, rowValues, colValues, value } =
+            { crossValues = Matrix.update r c (fold a) crossValues
+            , rowValues = updateArray r (fold a) rowValues
+            , colValues = updateArray c (fold a) colValues
+            , value = fold a value
             }
 
-        finalize {rows,cols,rowValues,colValues,crossValues,raw} =
-            let
-              convert _ values = value values
-            in
-                Crosstab
-                    { rows = Set.toList rows |> List.sort
-                    , cols = Set.toList cols |> List.sort
-                    , rowValues = Dict.map convert rowValues
-                    , colValues = Dict.map convert colValues
-                    , crossValues = Dict.map convert crossValues
-                    , value = value raw
-                    }
+        initData =
+          { crossValues = 
+              Matrix.repeat (Array.length rows) (Array.length cols) init
+          , rowValues =
+              Array.repeat (Array.length rows) init
+          , colValues =
+              Array.repeat (Array.length cols) init
+          , value = 
+              init
+          }
+
+        finalize {crossValues, rowValues, colValues, value } =
+            Crosstab
+              { rows = rows
+              , cols = cols
+              , crossValues = crossValues
+              , rowValues = rowValues
+              , colValues = colValues
+              , value = value
+              }
+
     in
-        List.foldr accum empty records |> finalize
+        List.foldr accum initData records 
+            |> finalize
 
 
+dimensionsOf : 
+    { x | row: a -> comparable1, col: a -> comparable2 }
+    -> List a 
+    -> Dimensions comparable1 comparable2
+dimensionsOf {row, col} records =
+    let
+        toArray set =
+            Set.foldl Array.push Array.empty set
+    
+        accum record (rows,cols) =
+            (Set.insert (row record) rows, Set.insert (col record) cols)
+            
+        finalize (rows, cols) =
+            { rows = toArray rows, cols = toArray cols }
+    in
+        List.foldr accum (Set.empty, Set.empty) records
+            |> finalize
 
-
-outerCrossValue : comparable1 -> comparable2 -> Maybe a -> OuterCrossValue a comparable1 comparable2
-outerCrossValue row col mval =
-    { row = row
-    , col = col
-    , value = mval
-    }
-
-outerRowValue : comparable -> Maybe a -> OuterRowValue a comparable
-outerRowValue row mval =
-    { row = row
-    , value = mval
-    }
-
-outerColValue : comparable -> Maybe a -> OuterColValue a comparable
-outerColValue col mval =
-    { col = col
-    , value = mval
-    }
-
-
--- OPTIONS
-
-crosstabOptions : 
-    { row : (input -> comparable1)
-    , col : (input -> comparable2)
-    , value : (List input -> output)
-    } ->
-    CrosstabOptions input output comparable1 comparable2
-crosstabOptions options =
-    CrosstabOptions options
-
-
-
--- MAPS
 
 map :
-    (a -> b) ->
-    Crosstab a comparable1 comparable2 ->
-    Crosstab b comparable1 comparable2
-map fn (Crosstab tab) =
+    (a -> b)
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab b comparable1 comparable2
+map func (Crosstab tab) =
+    Crosstab
+        { tab
+            | rowValues = Array.map func tab.rowValues
+            , colValues = Array.map func tab.colValues
+            , crossValues = Matrix.map func tab.crossValues
+            , value = func tab.value
+        }
+
+
+{- ----- Not sure about this yet
+
+innerJoin :
+    (a -> b -> c)
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab b comparable1 comparable2
+    -> Crosstab c comparable1 comparable2
+innerJoin func (Crosstab left) (Crosstab right) =
     let
-        map_ _ a = fn a
+        rowMap = 
+            leftIntersectionMap left.rows right.rows
+        colMap =
+            leftIntersectionMap left.cols right.cols
+
+        (rows, _) = 
+            intersectionFilter rowMap left.rows right.rows
+
+        (cols, _) =
+            intersectionFilter colMap left.cols right.cols
+
+        (leftRowV, rightRowV) =
+            intersectionFilter rowMap left.rowValues right.rowValues
+
+        (leftColV, rightColV) =
+            intersectionFilter colMap left.colValues right.colValues
+
     in
         Crosstab
-            { tab
-                | rowValues = Dict.map map_ tab.rowValues
-                , colValues = Dict.map map_ tab.colValues
-                , crossValues = Dict.map map_ tab.crossValues
-                , value = fn tab.value
-            }
+            { rows = rows
+            , cols = cols
+            , rowValues = Array.map2 func leftRowV rightRowV
+            , colValues = Array.map2 func leftColV rightColV
 
+
+intersectionFilter :
+    Dict Int Int
+    -> Array comparable 
+    -> Array comparable
+    -> (Array comparable, Array comparable)
+intersectionFilter mapper left right =
+    let
+       filter i j (newL, newR) =
+           ( left 
+               |> Array.get i 
+               |> Maybe.map (\l -> Array.push l newL) 
+               |> Maybe.withDefault newL
+           , right
+               |> Array.get j
+               |> Maybe.map (\r -> Array.push r newR)
+               |> Maybe.withDefault newR
+           )
+    in
+      mapper
+          |> Dict.foldr filter (Array.empty, Array.empty)
+
+leftIntersectionMap : 
+    Array comparable 
+    -> Array comparable
+    -> Dict Int Int
+leftIntersectionMap left right =
+    let
+       rightMap =
+           right
+               |> Array.foldr (\a (i,dict) -> (i + 1, Dict.insert a i dict)) (0,Dict.empty)
+               |> Tuple.second
+
+       maybeInsertDict i d mj =
+           mj
+             |> Maybe.map (\j -> Dict.insert i j d)
+             |> Maybe.withDefault d
+    in
+      left
+          |> Array.foldr 
+                 (\a (i,dict) -> (i + 1, Dict.get a rightMap |> maybeInsertDict i dict) )
+                 (0,Dict.empty)
+          |> Tuple.second
+
+----- -}
+
+
+
+-- INTRA-TABLE COMPARISON
 
 type alias Comparator a =
-    { table: a
-    , row : a
+    { row : a
     , col : a
+    , table : a
     }
 
 comparator : a -> a -> a -> Comparator a
-comparator tab row col =
-    {table = tab, row = row, col = col}
+comparator row col tab =
+    { row = row
+    , col = col
+    , table = tab
+    }
+
+rowComparator : a -> a -> Comparator a
+rowComparator col tab =
+    { row = tab
+    , col = col
+    , table = tab
+    }
+
+colComparator : a -> a -> Comparator a
+colComparator row tab =
+    { row = row
+    , col = tab
+    , table = tab
+    }
 
 tableComparator : a -> Comparator a
 tableComparator tab =
-    {table = tab, row = tab, col = tab}
-
-rowComparator : a -> a -> Comparator a
-rowComparator tab row =
-    {table = tab, row = row, col = tab}
-
-colComparator : a -> a -> Comparator a
-colComparator tab col =
-    {table = tab, row = tab, col = col}
-
+    { row = tab
+    , col = tab
+    , table = tab
+    }
 
 mapCompare :
-    (Comparator a -> a -> b) ->
-    Crosstab a comparable1 comparable2 ->
-    Crosstab b comparable1 comparable2
-mapCompare compare (Crosstab tab) =
+    b 
+    -> ( Comparator a -> a -> b )
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab b comparable1 comparable2
+mapCompare default func (Crosstab tab) =
     let
-        -- TODO: change Crosstab to eliminate "triple lookup" and get rid of this
-        unsafeGet key dict =
-            Dict.get key dict
-                |> Maybe.withDefault (Debug.crash "should never happen")
+        rowCompare f val =
+            f (colComparator val tab.value) val
 
-        mapCrossValue (row,col) val =
-            comparator 
-                tab.value 
-                (unsafeGet row tab.rowValues) 
-                (unsafeGet col tab.colValues)
-                |> flip compare val
+        colCompare f val =
+            f (rowComparator val tab.value) val
 
-        mapColValue col val = 
-            compare (rowComparator tab.value val) val
-      
-        mapRowValue row val =
-            compare (colComparator tab.value val) val
-
-        mapTabValue val =
-            compare (tableComparator tab.value) val
+        crossCompare f row col val =
+            Maybe.map2 (\rval cval -> f (comparator rval cval tab.value) val)
+                (Array.get row tab.rowValues)
+                (Array.get col tab.colValues)
+                |> Maybe.withDefault default
     in
         Crosstab
             { tab
-                | rowValues = Dict.map mapRowValue tab.rowValues
-                , colValues = Dict.map mapColValue tab.colValues
-                , crossValues = Dict.map mapCrossValue tab.crossValues
-                , value = mapTabValue tab.value
+                | rowValues = Array.map (rowCompare func) tab.rowValues
+                , colValues = Array.map (colCompare func) tab.colValues
+                , crossValues = Matrix.indexedMap (crossCompare func) tab.crossValues
+                , value = func (tableComparator tab.value) tab.value
             }
 
 
+-- TYPICAL SPECS
+-- maybe move some of these to a Stats module
 
-{-  can't quite get it to work, what is the summary (value) function?
+first :
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
+    -> Spec a (Maybe b) comparable1 comparable2
+first {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a m -> if m == Nothing then Just (value a) else m)
+        , init = Nothing
+        }
 
-mapCompare :
-    (a -> RowValue a comparable1 -> ColValue a comparable2 -> a -> b) ->
-    Crosstab a comparable1 comparable2 ->
-    Crosstab b comparable1 comparable2
-mapCompare compare (Crosstab {rowValues,colValues,crossValues,value}) =
-    let
-        options_ =
-            crosstabOptions { row = .row, col = .col, value =  ????  }
+last :
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
+    -> Spec a (Maybe b) comparable1 comparable2
+last {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a m -> Just (value a))
+        , init = Nothing
+        }
 
-        compare_ tv row col val rv cv =
-            { row = row
-            , col = col
-            , value = 
-                compare tv {row = row, value = rv} {col = col, value = cv} val
-            }
+list :
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
+    -> Spec a (List b) comparable1 comparable2
+list {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a list -> (value a) :: list)
+        , init = []
+        }
 
-        accum_ (row,col) val list =
-            Maybe.map2 
-                (compare_ value row col val)
-                (Dict.get row rowValues)
-                (Dict.get col colValues)
-                |> (\b -> b :: list) 
-    in
-        Dict.foldr accum_ [] crossValues
-            |> List.filterMap identity
-            |> crosstab options_
+unique :
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> comparable3 }
+    -> Spec a (Set comparable3) comparable1 comparable2
+unique {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a set -> Set.insert (value a) set)
+        , init = Set.empty
+        }
 
--}
-
-
-transpose :
-    Crosstab a comparable1 comparable2 ->
-    Crosstab a comparable2 comparable1
-transpose (Crosstab tab) =
-    let
-        swapKeys : (comparable1,comparable2) -> a -> Dict (comparable2,comparable1) a -> Dict (comparable2,comparable1) a
-        swapKeys (row,col) val newdict =
-            Dict.insert (col,row) val newdict
-    in
-        Crosstab
-            { tab
-                | rows = tab.cols
-                , cols = tab.rows
-                , rowValues = tab.colValues
-                , colValues = tab.rowValues
-                , crossValues = Dict.foldr swapKeys Dict.empty tab.crossValues
-                , value = tab.value
-            }
-
-
--- FOLDS
-
-foldr : 
-    ((CrossValue a comparable1 comparable2) -> b -> b) ->
-    b ->
-    Crosstab a comparable1 comparable2 ->
-    b
-foldr accum init (Crosstab {crossValues}) =
-    let
-        accum_ (row,col) a b =
-            accum {row = row, col = col, value = a} b
-    in
-        Dict.foldr accum_ init crossValues 
+uniqueCounts :
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> comparable3 }
+    -> Spec a (Dict comparable3 Int) comparable1 comparable2
+uniqueCounts {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a dict -> updateOrInsertDict 0 (value a) (\n -> n + 1) dict)
+        , init = Dict.empty
+        }
 
 
-foldrRows :
-  ((RowValue a comparable1) -> b -> b) ->
-  b ->
-  Crosstab a comparable1 comparable2 ->
-  b
-foldrRows accum init (Crosstab {rowValues}) =
-    let
-        accum_ row a b =
-            accum {row = row, value = a} b
-    in
-        Dict.foldr accum_ init rowValues
+sum : 
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> number }
+    -> Spec a number comparable1 comparable2
+sum {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a sum -> (value a) + sum)
+        , init = 0
+        }
 
+count : 
+    { x | row : a -> comparable1, col : a -> comparable2 }
+    -> Spec a Int comparable1 comparable2
+count { row, col } =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a n -> n + 1)
+        , init = 0
+        }
 
-foldrCols :
-  ((ColValue a comparable2) -> b -> b) ->
-  b ->
-  Crosstab a comparable1 comparable2 ->
-  b
-foldrCols accum init (Crosstab {colValues}) =
-    let
-        accum_ col a b =
-            accum {col = col, value = a} b
-    in
-        Dict.foldr accum_ init colValues
-
-
-foldrOuter :
-    ((OuterCrossValue a comparable1 comparable2) -> b -> b) ->
-    b ->
-    Crosstab a comparable1 comparable2 ->
-    b
-foldrOuter accum init (Crosstab {rows,cols,crossValues}) =
-    let
-        accum_ (row,col) b =
-            Dict.get (row,col) crossValues
-              |> (outerCrossValue row col)
-              |> (flip accum b)
-    in
-        listCombine (,) rows cols
-          |> List.foldr accum_ init
-
-
-foldrOuterRows :
-    ((OuterRowValue a comparable1) -> b -> b) ->
-    b ->
-    Crosstab a comparable1 comparable2 ->
-    b
-foldrOuterRows accum init (Crosstab {rows,rowValues}) =
-    let
-        accum_ row b =
-            Dict.get row rowValues
-              |> (outerRowValue row)
-              |> (flip accum b)
-    in
-        List.foldr accum_ init rows
-
-
-foldrOuterCols :
-    ((OuterColValue a comparable2) -> b -> b) ->
-    b ->
-    Crosstab a comparable1 comparable2 ->
-    b
-foldrOuterCols accum init (Crosstab {cols,colValues}) =
-    let
-        accum_ col b =
-            Dict.get col colValues
-              |> (outerColValue col)
-              |> (flip accum b)
-    in
-        List.foldr accum_ init cols
+sumAndCount :
+    { x | row : a -> comparable1, col : a -> comparable2, value : a -> number }
+    -> Spec a (number,Int) comparable1 comparable2
+sumAndCount {row, col, value} =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a (sum,count) -> ((value a) + sum, count + 1))
+        , init = (0,0)
+        }
 
 
 
--- INTERNAL
+-- UTILS
+
+updateArray : Int -> (a -> a) -> Array a -> Array a
+updateArray index func array =
+   array
+       |> Array.get index
+       |> Maybe.map (\a -> Array.set index (func a) array)
+       |> Maybe.withDefault array
 
 
-listCombine : (a -> b -> c) -> List a -> List b -> List c
-listCombine fn xs ys =
-    List.concatMap (\x -> List.map (\y -> fn x y) ys) xs
+updateOrInsertDict : a -> comparable -> (a -> a) -> Dict comparable a -> Dict comparable a
+updateOrInsertDict default key func dict =
+    if Dict.member key dict then
+        Dict.update key (\mval -> mval |> Maybe.map func) dict
+    else
+        Dict.insert key default dict
