@@ -379,7 +379,11 @@ toTable (Crosstab { rows, cols, rowValues, colValues, crossValues, value }) =
 -- maybe move some of these to a Stats module
 
 first :
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> b 
+    }
     -> Spec a (Maybe b) comparable1 comparable2
 first {row, col, value} =
     Spec
@@ -390,7 +394,11 @@ first {row, col, value} =
         }
 
 last :
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> b 
+    }
     -> Spec a (Maybe b) comparable1 comparable2
 last {row, col, value} =
     Spec
@@ -400,8 +408,28 @@ last {row, col, value} =
         , init = Nothing
         }
 
+maybe :
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , fold : a -> b -> b
+      , value : a -> b 
+    }
+    -> Spec a (Maybe b) comparable1 comparable2
+maybe { row, col, fold, value } =
+    Spec
+        { row = row
+        , col = col
+        , fold = (\a mb -> mb |> Maybe.map (fold a) |> Maybe.withDefault (value a) |> Just)
+        , init = Nothing
+        }
+        
 list :
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> b 
+    }
     -> Spec a (List b) comparable1 comparable2
 list {row, col, value} =
     Spec
@@ -412,7 +440,11 @@ list {row, col, value} =
         }
 
 unique :
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> comparable3 }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> comparable3 
+    }
     -> Spec a (Set comparable3) comparable1 comparable2
 unique {row, col, value} =
     Spec
@@ -423,7 +455,11 @@ unique {row, col, value} =
         }
 
 uniqueCounts :
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> comparable3 }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> comparable3 
+    }
     -> Spec a (Dict comparable3 Int) comparable1 comparable2
 uniqueCounts {row, col, value} =
     Spec
@@ -435,7 +471,11 @@ uniqueCounts {row, col, value} =
 
 
 sum : 
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> number }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> number 
+    }
     -> Spec a number comparable1 comparable2
 sum {row, col, value} =
     Spec
@@ -446,7 +486,10 @@ sum {row, col, value} =
         }
 
 count : 
-    { x | row : a -> comparable1, col : a -> comparable2 }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2 
+    }
     -> Spec a Int comparable1 comparable2
 count { row, col } =
     Spec
@@ -457,7 +500,11 @@ count { row, col } =
         }
 
 sumAndCount :
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> number }
+    { x | 
+        row : a -> comparable1
+      , col : a -> comparable2
+      , value : a -> number 
+    }
     -> Spec a (number,Int) comparable1 comparable2
 sumAndCount {row, col, value} =
     Spec
