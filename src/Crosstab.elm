@@ -1,28 +1,29 @@
-module Crosstab exposing
-    ( Crosstab
-    , Spec
-    , Calc
-    , Levels
-    , Value
-    , Comparator
-    , crosstab
-    , crosstabWithLevels
-    , levelsOf
-    , map
-    , compare
-    , calc
-    )
+module Crosstab
+    exposing
+        ( Crosstab
+        , Spec
+        , Calc
+        , Levels
+        , Value
+        , Comparator
+        , crosstab
+        , crosstabWithLevels
+        , levelsOf
+        , map
+        , compare
+        , calc
+        , defineCalc
+        , calcMap
+        , calcAdd
+        )
 
-{-|
-
--}
+{-| -}
 
 import Matrix exposing (Matrix)
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Set exposing (Set)
 import Tuple
-
 
 
 type Crosstab a comparable1 comparable2
@@ -148,10 +149,10 @@ map :
     (a -> b)
     -> Crosstab a comparable1 comparable2
     -> Crosstab b comparable1 comparable2
-map f (Crosstab crosstab) =
+map func (Crosstab crosstab) =
     Crosstab
         { crosstab
-            | matrix = Matrix.map f crosstab.matrix
+            | matrix = Matrix.map func crosstab.matrix
         }
 
 
@@ -238,6 +239,40 @@ compare func init { table, rows, cols } (Crosstab crosstab) =
             (Matrix.repeat nrows ncols init)
             crosstab.matrix
             |> finalize
+
+
+
+-- CALCS
+
+
+defineCalc :
+    { x
+        | add : a -> a -> a
+        , init : a
+        , map : a -> b
+    }
+    -> Calc a b
+defineCalc { add, init, map } =
+    Calc
+        { add = add
+        , init = init
+        , map = map
+        }
+
+
+calcMap : (b -> c) -> Calc a b -> Calc a c
+calcMap newmap (Calc { add, init, map }) =
+    Calc
+        { add = add
+        , init = init
+        , map = map >> newmap
+        }
+
+
+calcAdd : (a -> a -> a) -> Calc a b -> Calc a b
+calcAdd newadd (Calc c) =
+    Calc
+        { c | add = newadd }
 
 
 
