@@ -7,7 +7,6 @@
         "src"
     ],
     "exposed-modules": [
-        "Crosstab"
     ],
     "dependencies": {
         "eeue56/elm-flat-matrix": "3.0.2 <= v < 4.0.0",
