@@ -11,6 +11,10 @@ module Crosstab
         , levelsOf
         , map
         , compare
+        , innerJoin
+        , filterByLevels
+        , filterByRowLevels
+        , filterByColLevels
         , calc
         , defineCalc
         , calcMap
@@ -241,6 +245,120 @@ compare func init { table, rows, cols } (Crosstab crosstab) =
             |> finalize
 
 
+innerJoin :
+    (a -> b -> c)
+    -> c
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab b comparable1 comparable2
+    -> Crosstab c comparable1 comparable2
+innerJoin func init (Crosstab c1) (Crosstab c2) =
+    if c1.rows == c2.rows && c1.cols == c2.cols then
+        leftJoinHelp func init c1.rows c1.cols c1.matrix c2.matrix
+    else
+        let
+            newLevels levels1 levels2 =
+                Set.intersect (setFromArray levels1) (setFromArray levels2)
+                    |> setToArray
+
+            filter_ =
+                filterByLevels
+                    (newLevels c1.rows c2.rows)
+                    (newLevels c1.cols c2.cols)
+
+            (Crosstab newC1) =
+                filter_ (Crosstab c1)
+
+            (Crosstab newC2) =
+                filter_ (Crosstab c2)
+        in
+            leftJoinHelp func init newC1.rows newC1.cols newC1.matrix newC2.matrix
+
+
+leftJoinHelp :
+    (a -> b -> c)
+    -> c
+    -> Array comparable1
+    -> Array comparable2
+    -> Matrix a
+    -> Matrix b
+    -> Crosstab c comparable1 comparable2
+leftJoinHelp func init rows cols m1 m2 =
+    let
+        ( nrows, ncols ) =
+            m1.size
+
+        accum i j a m =
+            m2
+                |> Matrix.get i j
+                |> Maybe.map (\b -> Matrix.set i j (func a b) m)
+                |> Maybe.withDefault m
+
+        finalize m =
+            Crosstab
+                { matrix = m
+                , rows = rows
+                , cols = cols
+                }
+    in
+        foldlMatrix accum
+            (Matrix.repeat nrows ncols init)
+            m1
+            |> finalize
+
+
+filterByRowLevels :
+    Array comparable1
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab a comparable1 comparable2
+filterByRowLevels rows (Crosstab c) =
+    filterByLevels rows c.cols (Crosstab c)
+
+
+filterByColLevels :
+    Array comparable2
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab a comparable1 comparable2
+filterByColLevels cols (Crosstab c) =
+    filterByLevels c.rows cols (Crosstab c)
+
+
+filterByLevels :
+    Array comparable1
+    -> Array comparable2
+    -> Crosstab a comparable1 comparable2
+    -> Crosstab a comparable1 comparable2
+filterByLevels rows cols (Crosstab c) =
+    let
+        levelIndexMap levels max =
+            indexMapArray levels
+                |> Dict.filter (\_ i -> i > -1 && i < max)
+
+        mapToArray dict =
+            Dict.toList dict
+                |> List.sortBy Tuple.second
+                |> Array.fromList
+
+        newRows =
+            levelIndexMap rows (Array.length c.rows)
+                |> mapToArray
+
+        newCols =
+            levelIndexMap cols (Array.length c.cols)
+                |> mapToArray
+    in
+        Crosstab
+            { c
+                | rows = Array.map Tuple.first newRows
+                , cols = Array.map Tuple.first newCols
+                , matrix =
+                    (filterMatrixByIndexes
+                        (Array.map Tuple.second newRows)
+                        (Array.map Tuple.second newCols)
+                        c.matrix
+                    )
+            }
+
+
 
 -- CALCS
 
@@ -292,6 +410,70 @@ updateArray index func array =
         |> Array.get index
         |> Maybe.map (\a -> Array.set index (func a) array)
         |> Maybe.withDefault array
+
+
+setToArray : Set comparable -> Array comparable
+setToArray s =
+    Set.foldl Array.push Array.empty s
+
+
+setFromArray : Array comparable -> Set comparable
+setFromArray a =
+    Array.foldl Set.insert Set.empty a
+
+
+filterMapArray : (a -> Maybe b) -> Array a -> Array b
+filterMapArray f xs =
+    let
+        maybePush : (a -> Maybe b) -> a -> Array b -> Array b
+        maybePush f mx xs =
+            case f mx of
+                Just x ->
+                    Array.push x xs
+
+                Nothing ->
+                    xs
+    in
+        Array.foldl (maybePush f) Array.empty xs
+
+
+filterMatrixByIndexes :
+    Array Int
+    -> Array Int
+    -> Matrix a
+    -> Matrix a
+filterMatrixByIndexes xs ys matrix =
+    let
+        levelIndexMap levels max =
+            indexMapArray levels
+                |> Dict.filter (\_ i -> i > -1 && i < max)
+
+        xsMap =
+            levelIndexMap xs (Matrix.width matrix)
+
+        ysMap =
+            levelIndexMap ys (Matrix.height matrix)
+
+        accum x y v m =
+            Maybe.map2
+                (\newX newY ->
+                    Matrix.set newX newY (Just v) m
+                )
+                (Dict.get x xsMap)
+                (Dict.get y ysMap)
+                |> Maybe.withDefault m
+
+        -- only works if every matrix element is `Just a`, but
+        -- that should be guaranteed by the xsMap, yxMap data constraints
+        finalize m =
+            { m
+                | data = filterMapArray identity m.data
+            }
+    in
+        foldlMatrix accum
+            (Matrix.repeat (Dict.size xsMap) (Dict.size ysMap) Nothing)
+            matrix
+            |> finalize
 
 
 foldlMatrix :
