@@ -1,114 +1,128 @@
 module Crosstab.Calc
     exposing
-        ( count
+        ( maybe
+        , list
+        , listOf
+        , unique
+        , count
         , sum
         , mean
-        , list
-        , unique
         , firstNumber
         , lastNumber
         , first
         , last
-        , maybe
         )
 
 import Set exposing (Set)
-import Crosstab exposing (Calc, defineCalc)
+import Crosstab exposing (Calc, customCalc)
+
+
+-- BASE CALCS
+
+maybe :
+    (a -> a -> a)
+    -> (Maybe a -> b)
+    -> Calc (Maybe a) (Maybe a) b
+maybe accum map =
+    let
+        accum_ new old =
+            case ( new, old ) of
+                ( Nothing, Nothing ) ->
+                    Nothing
+
+                ( Just _, Nothing ) ->
+                    new
+
+                ( Nothing, Just _ ) ->
+                    old
+
+                ( Just a, Just b ) ->
+                    accum a b |> Just
+    in
+        customCalc
+            { map = map, accum = accum_, init = Nothing }
+
+
+list :
+    (List a -> b)
+    -> Calc a (List a) b
+list map =
+    customCalc
+        { map = map, accum = (::), init = [] }
+
+listOf :
+    (a -> b)
+    -> (List b -> c)
+    -> Calc a (List b) c
+listOf getter map =
+    customCalc
+        { map = map, accum = getter >> (::), init = [] }
+
+unique :
+    (Set comparable -> b)
+    -> Calc comparable (Set comparable) b
+unique map =
+    customCalc
+        { map = map, accum = Set.insert, init = Set.empty }
+
+float :
+    (Float -> Float -> Float)
+    -> Calc Float Float Float
+float accum =
+    customCalc
+        { map = identity, accum = accum, init = 0.0 }
 
 
 --  TYPICAL CALCS
 
 
-count : Calc Int Int
+count : Calc x Int Int
 count =
-    defineCalc
-        { add = (\_ b -> b + 1)
+    customCalc
+        { accum = (\_ b -> b + 1)
         , init = 0
         , map = identity
         }
 
 
-sum : Calc Float Float
+sum : Calc Float Float Float
 sum =
-    defineCalc
-        { add = (+)
-        , init = 0.0
-        , map = identity
-        }
+    float (+) 
 
 
-mean : Calc (List Float) Float
+mean : Calc Float (Float, Int) Float
 mean =
-    list
-        (List.foldr (\v ( s, i ) -> ( v + s, i + 1 )) ( 0, 0 )
-            >> (\( s, n ) -> s / (toFloat n))
-        )
-
-
-list : (List a -> b) -> Calc (List a) b
-list map =
-    defineCalc
-        { add = (++)
-        , init = []
-        , map = map
+    customCalc
+        { accum = (\v (s,c) -> (s + v, c + 1))
+        , init = (0.0, 0)
+        , map = (\(s,c) -> s / (toFloat c))
         }
 
-
-unique : (Set comparable -> b) -> Calc (Set comparable) b
-unique map =
-    defineCalc
-        { add = Set.union
-        , init = Set.empty
-        , map = map
-        }
-
-
-firstNumber : Calc number number
+firstNumber : Calc number number number
 firstNumber =
-    defineCalc
-        { add = (\n2 n1 -> n1)
+    customCalc
+        { accum = (\n2 n1 -> n1)
         , init = 0
         , map = identity
         }
 
 
-lastNumber : Calc number number
+lastNumber : Calc number number number
 lastNumber =
-    defineCalc
-        { add = (\n2 n1 -> n2)
+    customCalc
+        { accum = (\n2 n1 -> n2)
         , init = 0
         , map = identity
         }
 
 
-first : Calc (Maybe a) (Maybe a)
+first : Calc (Maybe a) (Maybe a) (Maybe a)
 first =
-    maybe (\a2 a1 -> a1)
+    maybe (\a2 a1 -> a1) identity
 
 
-last : Calc (Maybe a) (Maybe a)
+last : Calc (Maybe a) (Maybe a) (Maybe a)
 last =
-    maybe (\a2 a1 -> a2)
+    maybe (\a2 a1 -> a2) identity
 
 
-maybe : (a -> a -> a) -> Calc (Maybe a) (Maybe a)
-maybe add =
-    defineCalc
-        { add =
-            (\m_ m ->
-                case ( m_, m ) of
-                    ( Nothing, Nothing ) ->
-                        Nothing
-
-                    ( Just _, Nothing ) ->
-                        m_
-
-                    ( Nothing, Just _ ) ->
-                        m
-
-                    ( Just c_, Just c ) ->
-                        Maybe.map2 add m_ m
-            )
-        , init = Nothing
-        , map = identity
-        }

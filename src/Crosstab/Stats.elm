@@ -1,12 +1,12 @@
 module Crosstab.Stats exposing 
     ( Basic
+    , basicOf
     , basic
-    , stats
-    , basicStatsAnd
     , sd
     )
 
-import Crosstab exposing (Calc, Spec, defineCalc, specMap)
+import Crosstab exposing (Calc, customCalc, mapCalc2)
+import Crosstab.Calc exposing (listOf)
 
 type alias Basic =
     { min : Maybe Float
@@ -14,87 +14,95 @@ type alias Basic =
     , count : Int
     , sum : Float
     , mean : Maybe Float
-    , values : List Float
     }
 
-
-basic : 
-    Spec a Float comparable1 comparable2 
-    -> Spec a Basic comparable1 comparable2 
-basic s =
-    let
-        map_ n =
-            { min = Just n
-            , max = Just n
-            , count = 1
-            , sum = n
-            , mean = Just (n / 1.0)
-            , values = [n]
-            }
-    in
-        specMap map_ s
-
-
-stats : (Basic -> b) -> Calc Basic b
-stats map_ =
-    let
-        init_ =
+emptyBasic : Basic
+emptyBasic =
             { min = Nothing
             , max = Nothing
             , count = 0
-            , sum = 0
+            , sum = 0.0
             , mean = Nothing
-            , values = []
             }
 
-        add_ i n =
-          let
-              newcount = addCount i n
-              newsum = addSum i n
-              newmean = Just (newsum / (toFloat newcount))
-          in
-            { n
-                | min = addMin i n
-                , max = addMax i n
-                , count = newcount
-                , sum = newsum
-                , mean = newmean
-                , values = addValues i n
-             }
 
+basicOf : (a -> Float) -> (Basic -> b) -> Calc a Basic b
+basicOf getter map_ =
+    customCalc
+        { map = map_
+        , accum = getter >> accumBasic
+        , init = emptyBasic
+        }
+
+basicAndValuesOf : (a -> Float) -> (Basic -> List Float -> b) -> Calc a (Basic, List Float) b
+basicAndValuesOf getter map_ =
+    mapCalc2 map_ (basicOf getter identity) (listOf getter identity) 
+
+
+basic : (Basic -> b) -> Calc Basic Basic b
+basic map_ =
+    customCalc
+        { map = map_
+        , accum = addBasic
+        , init = emptyBasic
+        }
+
+basicAndValues : (Basic -> List Float -> b) -> Calc (Basic, List Float) (Basic, List Float) b
+basicAndValues map_ =
+    customCalc
+        { map = (\(b,vs) -> map_ b vs)
+        , accum = (\(b1,vs1) (b2,vs2) -> (addBasic b1 b2, vs1 ++ vs2))
+        , init = (emptyBasic, [])
+        }
+
+
+accumBasic : Float -> Basic -> Basic
+accumBasic x sums =
+    let
+        newcount = addCount sums.count 
+        newsum = addSum x sums.sum
+        newmean = Just (newsum / (toFloat newcount))
     in
-        defineCalc
-            { add = add_
-            , init = init_
-            , map = map_
-            }
+      { sums
+          | min = addMin (Just x) sums.min
+          , max = addMax (Just x) sums.max
+          , count = newcount
+          , sum = newsum
+          , mean = newmean
+       }
+
+addBasic : Basic -> Basic -> Basic
+addBasic new sums =
+    let
+        newcount = addSum new.count sums.count 
+        newsum = addSum new.sum sums.sum
+        newmean = Just (newsum / (toFloat newcount))
+    in
+      { sums
+          | min = addMin new.min sums.min
+          , max = addMax new.max sums.max
+          , count = newcount
+          , sum = newsum
+          , mean = newmean
+       }
 
 
-basicStatsAnd : (Basic -> b) -> Calc Basic (Basic, b)
-basicStatsAnd map_ =
-    calc (\basic -> (basic, map_ basic))
+addMin : Maybe Float -> Maybe Float -> Maybe Float
+addMin mi mn =
+    addMaybe (\i n -> if (i - n) < 0 then i else n) mi mn
 
+addMax : Maybe Float -> Maybe Float -> Maybe Float
+addMax mi mn =
+    addMaybe (\i n -> if (i - n) > 0 then i else n) mi mn
 
-addMin : Basic -> Basic -> Maybe Float
-addMin i n =
-    addMaybe (\i n -> if (i - n) < 0 then i else n) i.min n.min
+addCount : Int -> Int
+addCount n =
+    n + 1
 
-addMax : Basic -> Basic -> Maybe Float
-addMax i n =
-    addMaybe (\i n -> if (i - n) > 0 then i else n) i.max n.max
-
-addCount : Basic -> Basic -> Int
-addCount i {count} =
-    count + 1
-
-addSum : Basic -> Basic -> Float
+addSum : number -> number -> number
 addSum i n =
-    n.sum + i.sum
+    n + i
 
-
-addValues : Basic -> Basic -> List Float
-addValues i n =
-    i.values ++ n.values
 
 addMaybe : (a -> a -> a) -> Maybe a -> Maybe a -> Maybe a
 addMaybe add_ m1 m2 =
@@ -115,13 +123,13 @@ addMaybe add_ m1 m2 =
 
 {-|
 
-Calculate standard deviation as a map over basic stats.
+Calculate standard deviation from basic stats and a list of raw values.
 
-    crosstab (basic mySpec) (basicStatsAnd sd) data
+    fromList (basicAndValues sd) (basicAndValuesOf .floatField sd) levels data
 
 -}
-sd : Basic -> Maybe Float
-sd {mean, count, values} =
+sd : Basic -> List Float -> Maybe Float
+sd {mean, count} values =
     mean |> Maybe.map (\m -> sdHelp m count values)
 
 

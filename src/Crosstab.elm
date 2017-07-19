@@ -1,62 +1,21 @@
 module Crosstab
     exposing
         ( Crosstab
-        , Spec
         , Calc
+        , LevelMap
+        , Comparator
         , Levels
         , Values
         , Summary
-        , Comparator
-        , crosstab
-        , crosstabWithLevels
+        , fromList
+        , fromListWithLevels
         , levelsOf
-        , spec
-        , specMap
-        , map
-        , compare
-        , innerJoin
-        , filterByLevels
-        , filterByRowLevels
-        , filterByColLevels
         , calc
-        , calcSummary
-        , defineCalc
-        , calcMap
+        , compare
+        , calcCompare
+        , customCalc
+        , mapCalc2
         )
-
-{-| 
-A library for calculating crosstab (AKA contingency) tables.
-
-Built on top of [elm-flat-matrix][].
-
-# Constructing
-
-@docs crosstab, spec, crosstabWithLevels, levelsOf, Levels
-
-
-# Accessors
-
-@docs levels, values
-
-
-# Mapping and Filtering
-
-@docs map, compare, innerJoin, filterByLevels, filterByRowLevels, filterByColLevels
-
-
-# Calculating
-
-@docs calc, calcSummary, defineCalc, calcMap, calcAdd
-
-
-# Internal types
-
-@docs Crosstab, Spec, Calc
-
-
-[elm-flat-matrix]: https://package.elm-lang.org/packages/eeue56/elm-flat-matrix/latest
-
--}
 
 import Matrix exposing (Matrix)
 import Array exposing (Array)
@@ -65,86 +24,48 @@ import Set exposing (Set)
 import Tuple
 
 
--- PRIVATE TYPES
-
-{-|
-
-Internal structure of a crosstab table.
-
--}
-type Crosstab a comparable1 comparable2
+type Crosstab a b comparable1 comparable2
     = Crosstab
-        { matrix : Matrix a
-        , rows : Array comparable1
-        , cols : Array comparable2
+        { levels : Levels comparable1 comparable2
+        , values : Values a
+        , summary : Summary b
         }
 
-{-|
 
-Internal structure of a 'spec' used to construct a crosstab table from an
-arbitrary list of data.
+type Calc a b c
+    = Calc
+        { map : b -> c
+        , accum : a -> b -> b
+        , init : b
+        }
 
-A `Spec` specifies how to determine the _row_ and _column levels_ from a given
-item, and what _value_ is to be used in calculations.
 
-See the [Specs](#specs) section for details on usage.
-
--}
-type Spec a b comparable1 comparable2
-    = Spec
+type LevelMap a comparable1 comparable2
+    = LevelMap
         { row : a -> comparable1
         , col : a -> comparable2
-        , value : a -> b
-        }
-
-{-|
-
-Internal structure of a calculation on a crosstab, used both in the initial
-construction of the crosstab and in calculating row, column, and table 
-summaries.
-
-A `Calc` defines a default (empty) value, and two operations:
-
-   - **add**, which defines how values are summarized; and
-   - **map**, an arbitrary function on the summarized totals.
-
-See the [Calculations](#calculations) section for details on usage.
-
--}
-type Calc a b
-    = Calc
-        { map : a -> b
-        , add : a -> a -> a
-        , init : a
         }
 
 
--- PUBLIC TYPES
+type alias Comparator a b =
+    { table : b
+    , row : b
+    , col : b
+    , prevRow : Maybe a
+    , prevCol : Maybe a
+    }
 
-{-|
 
-Row and column levels of a crosstab.
-
--}
 type alias Levels comparable1 comparable2 =
     { rows : Array comparable1
     , cols : Array comparable2
     }
 
 
-{-|
-
-Public representation of the values of a crosstab, as a list of rows of a list
-of columns.
-
--}
 type alias Values a =
-    List (List a)
+    Matrix a
 
-{-|
 
-Calculation results 
--}
 type alias Summary a =
     { table : a
     , rows : Array a
@@ -152,37 +73,33 @@ type alias Summary a =
     }
 
 
-type alias Comparator a =
-    { table : a
-    , row : a
-    , col : a
-    , prevRow : Maybe a
-    , prevCol : Maybe a
-    }
-
 
 -- CONSTRUCTING
 
-crosstab :
-    Spec a b comparable1 comparable2
-    -> Calc b c
+
+fromList :
+    Calc b b d
+    -> Calc a b c
+    -> LevelMap a comparable1 comparable2
     -> List a
-    -> Crosstab c comparable1 comparable2
-crosstab (Spec spec) calc records =
-    crosstabWithLevels
-        (levelsOf { row = spec.row, col = spec.col } records)
-        (Spec spec)
-        calc
+    -> Crosstab c d comparable1 comparable2
+fromList summary value map records =
+    fromListWithLevels
+        (levelsOf map records)
+        summary
+        value
+        map
         records
 
 
-crosstabWithLevels :
+fromListWithLevels :
     Levels comparable1 comparable2
-    -> Spec a b comparable1 comparable2
-    -> Calc b c
+    -> Calc b b d
+    -> Calc a b c
+    -> LevelMap a comparable1 comparable2
     -> List a
-    -> Crosstab c comparable1 comparable2
-crosstabWithLevels { rows, cols } (Spec { row, col, value }) (Calc { map, add, init }) records =
+    -> Crosstab c d comparable1 comparable2
+fromListWithLevels { rows, cols } summary (Calc value) (LevelMap { row, col }) records =
     let
         rowMap =
             indexMapArray rows
@@ -201,16 +118,19 @@ crosstabWithLevels { rows, cols } (Spec { row, col, value }) (Calc { map, add, i
                 |> Maybe.withDefault data
 
         accumHelp r c a matrix =
-            Matrix.update r c (add (value a)) matrix
+            Matrix.update r c (value.accum a) matrix
 
         initData =
-            Matrix.repeat (Array.length rows) (Array.length cols) init
+            Matrix.repeat (Array.length rows) (Array.length cols) value.init
 
         finalize matrix =
             Crosstab
-                { matrix = Matrix.map map matrix
-                , rows = rows
-                , cols = cols
+                { levels =
+                    { rows = rows
+                    , cols = cols
+                    }
+                , values = Matrix.map value.map matrix
+                , summary = calcValuesSummary summary matrix
                 }
     in
         List.foldr accum initData records
@@ -218,10 +138,10 @@ crosstabWithLevels { rows, cols } (Spec { row, col, value }) (Calc { map, add, i
 
 
 levelsOf :
-    { x | row : a -> comparable1, col : a -> comparable2 }
+    LevelMap a comparable1 comparable2
     -> List a
     -> Levels comparable1 comparable2
-levelsOf { row, col } records =
+levelsOf (LevelMap { row, col }) records =
     let
         toArray set =
             Set.foldl Array.push Array.empty set
@@ -235,58 +155,175 @@ levelsOf { row, col } records =
         List.foldr accum ( Set.empty, Set.empty ) records
             |> finalize
 
-spec : 
-    { x | row : a -> comparable1, col : a -> comparable2, value : a -> b }
-    -> Spec a b comparable1 comparable2
-spec { row, col, value } =
-    Spec { row = row, col = col, value = value }
-
-specMap :
-    (b -> c)
-    -> Spec a b comparable1 comparable2
-    -> Spec a c comparable1 comparable2
-specMap value (Spec s) =
-    Spec { s | value = s.value >> value }
 
 
 -- ACCESSORS
 
 
-levels : Crosstab a comparable1 comparable2 -> Levels comparable1 comparable2
-levels (Crosstab { rows, cols }) =
-    { rows = rows, cols = cols }
+levels : Crosstab a b comparable1 comparable2 -> Levels comparable1 comparable2
+levels (Crosstab { levels }) =
+    levels
 
 
-values : Crosstab a comparable1 comparable2 -> Values a
-values (Crosstab { matrix }) =
-    toListMatrix matrix
+rowLevelList : Crosstab a b comparable1 comparable2 -> List comparable1
+rowLevelList (Crosstab { levels }) =
+    Array.toList levels.rows
+
+
+colLevelList : Crosstab a b comparable1 comparable2 -> List comparable2
+colLevelList (Crosstab { levels }) =
+    Array.toList levels.cols
+
+
+rowList : Crosstab a b comparable1 comparable2 -> List (List a)
+rowList (Crosstab { values }) =
+    toListMatrix values
+
+
+rowSummaryList : Crosstab a b comparable1 comparable2 -> List b
+rowSummaryList (Crosstab { summary }) =
+    Array.toList summary.rows
+
+
+colSummaryList : Crosstab a b comparable1 comparable2 -> List b
+colSummaryList (Crosstab { summary }) =
+    Array.toList summary.cols
+
+
+tableSummary : Crosstab a b comparable1 comparable2 -> b
+tableSummary (Crosstab { summary }) =
+    summary.table
 
 
 
--- MAPPING AND TRANSFORMING
+-- OPERATIONS
 
 
-map :
-    (a -> b)
-    -> Crosstab a comparable1 comparable2
-    -> Crosstab b comparable1 comparable2
-map func (Crosstab crosstab) =
-    Crosstab
-        { crosstab
-            | matrix = Matrix.map func crosstab.matrix
-        }
+calc :
+    Calc b b d
+    -> Calc a b c
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab c d comparable1 comparable2
+calc summary (Calc value) (Crosstab { levels, values }) =
+    let
+        ( nrows, ncols ) =
+            values.size
+
+        accum i j a m =
+            Matrix.update i j (value.accum a) m
+
+        finalize matrix =
+            Crosstab
+                { levels = levels
+                , values = Matrix.map value.map matrix
+                , summary = calcValuesSummary summary matrix
+                }
+    in
+        foldlMatrix accum
+            (Matrix.repeat nrows ncols value.init)
+            values
+            |> finalize
 
 
 compare :
-    (Comparator a -> a -> b)
-    -> b
-    -> Summary a
-    -> Crosstab a comparable1 comparable2
-    -> Crosstab b comparable1 comparable2
-compare func init { table, rows, cols } (Crosstab crosstab) =
+    (Comparator a b -> a -> c)
+    -> c
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab c b comparable1 comparable2
+compare comp init (Crosstab { levels, summary, values }) =
+    Crosstab
+        { levels = levels
+        , values = compareSummaryValues comp init summary values
+        , summary = summary
+        }
+
+
+calcCompare :
+    (Comparator a b -> a -> c)
+    -> Calc c c d
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab c d comparable1 comparable2
+calcCompare comp (Calc calc) (Crosstab { levels, summary, values }) =
+    let
+        newValues =
+            compareSummaryValues comp calc.init summary values
+
+        newSummary =
+            calcValuesSummary (Calc calc) newValues
+    in
+        Crosstab
+            { levels = levels
+            , values = newValues
+            , summary = newSummary
+            }
+
+
+
+-- CALC CONSTRUCTORS
+
+
+customCalc :
+    { x | map : b -> c, accum : a -> b -> b, init : b }
+    -> Calc a b c
+customCalc { map, accum, init } =
+    Calc
+        { map = map, accum = accum, init = init }
+
+mapCalc2 :
+    (c -> e -> f)
+    -> Calc a b c
+    -> Calc a d e
+    -> Calc a (b,d) f
+mapCalc2 func (Calc c1) (Calc c2) =
+   Calc
+      { map = (\(b,d) -> func (c1.map b) (c2.map d))
+      , accum = (\a (b,d) -> (c1.accum a b, c2.accum a d))   
+      , init = (c1.init, c2.init)
+      }
+
+
+-- INTERNAL
+
+
+calcValuesSummary : Calc a b c -> Values a -> Summary c
+calcValuesSummary (Calc { init, accum, map }) matrix =
     let
         ( nrows, ncols ) =
-            crosstab.matrix.size
+            matrix.size
+
+        accum_ i j a v =
+            { v
+                | table = accum a v.table
+                , rows = updateArray i (accum a) v.rows
+                , cols = updateArray j (accum a) v.cols
+            }
+
+        finalize v =
+            { v
+                | table = map v.table
+                , rows = Array.map map v.rows
+                , cols = Array.map map v.cols
+            }
+    in
+        foldlMatrix accum_
+            { table = init
+            , rows = Array.repeat nrows init
+            , cols = Array.repeat ncols init
+            }
+            matrix
+            |> finalize
+
+
+compareSummaryValues :
+    (Comparator a b -> a -> c)
+    -> c
+    -> Summary b
+    -> Values a
+    -> Values c
+compareSummaryValues func init { table, rows, cols } matrix =
+    let
+        ( nrows, ncols ) =
+            matrix.size
 
         comparator t r c pr pc =
             { table = t
@@ -302,10 +339,10 @@ compare func init { table, rows, cols } (Crosstab crosstab) =
         accum i j a m =
             let
                 pr =
-                    Matrix.get (i - 1) j crosstab.matrix
+                    Matrix.get (i - 1) j matrix
 
                 pc =
-                    Matrix.get i (j - 1) crosstab.matrix
+                    Matrix.get i (j - 1) matrix
             in
                 Matrix.set
                     i
@@ -316,200 +353,10 @@ compare func init { table, rows, cols } (Crosstab crosstab) =
                         |> Maybe.withDefault init
                     )
                     m
-
-        finalize m =
-            Crosstab
-                { matrix = m
-                , rows = crosstab.rows
-                , cols = crosstab.cols
-                }
     in
         foldlMatrix accum
             (Matrix.repeat nrows ncols init)
-            crosstab.matrix
-            |> finalize
-
-
-innerJoin :
-    (a -> b -> c)
-    -> c
-    -> Crosstab a comparable1 comparable2
-    -> Crosstab b comparable1 comparable2
-    -> Crosstab c comparable1 comparable2
-innerJoin func init (Crosstab c1) (Crosstab c2) =
-    if c1.rows == c2.rows && c1.cols == c2.cols then
-        leftJoinHelp func init c1.rows c1.cols c1.matrix c2.matrix
-    else
-        let
-            newLevels levels1 levels2 =
-                Set.intersect (setFromArray levels1) (setFromArray levels2)
-                    |> setToArray
-
-            filter_ =
-                filterByLevels
-                    (newLevels c1.rows c2.rows)
-                    (newLevels c1.cols c2.cols)
-
-            (Crosstab newC1) =
-                filter_ (Crosstab c1)
-
-            (Crosstab newC2) =
-                filter_ (Crosstab c2)
-        in
-            leftJoinHelp func init newC1.rows newC1.cols newC1.matrix newC2.matrix
-
-
-leftJoinHelp :
-    (a -> b -> c)
-    -> c
-    -> Array comparable1
-    -> Array comparable2
-    -> Matrix a
-    -> Matrix b
-    -> Crosstab c comparable1 comparable2
-leftJoinHelp func init rows cols m1 m2 =
-    let
-        ( nrows, ncols ) =
-            m1.size
-
-        accum i j a m =
-            m2
-                |> Matrix.get i j
-                |> Maybe.map (\b -> Matrix.set i j (func a b) m)
-                |> Maybe.withDefault m
-
-        finalize m =
-            Crosstab
-                { matrix = m
-                , rows = rows
-                , cols = cols
-                }
-    in
-        foldlMatrix accum
-            (Matrix.repeat nrows ncols init)
-            m1
-            |> finalize
-
-
-filterByRowLevels :
-    Array comparable1
-    -> Crosstab a comparable1 comparable2
-    -> Crosstab a comparable1 comparable2
-filterByRowLevels rows (Crosstab c) =
-    filterByLevels rows c.cols (Crosstab c)
-
-
-filterByColLevels :
-    Array comparable2
-    -> Crosstab a comparable1 comparable2
-    -> Crosstab a comparable1 comparable2
-filterByColLevels cols (Crosstab c) =
-    filterByLevels c.rows cols (Crosstab c)
-
-
-filterByLevels :
-    Array comparable1
-    -> Array comparable2
-    -> Crosstab a comparable1 comparable2
-    -> Crosstab a comparable1 comparable2
-filterByLevels rows cols (Crosstab c) =
-    let
-        levelIndexMap levels max =
-            indexMapArray levels
-                |> Dict.filter (\_ i -> i > -1 && i < max)
-
-        mapToArray dict =
-            Dict.toList dict
-                |> List.sortBy Tuple.second
-                |> Array.fromList
-
-        newRows =
-            levelIndexMap rows (Array.length c.rows)
-                |> mapToArray
-
-        newCols =
-            levelIndexMap cols (Array.length c.cols)
-                |> mapToArray
-    in
-        Crosstab
-            { c
-                | rows = Array.map Tuple.first newRows
-                , cols = Array.map Tuple.first newCols
-                , matrix =
-                    (filterMatrixByIndexes
-                        (Array.map Tuple.second newRows)
-                        (Array.map Tuple.second newCols)
-                        c.matrix
-                    )
-            }
-
-
--- CALCULATIONS
-
-
-calc :
-    (Levels comparable1 comparable2 -> Values a -> Summary b -> c)
-    -> Calc a b
-    -> Crosstab a comparable1 comparable2
-    -> c
-calc func ca ct =
-    calcSummary ca ct |> (\sum -> func (levels ct) (values ct) sum)
-
-
-calcSummary :
-    Calc a b
-    -> Crosstab a comparable1 comparable2
-    -> Summary b
-calcSummary (Calc { init, add, map }) (Crosstab { matrix }) =
-    let
-        ( nrows, ncols ) =
-            matrix.size
-
-        accum i j a v =
-            { v
-                | table = add a v.table
-                , rows = updateArray i (add a) v.rows
-                , cols = updateArray j (add a) v.cols
-            }
-
-        finalize v =
-            { v
-                | table = map v.table
-                , rows = Array.map map v.rows
-                , cols = Array.map map v.cols
-            }
-    in
-        foldlMatrix accum
-            { table = init
-            , rows = Array.repeat nrows init
-            , cols = Array.repeat ncols init
-            }
             matrix
-            |> finalize
-
-
-defineCalc :
-    { x
-        | add : a -> a -> a
-        , init : a
-        , map : a -> b
-    }
-    -> Calc a b
-defineCalc { add, init, map } =
-    Calc
-        { add = add
-        , init = init
-        , map = map
-        }
-
-
-calcMap : (b -> c) -> Calc a b -> Calc a c
-calcMap newmap (Calc { add, init, map }) =
-    Calc
-        { add = add
-        , init = init
-        , map = map >> newmap
-        }
 
 
 
