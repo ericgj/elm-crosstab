@@ -2,11 +2,14 @@ module Crosstab.Stats exposing
     ( Basic
     , basicOf
     , basic
+    , basicAndValuesOf
+    , basicAndValues
     , sd
     )
 
 import Crosstab exposing (Calc, customCalc, mapCalc2)
 import Crosstab.Calc exposing (listOf)
+
 
 type alias Basic =
     { min : Maybe Float
@@ -14,16 +17,25 @@ type alias Basic =
     , count : Int
     , sum : Float
     , mean : Maybe Float
+    , runMean : Float
+    , ss : Float
+    , var : Maybe Float
+    , sd : Maybe Float
     }
+
 
 emptyBasic : Basic
 emptyBasic =
-            { min = Nothing
-            , max = Nothing
-            , count = 0
-            , sum = 0.0
-            , mean = Nothing
-            }
+    { min = Nothing
+    , max = Nothing
+    , count = 0
+    , sum = 0.0
+    , mean = Nothing
+    , runMean = 0.0
+    , ss = 0.0
+    , var = Nothing
+    , sd = Nothing
+    }
 
 
 basicOf : (a -> Float) -> (Basic -> b) -> Calc a Basic b
@@ -34,9 +46,10 @@ basicOf getter map_ =
         , init = emptyBasic
         }
 
-basicAndValuesOf : (a -> Float) -> (Basic -> List Float -> b) -> Calc a (Basic, List Float) b
+
+basicAndValuesOf : (a -> Float) -> (Basic -> List Float -> b) -> Calc a ( Basic, List Float ) b
 basicAndValuesOf getter map_ =
-    mapCalc2 map_ (basicOf getter identity) (listOf getter identity) 
+    mapCalc2 map_ (basicOf getter identity) (listOf getter identity)
 
 
 basic : (Basic -> b) -> Calc Basic Basic b
@@ -47,57 +60,142 @@ basic map_ =
         , init = emptyBasic
         }
 
-basicAndValues : (Basic -> List Float -> b) -> Calc (Basic, List Float) (Basic, List Float) b
+
+basicAndValues : (Basic -> List Float -> b) -> Calc ( Basic, List Float ) ( Basic, List Float ) b
 basicAndValues map_ =
     customCalc
-        { map = (\(b,vs) -> map_ b vs)
-        , accum = (\(b1,vs1) (b2,vs2) -> (addBasic b1 b2, vs1 ++ vs2))
-        , init = (emptyBasic, [])
+        { map = (\( b, vs ) -> map_ b vs)
+        , accum = (\( b1, vs1 ) ( b2, vs2 ) -> ( addBasic b1 b2, vs1 ++ vs2 ))
+        , init = ( emptyBasic, [] )
         }
 
 
+{-
+
+Note: the variance calculations use Welford's single-pass algorithm described 
+here:
+
+https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
+
+-}
 accumBasic : Float -> Basic -> Basic
 accumBasic x sums =
     let
-        newcount = addCount sums.count 
-        newsum = addSum x sums.sum
-        newmean = Just (newsum / (toFloat newcount))
-    in
-      { sums
-          | min = addMin (Just x) sums.min
-          , max = addMax (Just x) sums.max
-          , count = newcount
-          , sum = newsum
-          , mean = newmean
-       }
+        newcount =
+            addCount sums.count
 
+        newsum =
+            addSum x sums.sum
+
+        newmean =
+            Just (newsum / (toFloat newcount))
+
+        newrunMean =
+            sums.runMean + ((x - sums.runMean) / (toFloat newcount))
+
+        newss =
+            let
+                d1 =
+                    x - sums.runMean
+
+                d2 =
+                    x - newrunMean
+            in
+                (d1 * d2)
+
+        newvar =
+            if newcount < 2 then
+                Nothing
+            else
+                Just (newss / (toFloat (newcount - 1)))
+    in
+        { sums
+            | min = addMin (Just x) sums.min
+            , max = addMax (Just x) sums.max
+            , count = newcount
+            , sum = newsum
+            , mean = newmean
+            , runMean = newrunMean
+            , ss = newss
+            , var = newvar
+            , sd = newvar |> Maybe.map sqrt
+        }
+
+{-
+
+Note: the summary variance calculations use a weighted version of Welford's 
+algorithm with the counts as the weights, described here:
+
+https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
+
+-}
 addBasic : Basic -> Basic -> Basic
 addBasic new sums =
     let
-        newcount = addSum new.count sums.count 
-        newsum = addSum new.sum sums.sum
-        newmean = Just (newsum / (toFloat newcount))
+        newcount =
+            addSum new.count sums.count
+
+        newsum =
+            addSum new.sum sums.sum
+
+        newmean =
+            Just (newsum / (toFloat newcount))
+        
+        newrunMean =
+            sums.runMean + (((toFloat new.count) / (toFloat newcount)) * (new.sum - sums.runMean))
+
+        newss =
+            sums.ss + ((toFloat new.count) * (new.sum - sums.runMean) * (new.sum - newrunMean))
+
+        newvar =
+            if newcount < 2 then
+                Nothing
+            else
+                Just (newss / (toFloat (newcount - 1)))
     in
-      { sums
-          | min = addMin new.min sums.min
-          , max = addMax new.max sums.max
-          , count = newcount
-          , sum = newsum
-          , mean = newmean
-       }
+        { sums
+            | min = addMin new.min sums.min
+            , max = addMax new.max sums.max
+            , count = newcount
+            , sum = newsum
+            , mean = newmean
+            , runMean = newrunMean
+            , ss = newss
+            , var = newvar
+            , sd = newvar |> Maybe.map sqrt
+        }
 
 
 addMin : Maybe Float -> Maybe Float -> Maybe Float
 addMin mi mn =
-    addMaybe (\i n -> if (i - n) < 0 then i else n) mi mn
+    addMaybe
+        (\i n ->
+            if (i - n) < 0 then
+                i
+            else
+                n
+        )
+        mi
+        mn
+
 
 addMax : Maybe Float -> Maybe Float -> Maybe Float
 addMax mi mn =
-    addMaybe (\i n -> if (i - n) > 0 then i else n) mi mn
+    addMaybe
+        (\i n ->
+            if (i - n) > 0 then
+                i
+            else
+                n
+        )
+        mi
+        mn
+
 
 addCount : Int -> Int
 addCount n =
     n + 1
+
 
 addSum : number -> number -> number
 addSum i n =
@@ -106,37 +204,38 @@ addSum i n =
 
 addMaybe : (a -> a -> a) -> Maybe a -> Maybe a -> Maybe a
 addMaybe add_ m1 m2 =
-    case (m1,m2) of
-        (Nothing, Nothing) -> 
+    case ( m1, m2 ) of
+        ( Nothing, Nothing ) ->
             Nothing
-        (Just a1, Nothing) -> 
+
+        ( Just a1, Nothing ) ->
             Just a1
-        (Nothing, Just a2) ->
+
+        ( Nothing, Just a2 ) ->
             Just a2
-        (Just a1, Just a2) ->
+
+        ( Just a1, Just a2 ) ->
             add_ a1 a2 |> Just
 
-
-
+            
 -- MAPS
-
 
 {-|
 
-Calculate standard deviation from basic stats and a list of raw values.
+Calculate "second pass" standard deviation from basic stats and a list of raw 
+values.  Usually this will not be needed as the single-pass standard deviation
+is good enough in most cases.
 
     fromList (basicAndValues sd) (basicAndValuesOf .floatField sd) levels data
 
 -}
 sd : Basic -> List Float -> Maybe Float
-sd {mean, count} values =
+sd { mean, count } values =
     mean |> Maybe.map (\m -> sdHelp m count values)
 
 
 sdHelp : Float -> Int -> List Float -> Float
 sdHelp m c vs =
-    List.foldr (\v dev -> (v - m) ^ 2) 0 vs
-        |> (\dev -> sqrt (dev / (toFloat c)))
-
-
+    List.foldr (\v ss -> ss + ((v - m) ^ 2)) 0 vs
+        |> (\ss -> sqrt (ss / (toFloat (c - 1))))
 
