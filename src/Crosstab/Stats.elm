@@ -8,7 +8,7 @@ module Crosstab.Stats exposing
     , chisq
     )
 
-import Crosstab exposing (Calc, Comparator, customCalc, mapCalc2, mapCalcOf)
+import Crosstab exposing (Calc, Compare, customCalc, mapCalc2, mapCalcOf)
 import Crosstab.Calc exposing (listOf)
 
 
@@ -247,7 +247,7 @@ sdHelp m c vs =
 
 -- COMPARISONS
 
-chisq : Comparator Float Float -> Float -> Float
+chisq : Compare Float Float -> Float -> Float
 chisq {row, col, table} value =
     let
         exp = col * (row / table)

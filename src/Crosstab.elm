@@ -3,7 +3,7 @@ module Crosstab
         ( Crosstab
         , Calc
         , LevelMap
-        , Comparator
+        , Compare
         , Levels
         , Values
         , Summary
@@ -48,7 +48,7 @@ type LevelMap a comparable1 comparable2
         }
 
 
-type alias Comparator a b =
+type alias Compare a b =
     { table : b
     , row : b
     , col : b
@@ -227,7 +227,7 @@ calc summary (Calc value) (Crosstab { levels, values }) =
 
 
 compare :
-    (Comparator a b -> a -> c)
+    (Compare a b -> a -> c)
     -> c
     -> Crosstab a b comparable1 comparable2
     -> Crosstab c b comparable1 comparable2
@@ -240,7 +240,7 @@ compare comp init (Crosstab { levels, summary, values }) =
 
 
 calcCompare :
-    (Comparator a b -> a -> c)
+    (Compare a b -> a -> c)
     -> Calc c c d
     -> Crosstab a b comparable1 comparable2
     -> Crosstab c d comparable1 comparable2
@@ -324,7 +324,7 @@ calcValuesSummary (Calc { init, accum, map }) matrix =
 
 
 compareSummaryValues :
-    (Comparator a b -> a -> c)
+    (Compare a b -> a -> c)
     -> c
     -> Summary b
     -> Values a
