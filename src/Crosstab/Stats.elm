@@ -1,11 +1,11 @@
 module Crosstab.Stats exposing 
-    ( Basic
-    , basicOf
-    , basic
-    , basicAndValuesOf
-    , basicAndValues
-    , basicAndUniquesOf
-    , basicAndUniques
+    ( Summary
+    , summaryOf
+    , summary
+    , summaryAndValuesOf
+    , summaryAndValues
+    , summaryAndUniquesOf
+    , summaryAndUniques
     , sd
     , chisq
     )
@@ -15,7 +15,7 @@ import Crosstab exposing (Calc, Compare, customCalc, mapCalcOf, mapCalc2, mapCal
 import Crosstab.Calc exposing (listOf,list,uniqueOf,unique)
 
 
-type alias Basic =
+type alias Summary =
     { min : Maybe Float
     , max : Maybe Float
     , count : Int
@@ -28,8 +28,8 @@ type alias Basic =
     }
 
 
-emptyBasic : Basic
-emptyBasic =
+emptySummary : Summary
+emptySummary =
     { min = Nothing
     , max = Nothing
     , count = 0
@@ -42,50 +42,50 @@ emptyBasic =
     }
 
 
-basicOf : (a -> Float) -> (Basic -> b) -> Calc a Basic b
-basicOf getter map_ =
+summaryOf : (a -> Float) -> (Summary -> b) -> Calc a Summary b
+summaryOf getter map_ =
     customCalc
         { map = map_
-        , accum = getter >> accumBasic
-        , init = emptyBasic
+        , accum = getter >> accumSummary
+        , init = emptySummary
         }
 
 
-basicAndValuesOf : 
+summaryAndValuesOf : 
     (a -> Float) 
-    -> (Basic -> List Float -> b) 
-    -> Calc a ( Basic, List Float ) b
-basicAndValuesOf getter map_ =
-    mapCalcOf2 map_ (basicOf getter identity) (listOf getter identity)
+    -> (Summary -> List Float -> b) 
+    -> Calc a ( Summary, List Float ) b
+summaryAndValuesOf getter map_ =
+    mapCalcOf2 map_ (summaryOf getter identity) (listOf getter identity)
 
-basicAndUniquesOf : 
+summaryAndUniquesOf : 
     (a -> Float) 
-    -> (Basic -> Set Float -> b) 
-    -> Calc a ( Basic, Set Float ) b
-basicAndUniquesOf getter map_ =
-    mapCalcOf2 map_ (basicOf getter identity) (uniqueOf getter identity)
+    -> (Summary -> Set Float -> b) 
+    -> Calc a ( Summary, Set Float ) b
+summaryAndUniquesOf getter map_ =
+    mapCalcOf2 map_ (summaryOf getter identity) (uniqueOf getter identity)
 
 
-basic : (Basic -> b) -> Calc Basic Basic b
-basic map_ =
+summary : (Summary -> b) -> Calc Summary Summary b
+summary map_ =
     customCalc
         { map = map_
-        , accum = addBasic
-        , init = emptyBasic
+        , accum = addSummary
+        , init = emptySummary
         }
 
-basicAndValues : 
-    (Basic -> List Float -> b) 
-    -> Calc ( Basic, List Float ) ( Basic, List Float ) b
-basicAndValues map_ =
-    mapCalc2 map_ (basic identity) (list identity)
+summaryAndValues : 
+    (Summary -> List Float -> b) 
+    -> Calc ( Summary, List Float ) ( Summary, List Float ) b
+summaryAndValues map_ =
+    mapCalc2 map_ (summary identity) (list identity)
 
 
-basicAndUniques : 
-    (Basic -> Set Float -> b) 
-    -> Calc ( Basic, Set Float ) ( Basic, Set Float ) b
-basicAndUniques map_ =
-    mapCalc2 map_ (basic identity) (unique identity)
+summaryAndUniques : 
+    (Summary -> Set Float -> b) 
+    -> Calc ( Summary, Set Float ) ( Summary, Set Float ) b
+summaryAndUniques map_ =
+    mapCalc2 map_ (summary identity) (unique identity)
 
 {-
 
@@ -95,8 +95,8 @@ here:
 https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
 
 -}
-accumBasic : Float -> Basic -> Basic
-accumBasic x sums =
+accumSummary : Float -> Summary -> Summary
+accumSummary x sums =
     let
         newcount =
             addCount sums.count
@@ -146,8 +146,8 @@ algorithm with the counts as the weights, described here:
 https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
 
 -}
-addBasic : Basic -> Basic -> Basic
-addBasic new sums =
+addSummary : Summary -> Summary -> Summary
+addSummary new sums =
     let
         newcount =
             addSum new.count sums.count
@@ -239,14 +239,14 @@ addMaybe add_ m1 m2 =
 
 {-|
 
-Calculate "second pass" standard deviation from basic stats and a list of raw 
+Calculate "second pass" standard deviation from summary stats and a list of raw 
 values.  Usually this will not be needed as the single-pass standard deviation
 is good enough in most cases.
 
-    fromList (basicAndValues sd) (basicAndValuesOf .floatField sd) levels data
+    fromList (summaryAndValues sd) (summaryAndValuesOf .floatField sd) levels data
 
 -}
-sd : Basic -> List Float -> Maybe Float
+sd : Summary -> List Float -> Maybe Float
 sd { mean, count } values =
     mean |> Maybe.map (\m -> sdHelp m count values)
 
