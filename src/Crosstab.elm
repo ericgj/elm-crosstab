@@ -14,6 +14,7 @@ module Crosstab
         , compare
         , calcCompare
         , customCalc
+        , mapCalcOf
         , mapCalc2
         )
 
@@ -268,6 +269,14 @@ customCalc :
 customCalc { map, accum, init } =
     Calc
         { map = map, accum = accum, init = init }
+
+mapCalcOf :
+    (a -> b)
+    -> Calc b c d
+    -> Calc a c d
+mapCalcOf getter (Calc calc) =
+   Calc
+       { calc | accum = getter >> calc.accum }
 
 mapCalc2 :
     (c -> e -> f)

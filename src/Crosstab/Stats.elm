@@ -7,7 +7,7 @@ module Crosstab.Stats exposing
     , sd
     )
 
-import Crosstab exposing (Calc, customCalc, mapCalc2)
+import Crosstab exposing (Calc, customCalc, mapCalc2, mapCalcOf)
 import Crosstab.Calc exposing (listOf)
 
 
@@ -47,7 +47,10 @@ basicOf getter map_ =
         }
 
 
-basicAndValuesOf : (a -> Float) -> (Basic -> List Float -> b) -> Calc a ( Basic, List Float ) b
+basicAndValuesOf : 
+    (a -> Float) 
+    -> (Basic -> List Float -> b) 
+    -> Calc a ( Basic, List Float ) b
 basicAndValuesOf getter map_ =
     mapCalc2 map_ (basicOf getter identity) (listOf getter identity)
 
@@ -60,8 +63,9 @@ basic map_ =
         , init = emptyBasic
         }
 
-
-basicAndValues : (Basic -> List Float -> b) -> Calc ( Basic, List Float ) ( Basic, List Float ) b
+basicAndValues : 
+    (Basic -> List Float -> b) 
+    -> Calc ( Basic, List Float ) ( Basic, List Float ) b
 basicAndValues map_ =
     customCalc
         { map = (\( b, vs ) -> map_ b vs)
