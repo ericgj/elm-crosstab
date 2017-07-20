@@ -4,12 +4,15 @@ module Crosstab.Stats exposing
     , basic
     , basicAndValuesOf
     , basicAndValues
+    , basicAndUniquesOf
+    , basicAndUniques
     , sd
     , chisq
     )
 
+import Set exposing (Set)
 import Crosstab exposing (Calc, Compare, customCalc, mapCalcOf, mapCalc2, mapCalcOf2)
-import Crosstab.Calc exposing (listOf,list)
+import Crosstab.Calc exposing (listOf,list,uniqueOf,unique)
 
 
 type alias Basic =
@@ -55,6 +58,13 @@ basicAndValuesOf :
 basicAndValuesOf getter map_ =
     mapCalcOf2 map_ (basicOf getter identity) (listOf getter identity)
 
+basicAndUniquesOf : 
+    (a -> Float) 
+    -> (Basic -> Set Float -> b) 
+    -> Calc a ( Basic, Set Float ) b
+basicAndUniquesOf getter map_ =
+    mapCalcOf2 map_ (basicOf getter identity) (uniqueOf getter identity)
+
 
 basic : (Basic -> b) -> Calc Basic Basic b
 basic map_ =
@@ -69,6 +79,13 @@ basicAndValues :
     -> Calc ( Basic, List Float ) ( Basic, List Float ) b
 basicAndValues map_ =
     mapCalc2 map_ (basic identity) (list identity)
+
+
+basicAndUniques : 
+    (Basic -> Set Float -> b) 
+    -> Calc ( Basic, Set Float ) ( Basic, Set Float ) b
+basicAndUniques map_ =
+    mapCalc2 map_ (basic identity) (unique identity)
 
 {-
 
