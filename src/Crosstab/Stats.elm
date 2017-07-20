@@ -5,9 +5,10 @@ module Crosstab.Stats exposing
     , basicAndValuesOf
     , basicAndValues
     , sd
+    , chisq
     )
 
-import Crosstab exposing (Calc, customCalc, mapCalc2, mapCalcOf)
+import Crosstab exposing (Calc, Comparator, customCalc, mapCalc2, mapCalcOf)
 import Crosstab.Calc exposing (listOf)
 
 
@@ -242,4 +243,14 @@ sdHelp : Float -> Int -> List Float -> Float
 sdHelp m c vs =
     List.foldr (\v ss -> ss + ((v - m) ^ 2)) 0 vs
         |> (\ss -> sqrt (ss / (toFloat (c - 1))))
+
+
+-- COMPARISONS
+
+chisq : Comparator Float Float -> Float -> Float
+chisq {row, col, table} value =
+    let
+        exp = col * (row / table)
+    in
+        ((value - exp) ^ 2) / exp
 
