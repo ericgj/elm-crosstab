@@ -8,8 +8,8 @@ module Crosstab.Stats exposing
     , chisq
     )
 
-import Crosstab exposing (Calc, Compare, customCalc, mapCalc2, mapCalcOf)
-import Crosstab.Calc exposing (listOf)
+import Crosstab exposing (Calc, Compare, customCalc, mapCalcOf, mapCalc2, mapCalcOf2)
+import Crosstab.Calc exposing (listOf,list)
 
 
 type alias Basic =
@@ -53,7 +53,7 @@ basicAndValuesOf :
     -> (Basic -> List Float -> b) 
     -> Calc a ( Basic, List Float ) b
 basicAndValuesOf getter map_ =
-    mapCalc2 map_ (basicOf getter identity) (listOf getter identity)
+    mapCalcOf2 map_ (basicOf getter identity) (listOf getter identity)
 
 
 basic : (Basic -> b) -> Calc Basic Basic b
@@ -68,12 +68,7 @@ basicAndValues :
     (Basic -> List Float -> b) 
     -> Calc ( Basic, List Float ) ( Basic, List Float ) b
 basicAndValues map_ =
-    customCalc
-        { map = (\( b, vs ) -> map_ b vs)
-        , accum = (\( b1, vs1 ) ( b2, vs2 ) -> ( addBasic b1 b2, vs1 ++ vs2 ))
-        , init = ( emptyBasic, [] )
-        }
-
+    mapCalc2 map_ (basic identity) (list identity)
 
 {-
 
