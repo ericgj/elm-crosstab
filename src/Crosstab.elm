@@ -12,7 +12,7 @@ module Crosstab
         , levelsOf
         , calc
         , compare
-        , calcCompare
+        , compareAndCalc
         , customCalc
         , mapCalcOf
         , mapCalc2
@@ -201,30 +201,15 @@ tableSummary (Crosstab { summary }) =
 
 
 calc :
-    Calc b b d
-    -> Calc a b c
+    Calc a b c
     -> Crosstab a b comparable1 comparable2
-    -> Crosstab c d comparable1 comparable2
-calc summary (Calc value) (Crosstab { levels, values }) =
-    let
-        ( nrows, ncols ) =
-            values.size
-
-        accum i j a m =
-            Matrix.update i j (value.accum a) m
-
-        finalize matrix =
-            Crosstab
-                { levels = levels
-                , values = Matrix.map value.map matrix
-                , summary = calcValuesSummary summary matrix
-                }
-    in
-        foldlMatrix accum
-            (Matrix.repeat nrows ncols value.init)
-            values
-            |> finalize
-
+    -> Crosstab a c comparable1 comparable2
+calc summary (Crosstab { levels, values }) =
+    Crosstab
+        { levels = levels
+        , values = values
+        , summary = calcValuesSummary summary values
+        }
 
 compare :
     (Compare a b -> a -> c)
@@ -239,12 +224,12 @@ compare comp init (Crosstab { levels, summary, values }) =
         }
 
 
-calcCompare :
+compareAndCalc :
     (Compare a b -> a -> c)
     -> Calc c c d
     -> Crosstab a b comparable1 comparable2
     -> Crosstab c d comparable1 comparable2
-calcCompare comp (Calc calc) (Crosstab { levels, summary, values }) =
+compareAndCalc comp (Calc calc) (Crosstab { levels, summary, values }) =
     let
         newValues =
             compareSummaryValues comp calc.init summary values
