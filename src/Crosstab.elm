@@ -27,7 +27,7 @@ module Crosstab
 {-| 
 A library for calculating crosstab (AKA contingency) tables.
 
-Built on top of [elm-flat-matrix][].
+Built on top of [elm-flat-matrix][] for efficient processing.
 
 # Constructing
 
@@ -83,6 +83,11 @@ type Crosstab a b comparable1 comparable2
 
 Internal structure of a calculation. See prebuilt calculations in 
 `Crosstab.Calc` and `Crosstab.Stats`, or construct your own with `customCalc`.
+
+Essentially, a calculation defines an initial value, an accumulation function,
+and a map over the accumulated value.
+
+See [Defining calculations](#defining-calculations) for details.
 
 -}
 type Calc a b c
@@ -152,16 +157,16 @@ type alias Summary a =
 
 {-|
 
-Load and calculate a crosstab table from source data given 
+Load and calculate a crosstab table from source data given: 
 
   - a _summary_ calculation, 
   - a _value_ calculation, and
   - a mapping of row and column levels from source data.
 
-Assuming you have a list of records where `x1` is your row category, `x2` is 
-your column category, and `y` is your value, this will calculate a crosstab
-where the _values_ in the table are the sums of y, and the _summary_ of the
-rows, columns, and overall table are the means of those sums.
+Assuming you have a list of records where `x1` is your row category, `x2` is
+your column category, and `y` is your value, the following will calculate a
+crosstab where the _values_ in the table are the sums of y, and the _summary_
+of the rows, columns, and overall table are the _means_ of those sums.
 
     fromList 
         (Crosstab.Stats.summary .mean) 
@@ -370,9 +375,9 @@ the necessary summary calculations as part of the initial load (`fromList`).
 But in principle you could use it to do a different calculation over the
 same crosstab.
 
-For instance, with something like this you could use the same underlying 
-crosstab data (stored as `Set a`)  to calculate _first_ the unique counts
-(`Set.size`), and _then_ the quantiles, without having to load the data
+For instance, with something like this you could use the same underlying
+crosstab data (stored as `Set comparable`)  to calculate _first_ the unique
+counts (`Set.size`), and _then_ the quantiles, without having to load the data
 in again:
 
     uniqueCounts =
@@ -382,8 +387,8 @@ in again:
             (levelMap { row = .x1, col = .x2 })
             data
         
-    quantiles =
-        calc ( quantiles [0.25,0.5,0.75] ) uniqueCounts
+    iqrs =
+        uniqueCounts |> calc ( quantiles [0.25,0.5,0.75] )
 
 -}
 calc :
