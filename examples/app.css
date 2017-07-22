@@ -1,0 +1,15 @@
+
+
+html {
+  font: 1vw/1.1 Verdana, sans-serif;
+  box-sizing: inherit;
+}
+
+*, *:before, *:after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 1rem;
+}
+

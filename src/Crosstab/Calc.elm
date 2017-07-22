@@ -89,6 +89,20 @@ floatOf :
 floatOf getter accum =
     mapCalcOf getter (float accum)
 
+number :
+    (number -> number -> number)
+    -> Calc number number number
+number accum =
+    customCalc
+        { map = identity, accum = accum, init = 0 }
+
+numberOf :
+    (a -> number)
+    -> (number -> number -> number)
+    -> Calc a number number
+numberOf getter accum =
+    mapCalcOf getter (number accum)
+
 
 --  TYPICAL CALCS
 
@@ -102,13 +116,13 @@ count =
         }
 
 
-sum : Calc Float Float Float
+sum : Calc number number number
 sum =
-    float (+) 
+    number (+) 
 
-sumOf : (a -> Float) -> Calc a Float Float
+sumOf : (a -> number) -> Calc a number number
 sumOf getter =
-    floatOf getter (+)
+    numberOf getter (+)
 
 
 mean : Calc Float (Float, Int) Float

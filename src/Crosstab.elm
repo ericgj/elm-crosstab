@@ -672,6 +672,7 @@ toListMatrix matrix =
         foldlMatrix accum
             (Array.repeat (Matrix.width matrix) [])
             matrix
+            |> Array.map List.reverse
             |> Array.toList
 
 
