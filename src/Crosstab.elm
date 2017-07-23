@@ -243,14 +243,14 @@ fromListWithLevels { rows, cols } summary (Calc value) (LevelMap { row, col }) r
             col record |> flip Dict.get colMap
 
         accum a data =
-            Maybe.map2 (\r c -> accumHelp r c a data) (mrow a) (mcol a)
+            Maybe.map2 (\c r -> accumHelp c r a data) (mcol a) (mrow a)
                 |> Maybe.withDefault data
 
-        accumHelp r c a matrix =
-            Matrix.update r c (value.accum a) matrix
+        accumHelp c r a matrix =
+            Matrix.update c r (value.accum a) matrix
 
         initData =
-            Matrix.repeat (Array.length rows) (Array.length cols) value.init
+            Matrix.repeat (Array.length cols) (Array.length rows) value.init
 
         finalize matrix =
             Crosstab
@@ -344,7 +344,7 @@ Get the list of values from a crosstab (rows of columns).
 -}
 rowList : Crosstab a b comparable1 comparable2 -> List (List a)
 rowList (Crosstab { values }) =
-    Matrix.Util.toList values
+    Matrix.Util.toListRows values
 
 {-|
 
@@ -597,14 +597,14 @@ mapCalc2 func (Calc c1) (Calc c2) =
 calcValuesSummary : Calc a b c -> Values a -> Summary c
 calcValuesSummary (Calc { init, accum, map }) matrix =
     let
-        ( nrows, ncols ) =
+        ( ncols, nrows ) =
             matrix.size
 
-        accum_ i j a v =
+        accum_ c r a v =
             { v
                 | table = accum a v.table
-                , rows = updateArray i (accum a) v.rows
-                , cols = updateArray j (accum a) v.cols
+                , rows = updateArray r (accum a) v.rows
+                , cols = updateArray c (accum a) v.cols
             }
 
         finalize v =
@@ -631,7 +631,7 @@ compareSummaryValues :
     -> Values c
 compareSummaryValues func init { table, rows, cols } matrix =
     let
-        comparator t r c pr pc =
+        comparator t c r pc pr =
             { table = t
             , row = r
             , col = c
@@ -639,21 +639,21 @@ compareSummaryValues func init { table, rows, cols } matrix =
             , prevCol = pc
             }
 
-        compare_ f a t pr pc r c =
-            f (comparator t r c pr pc) a
+        compare_ f a t pc pr c r =
+            f (comparator t c r pc pr) a
 
-        map_ x y a =
+        map_ c r a =
             let
                 pr =
-                    Matrix.get (x - 1) y matrix
+                    Matrix.get c (r - 1) matrix
 
                 pc =
-                    Matrix.get x (y - 1) matrix
+                    Matrix.get (c - 1) r matrix
 
             in
-                Maybe.map2 (compare_ func a table pr pc)
-                    (Array.get x rows)
-                    (Array.get y cols)
+                Maybe.map2 (compare_ func a table pc pr)
+                    (Array.get c cols)
+                    (Array.get r rows)
                     |> Maybe.withDefault init
 
     in
@@ -668,10 +668,10 @@ compareSummaryValuesAccum :
     -> Values c
 compareSummaryValuesAccum func init { table, rows, cols } matrix =
     let
-        ( nrows, ncols ) =
+        ( ncols, nrows ) =
             matrix.size
 
-        comparator t r c pr pc cr cc =
+        comparator t c r pc pr cc cr =
             { table = t
             , row = r
             , col = c
@@ -681,36 +681,36 @@ compareSummaryValuesAccum func init { table, rows, cols } matrix =
             , cumCol = cc
             }
 
-        compare_ f a t pr pc cr cc r c =
-            f (comparator t r c pr pc cr cc) a
+        compare_ f a t pc pr cc cr c r =
+            f (comparator t c r pc pr cc cr) a
 
-        accum x y a m =
+        accum c r a m =
             let
                 pr =
-                    Matrix.get (x - 1) y matrix
+                    Matrix.get c (r - 1) matrix
 
                 pc =
-                    Matrix.get x (y - 1) matrix
+                    Matrix.get (c - 1) r matrix
 
                 cr =
-                    Matrix.get (x - 1) y m  |> Maybe.withDefault init
+                    Matrix.get c (r - 1) m  |> Maybe.withDefault init
 
                 cc =
-                    Matrix.get x (y - 1) m  |> Maybe.withDefault init
+                    Matrix.get (c - 1) r m  |> Maybe.withDefault init
 
             in
                 Matrix.set
-                    x
-                    y
-                    (Maybe.map2 (compare_ func a table pr pc cr cc)
-                        (Array.get x rows)
-                        (Array.get y cols)
+                    c
+                    r
+                    (Maybe.map2 (compare_ func a table pc pr cc cr)
+                        (Array.get c cols)
+                        (Array.get r rows)
                         |> Maybe.withDefault init
                     )
                     m
     in
         Matrix.Util.foldl accum
-            (Matrix.repeat nrows ncols init)
+            (Matrix.repeat ncols nrows init)
             matrix
 
 

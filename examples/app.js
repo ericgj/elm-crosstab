@@ -10597,12 +10597,37 @@ var _user$project$Matrix_Util$filterMatrixByIndexes = F3(
 					_elm_lang$core$Maybe$Nothing),
 				matrix));
 	});
-var _user$project$Matrix_Util$toList = function (matrix) {
+var _user$project$Matrix_Util$toListRows = function (matrix) {
 	var accum = F4(
-		function (x, y, a, ar) {
+		function (c, r, a, ar) {
 			return A3(
 				_user$project$Matrix_Util$updateArray,
-				x,
+				r,
+				F2(
+					function (x, y) {
+						return {ctor: '::', _0: x, _1: y};
+					})(a),
+				ar);
+		});
+	return _elm_lang$core$Array$toList(
+		A2(
+			_elm_lang$core$Array$map,
+			_elm_lang$core$List$reverse,
+			A3(
+				_user$project$Matrix_Util$foldl,
+				accum,
+				A2(
+					_elm_lang$core$Array$repeat,
+					_eeue56$elm_flat_matrix$Matrix$height(matrix),
+					{ctor: '[]'}),
+				matrix)));
+};
+var _user$project$Matrix_Util$toListColumns = function (matrix) {
+	var accum = F4(
+		function (c, r, a, ar) {
+			return A3(
+				_user$project$Matrix_Util$updateArray,
+				c,
 				F2(
 					function (x, y) {
 						return {ctor: '::', _0: x, _1: y};
@@ -10786,77 +10811,77 @@ var _user$project$Crosstab$compareSummaryValuesAccum = F4(
 	function (func, init, _p3, matrix) {
 		var _p4 = _p3;
 		var comparator = F7(
-			function (t, r, c, pr, pc, cr, cc) {
+			function (t, c, r, pc, pr, cc, cr) {
 				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc, cumRow: cr, cumCol: cc};
 			});
 		var compare_ = F9(
-			function (f, a, t, pr, pc, cr, cc, r, c) {
+			function (f, a, t, pc, pr, cc, cr, c, r) {
 				return A2(
 					f,
-					A7(comparator, t, r, c, pr, pc, cr, cc),
+					A7(comparator, t, c, r, pc, pr, cc, cr),
 					a);
 			});
 		var accum = F4(
-			function (x, y, a, m) {
+			function (c, r, a, m) {
 				var cc = A2(
 					_elm_lang$core$Maybe$withDefault,
 					init,
-					A3(_eeue56$elm_flat_matrix$Matrix$get, x, y - 1, m));
+					A3(_eeue56$elm_flat_matrix$Matrix$get, c - 1, r, m));
 				var cr = A2(
 					_elm_lang$core$Maybe$withDefault,
 					init,
-					A3(_eeue56$elm_flat_matrix$Matrix$get, x - 1, y, m));
-				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, x, y - 1, matrix);
-				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, x - 1, y, matrix);
+					A3(_eeue56$elm_flat_matrix$Matrix$get, c, r - 1, m));
+				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, c - 1, r, matrix);
+				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, c, r - 1, matrix);
 				return A4(
 					_eeue56$elm_flat_matrix$Matrix$set,
-					x,
-					y,
+					c,
+					r,
 					A2(
 						_elm_lang$core$Maybe$withDefault,
 						init,
 						A3(
 							_elm_lang$core$Maybe$map2,
-							A7(compare_, func, a, _p4.table, pr, pc, cr, cc),
-							A2(_elm_lang$core$Array$get, x, _p4.rows),
-							A2(_elm_lang$core$Array$get, y, _p4.cols))),
+							A7(compare_, func, a, _p4.table, pc, pr, cc, cr),
+							A2(_elm_lang$core$Array$get, c, _p4.cols),
+							A2(_elm_lang$core$Array$get, r, _p4.rows))),
 					m);
 			});
 		var _p5 = matrix.size;
-		var nrows = _p5._0;
-		var ncols = _p5._1;
+		var ncols = _p5._0;
+		var nrows = _p5._1;
 		return A3(
 			_user$project$Matrix_Util$foldl,
 			accum,
-			A3(_eeue56$elm_flat_matrix$Matrix$repeat, nrows, ncols, init),
+			A3(_eeue56$elm_flat_matrix$Matrix$repeat, ncols, nrows, init),
 			matrix);
 	});
 var _user$project$Crosstab$compareSummaryValues = F4(
 	function (func, init, _p6, matrix) {
 		var _p7 = _p6;
 		var comparator = F5(
-			function (t, r, c, pr, pc) {
+			function (t, c, r, pc, pr) {
 				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc};
 			});
 		var compare_ = F7(
-			function (f, a, t, pr, pc, r, c) {
+			function (f, a, t, pc, pr, c, r) {
 				return A2(
 					f,
-					A5(comparator, t, r, c, pr, pc),
+					A5(comparator, t, c, r, pc, pr),
 					a);
 			});
 		var map_ = F3(
-			function (x, y, a) {
-				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, x, y - 1, matrix);
-				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, x - 1, y, matrix);
+			function (c, r, a) {
+				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, c - 1, r, matrix);
+				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, c, r - 1, matrix);
 				return A2(
 					_elm_lang$core$Maybe$withDefault,
 					init,
 					A3(
 						_elm_lang$core$Maybe$map2,
-						A5(compare_, func, a, _p7.table, pr, pc),
-						A2(_elm_lang$core$Array$get, x, _p7.rows),
-						A2(_elm_lang$core$Array$get, y, _p7.cols)));
+						A5(compare_, func, a, _p7.table, pc, pr),
+						A2(_elm_lang$core$Array$get, c, _p7.cols),
+						A2(_elm_lang$core$Array$get, r, _p7.rows)));
 			});
 		return A2(_eeue56$elm_flat_matrix$Matrix$indexedMap, map_, matrix);
 	});
@@ -10876,26 +10901,26 @@ var _user$project$Crosstab$calcValuesSummary = F2(
 				});
 		};
 		var accum_ = F4(
-			function (i, j, a, v) {
+			function (c, r, a, v) {
 				return _elm_lang$core$Native_Utils.update(
 					v,
 					{
 						table: A2(_p11, a, v.table),
 						rows: A3(
 							_user$project$Crosstab$updateArray,
-							i,
+							r,
 							_p11(a),
 							v.rows),
 						cols: A3(
 							_user$project$Crosstab$updateArray,
-							j,
+							c,
 							_p11(a),
 							v.cols)
 					});
 			});
 		var _p10 = matrix.size;
-		var nrows = _p10._0;
-		var ncols = _p10._1;
+		var ncols = _p10._0;
+		var nrows = _p10._1;
 		return finalize(
 			A3(
 				_user$project$Matrix_Util$foldl,
@@ -10921,7 +10946,7 @@ var _user$project$Crosstab$rowSummaryList = function (_p18) {
 };
 var _user$project$Crosstab$rowList = function (_p20) {
 	var _p21 = _p20;
-	return _user$project$Matrix_Util$toList(_p21._0.values);
+	return _user$project$Matrix_Util$toListRows(_p21._0.values);
 };
 var _user$project$Crosstab$colLevelList = function (_p22) {
 	var _p23 = _p22;
@@ -11003,15 +11028,15 @@ var _user$project$Crosstab$fromListWithLevels = F5(
 		};
 		var initData = A3(
 			_eeue56$elm_flat_matrix$Matrix$repeat,
-			_elm_lang$core$Array$length(_p40),
 			_elm_lang$core$Array$length(_p39),
+			_elm_lang$core$Array$length(_p40),
 			_p38.init);
 		var accumHelp = F4(
-			function (r, c, a, matrix) {
+			function (c, r, a, matrix) {
 				return A4(
 					_eeue56$elm_flat_matrix$Matrix$update,
-					r,
 					c,
+					r,
 					_p38.accum(a),
 					matrix);
 			});
@@ -11039,11 +11064,11 @@ var _user$project$Crosstab$fromListWithLevels = F5(
 					A3(
 						_elm_lang$core$Maybe$map2,
 						F2(
-							function (r, c) {
-								return A4(accumHelp, r, c, a, data);
+							function (c, r) {
+								return A4(accumHelp, c, r, a, data);
 							}),
-						mrow(a),
-						mcol(a)));
+						mcol(a),
+						mrow(a)));
 			});
 		return finalize(
 			A3(_elm_lang$core$List$foldr, accum, initData, records));

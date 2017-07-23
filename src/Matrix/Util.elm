@@ -2,7 +2,8 @@ module Matrix.Util
     exposing
         ( sortRowsByColumn
         , sortColumnsByRow
-        , toList
+        , toListColumns
+        , toListRows
         , foldl
         )
 
@@ -74,14 +75,26 @@ sortColumnsByRow index accessor matrix =
             |> Tuple.second
 
 
-toList : Matrix a -> List (List a)
-toList matrix =
+toListColumns : Matrix a -> List (List a)
+toListColumns matrix =
     let
-        accum x y a ar =
-            updateArray x ((::) a) ar
+        accum c r a ar =
+            updateArray c ((::) a) ar
     in
         foldl accum
             (Array.repeat (Matrix.width matrix) [])
+            matrix
+            |> Array.map List.reverse
+            |> Array.toList
+
+toListRows : Matrix a -> List (List a)
+toListRows matrix =
+    let
+        accum c r a ar =
+            updateArray r ((::) a) ar
+    in
+        foldl accum
+            (Array.repeat (Matrix.height matrix) [])
             matrix
             |> Array.map List.reverse
             |> Array.toList
