@@ -4,6 +4,7 @@ module Crosstab
         , Calc
         , LevelMap
         , Compare
+        , CompareAccum
         , Levels
         , fromList
         , fromListWithLevels
@@ -18,6 +19,8 @@ module Crosstab
         , calc
         , compare
         , compareAndCalc
+        , compareAccum
+        , compareAccumAndCalc
         , customCalc
         , mapCalcOf
         , mapCalcOf2
@@ -129,6 +132,16 @@ type alias Compare a b =
     , prevRow : Maybe a
     , prevCol : Maybe a
     }
+
+type alias CompareAccum a b c =
+   { table : b
+   , row : b
+   , col : b
+   , prevRow : Maybe a
+   , prevCol : Maybe a
+   , cumRow : c
+   , cumCol : c
+   }
 
 {-|
 
@@ -455,6 +468,80 @@ compareAndCalc comp (Calc calc) (Crosstab { levels, summary, values }) =
             }
 
 
+{-|
+
+The same as `compare`, except the data passed in to your compare function 
+includes _cumulative row_ and _cumulative column_ values. In other words, 
+your comparisons can be made against the previously compared row or column value
+(or against the specified initial value, if it's the first row/column).
+
+This is useful for calculating "running totals" and other cumulative values
+across rows or columns.
+
+    let
+        runningRowSum {cumRow} val =
+            cumRow + val
+    in
+        compareAccum runningRowSum 0.0 crosstab
+
+
+But the `cumRow` and `cumCol` values can be used more generally to 
+_compare comparisons_. For example, to calculate _change in row percent_ across
+columns, you can do something like this: 
+
+    let
+        rowPctChange {cumRow, row} val =
+            let
+                newpct = (val / row)
+            in
+                cumRow
+                    |> (\(pct, chg) -> ( newpct, newpct - pct ) )
+    in
+        compareAccum rowPctChange 0.0 crosstab
+
+
+Internal note: `compareAccum` is defined separately from `compare` for
+performance reasons: it allocates a new internal matrix, whereas `compare`
+does not.
+
+-}
+compareAccum :
+    (CompareAccum a b c -> a -> c)
+    -> c
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab c b comparable1 comparable2
+compareAccum comp init (Crosstab { levels, summary, values }) =
+    Crosstab
+        { levels = levels
+        , values = compareSummaryValuesAccum comp init summary values
+        , summary = summary
+        }
+
+{-|
+
+The same as `compareAndCalc`, but using `compareAccum`.
+
+-}
+compareAccumAndCalc :
+    (CompareAccum a b c -> a -> c)
+    -> Calc c c d
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab c d comparable1 comparable2
+compareAccumAndCalc comp (Calc calc) (Crosstab { levels, summary, values }) =
+    let
+        newValues =
+            compareSummaryValuesAccum comp calc.init summary values
+
+        newSummary =
+            calcValuesSummary (Calc calc) newValues
+    in
+        Crosstab
+            { levels = levels
+            , values = newValues
+            , summary = newSummary
+            }
+
+
 
 -- CALC CONSTRUCTORS
 
@@ -543,9 +630,6 @@ compareSummaryValues :
     -> Values c
 compareSummaryValues func init { table, rows, cols } matrix =
     let
-        ( nrows, ncols ) =
-            matrix.size
-
         comparator t r c pr pc =
             { table = t
             , row = r
@@ -557,20 +641,69 @@ compareSummaryValues func init { table, rows, cols } matrix =
         compare_ f a t pr pc r c =
             f (comparator t r c pr pc) a
 
-        accum i j a m =
+        map_ x y a =
             let
                 pr =
-                    Matrix.get (i - 1) j matrix
+                    Matrix.get (x - 1) y matrix
 
                 pc =
-                    Matrix.get i (j - 1) matrix
+                    Matrix.get x (y - 1) matrix
+
+            in
+                Maybe.map2 (compare_ func a table pr pc)
+                    (Array.get x rows)
+                    (Array.get y cols)
+                    |> Maybe.withDefault init
+
+    in
+        Matrix.indexedMap map_ matrix
+
+  
+compareSummaryValuesAccum :
+    (CompareAccum a b c -> a -> c)
+    -> c
+    -> Summary b
+    -> Values a
+    -> Values c
+compareSummaryValuesAccum func init { table, rows, cols } matrix =
+    let
+        ( nrows, ncols ) =
+            matrix.size
+
+        comparator t r c pr pc cr cc =
+            { table = t
+            , row = r
+            , col = c
+            , prevRow = pr
+            , prevCol = pc
+            , cumRow = cr
+            , cumCol = cc
+            }
+
+        compare_ f a t pr pc cr cc r c =
+            f (comparator t r c pr pc cr cc) a
+
+        accum x y a m =
+            let
+                pr =
+                    Matrix.get (x - 1) y matrix
+
+                pc =
+                    Matrix.get x (y - 1) matrix
+
+                cr =
+                    Matrix.get (x - 1) y m  |> Maybe.withDefault init
+
+                cc =
+                    Matrix.get x (y - 1) m  |> Maybe.withDefault init
+
             in
                 Matrix.set
-                    i
-                    j
-                    (Maybe.map2 (compare_ func a table pr pc)
-                        (Array.get i rows)
-                        (Array.get j cols)
+                    x
+                    y
+                    (Maybe.map2 (compare_ func a table pr pc cr cc)
+                        (Array.get x rows)
+                        (Array.get y cols)
                         |> Maybe.withDefault init
                     )
                     m

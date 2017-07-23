@@ -26,9 +26,12 @@ view : List Custody -> Html msg
 view data =
     div []
         [ h1 [] [ text "Women in US prisons by year, % change" ]
-        , viewTable (stateCustodyW "PA" "CA" data)
+        , viewColPctTable ( stateCustodyW "PA" "CA" data )
         , h1 [] [ text "Women of Color in US prisons by year, % change" ]
-        , viewTable (stateCustodyWOC "PA" "CA" data)
+        , viewColPctTable ( stateCustodyWOC "PA" "CA" data )
+        , hr [] []
+        , h2 [] [ text "Example cumulative percent table" ]
+        , viewCumRowPctTable ( yearCustodyOfAll data )
         , p [ style [ ( "font-size", "0.7em" ) ] ]
             [ span [] [ text "Source: " ]
             , span []
@@ -68,11 +71,17 @@ viewErrs errs =
                 decodeErrors errs
 
 
-viewTable : Crosstab Int Int String String -> Html msg
-viewTable tab =
+viewColPctTable : Crosstab Int Int String String -> Html msg
+viewColPctTable tab =
     displayCrosstab
         tableConfig
-        (tab |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ))
+        ( tab |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ) )
+
+viewCumRowPctTable : Crosstab Int Int String String -> Html msg
+viewCumRowPctTable tab =
+    displayCrosstab
+        tableConfig
+        ( tab |> Crosstab.compareAccum cumRowPct ( 0, Just 0 ) )
 
 
 tableConfig =
@@ -92,8 +101,8 @@ tableConfig =
     in
         { rowLabel = text
         , colLabel = text
-        , rowTotalLabel = text "All Years, Total"
-        , colTotalLabel = text "US Total"
+        , rowTotalLabel = text "Total"
+        , colTotalLabel = text "Total"
         , cell = cell
         , summary = toString >> text
         }
@@ -108,6 +117,17 @@ prevColPct : { x | prevCol : Maybe Int } -> Int -> Maybe Float
 prevColPct { prevCol } val =
     prevCol
         |> Maybe.map (\prev -> (toFloat (val - prev)) / (toFloat val))
+
+
+cumRowPct : { x | cumRow : (Int, Maybe Float), table : Int } -> Int -> (Int, Maybe Float)
+cumRowPct { cumRow, table } val =
+    cumRow 
+      |>  (\(sum,pct) -> 
+            ( sum + val
+            , pct
+                |> Maybe.map (\last -> last + ((toFloat val) / (toFloat table)) )
+            )
+          )
 
 
 carryValue : (compare -> x -> new) -> compare -> x -> ( x, new )
@@ -149,6 +169,23 @@ stateCustodyWOC state1 state2 =
             r.blackF + r.hispF + r.asianF + r.nativeHawaiianF + r.asianPacificF + r.twoRaceF
     in
         stateCustodySumsOf woc state1 state2
+
+
+yearCustodyOf : (Custody -> Int) -> List Custody -> Crosstab Int Int String String
+yearCustodyOf getter =
+    Crosstab.fromList
+        (Crosstab.Calc.sum)
+        (Crosstab.Calc.sumOf getter)
+        (Crosstab.levelMap
+            { row = .year >> toString
+            , col = always ""
+            }
+        )
+
+yearCustodyOfAll : List Custody -> Crosstab Int Int String String
+yearCustodyOfAll =
+    yearCustodyOf (\r -> r.totalM + r.totalF)
+
 
 displayCrosstab :
     { x

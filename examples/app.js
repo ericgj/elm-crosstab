@@ -10628,36 +10628,44 @@ var _user$project$Crosstab$filterMatrixByIndexes = F3(
 					_elm_lang$core$Maybe$Nothing),
 				matrix));
 	});
-var _user$project$Crosstab$compareSummaryValues = F4(
+var _user$project$Crosstab$compareSummaryValuesAccum = F4(
 	function (func, init, _p8, matrix) {
 		var _p9 = _p8;
-		var comparator = F5(
-			function (t, r, c, pr, pc) {
-				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc};
+		var comparator = F7(
+			function (t, r, c, pr, pc, cr, cc) {
+				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc, cumRow: cr, cumCol: cc};
 			});
-		var compare_ = F7(
-			function (f, a, t, pr, pc, r, c) {
+		var compare_ = F9(
+			function (f, a, t, pr, pc, cr, cc, r, c) {
 				return A2(
 					f,
-					A5(comparator, t, r, c, pr, pc),
+					A7(comparator, t, r, c, pr, pc, cr, cc),
 					a);
 			});
 		var accum = F4(
-			function (i, j, a, m) {
-				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, i, j - 1, matrix);
-				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, i - 1, j, matrix);
+			function (x, y, a, m) {
+				var cc = A2(
+					_elm_lang$core$Maybe$withDefault,
+					init,
+					A3(_eeue56$elm_flat_matrix$Matrix$get, x, y - 1, m));
+				var cr = A2(
+					_elm_lang$core$Maybe$withDefault,
+					init,
+					A3(_eeue56$elm_flat_matrix$Matrix$get, x - 1, y, m));
+				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, x, y - 1, matrix);
+				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, x - 1, y, matrix);
 				return A4(
 					_eeue56$elm_flat_matrix$Matrix$set,
-					i,
-					j,
+					x,
+					y,
 					A2(
 						_elm_lang$core$Maybe$withDefault,
 						init,
 						A3(
 							_elm_lang$core$Maybe$map2,
-							A5(compare_, func, a, _p9.table, pr, pc),
-							A2(_elm_lang$core$Array$get, i, _p9.rows),
-							A2(_elm_lang$core$Array$get, j, _p9.cols))),
+							A7(compare_, func, a, _p9.table, pr, pc, cr, cc),
+							A2(_elm_lang$core$Array$get, x, _p9.rows),
+							A2(_elm_lang$core$Array$get, y, _p9.cols))),
 					m);
 			});
 		var _p10 = matrix.size;
@@ -10669,19 +10677,48 @@ var _user$project$Crosstab$compareSummaryValues = F4(
 			A3(_eeue56$elm_flat_matrix$Matrix$repeat, nrows, ncols, init),
 			matrix);
 	});
-var _user$project$Crosstab$calcValuesSummary = F2(
-	function (_p11, matrix) {
+var _user$project$Crosstab$compareSummaryValues = F4(
+	function (func, init, _p11, matrix) {
 		var _p12 = _p11;
-		var _p16 = _p12._0.map;
-		var _p15 = _p12._0.init;
-		var _p14 = _p12._0.accum;
+		var comparator = F5(
+			function (t, r, c, pr, pc) {
+				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc};
+			});
+		var compare_ = F7(
+			function (f, a, t, pr, pc, r, c) {
+				return A2(
+					f,
+					A5(comparator, t, r, c, pr, pc),
+					a);
+			});
+		var map_ = F3(
+			function (x, y, a) {
+				var pc = A3(_eeue56$elm_flat_matrix$Matrix$get, x, y - 1, matrix);
+				var pr = A3(_eeue56$elm_flat_matrix$Matrix$get, x - 1, y, matrix);
+				return A2(
+					_elm_lang$core$Maybe$withDefault,
+					init,
+					A3(
+						_elm_lang$core$Maybe$map2,
+						A5(compare_, func, a, _p12.table, pr, pc),
+						A2(_elm_lang$core$Array$get, x, _p12.rows),
+						A2(_elm_lang$core$Array$get, y, _p12.cols)));
+			});
+		return A2(_eeue56$elm_flat_matrix$Matrix$indexedMap, map_, matrix);
+	});
+var _user$project$Crosstab$calcValuesSummary = F2(
+	function (_p13, matrix) {
+		var _p14 = _p13;
+		var _p18 = _p14._0.map;
+		var _p17 = _p14._0.init;
+		var _p16 = _p14._0.accum;
 		var finalize = function (v) {
 			return _elm_lang$core$Native_Utils.update(
 				v,
 				{
-					table: _p16(v.table),
-					rows: A2(_elm_lang$core$Array$map, _p16, v.rows),
-					cols: A2(_elm_lang$core$Array$map, _p16, v.cols)
+					table: _p18(v.table),
+					rows: A2(_elm_lang$core$Array$map, _p18, v.rows),
+					cols: A2(_elm_lang$core$Array$map, _p18, v.cols)
 				});
 		};
 		var accum_ = F4(
@@ -10689,83 +10726,83 @@ var _user$project$Crosstab$calcValuesSummary = F2(
 				return _elm_lang$core$Native_Utils.update(
 					v,
 					{
-						table: A2(_p14, a, v.table),
+						table: A2(_p16, a, v.table),
 						rows: A3(
 							_user$project$Crosstab$updateArray,
 							i,
-							_p14(a),
+							_p16(a),
 							v.rows),
 						cols: A3(
 							_user$project$Crosstab$updateArray,
 							j,
-							_p14(a),
+							_p16(a),
 							v.cols)
 					});
 			});
-		var _p13 = matrix.size;
-		var nrows = _p13._0;
-		var ncols = _p13._1;
+		var _p15 = matrix.size;
+		var nrows = _p15._0;
+		var ncols = _p15._1;
 		return finalize(
 			A3(
 				_user$project$Crosstab$foldlMatrix,
 				accum_,
 				{
-					table: _p15,
-					rows: A2(_elm_lang$core$Array$repeat, nrows, _p15),
-					cols: A2(_elm_lang$core$Array$repeat, ncols, _p15)
+					table: _p17,
+					rows: A2(_elm_lang$core$Array$repeat, nrows, _p17),
+					cols: A2(_elm_lang$core$Array$repeat, ncols, _p17)
 				},
 				matrix));
 	});
-var _user$project$Crosstab$tableSummary = function (_p17) {
-	var _p18 = _p17;
-	return _p18._0.summary.table;
-};
-var _user$project$Crosstab$colSummaryList = function (_p19) {
+var _user$project$Crosstab$tableSummary = function (_p19) {
 	var _p20 = _p19;
-	return _elm_lang$core$Array$toList(_p20._0.summary.cols);
+	return _p20._0.summary.table;
 };
-var _user$project$Crosstab$rowSummaryList = function (_p21) {
+var _user$project$Crosstab$colSummaryList = function (_p21) {
 	var _p22 = _p21;
-	return _elm_lang$core$Array$toList(_p22._0.summary.rows);
+	return _elm_lang$core$Array$toList(_p22._0.summary.cols);
 };
-var _user$project$Crosstab$rowList = function (_p23) {
+var _user$project$Crosstab$rowSummaryList = function (_p23) {
 	var _p24 = _p23;
-	return _user$project$Crosstab$toListMatrix(_p24._0.values);
+	return _elm_lang$core$Array$toList(_p24._0.summary.rows);
 };
-var _user$project$Crosstab$colLevelList = function (_p25) {
+var _user$project$Crosstab$rowList = function (_p25) {
 	var _p26 = _p25;
-	return _elm_lang$core$Array$toList(_p26._0.levels.cols);
+	return _user$project$Crosstab$toListMatrix(_p26._0.values);
 };
-var _user$project$Crosstab$rowLevelList = function (_p27) {
+var _user$project$Crosstab$colLevelList = function (_p27) {
 	var _p28 = _p27;
-	return _elm_lang$core$Array$toList(_p28._0.levels.rows);
+	return _elm_lang$core$Array$toList(_p28._0.levels.cols);
+};
+var _user$project$Crosstab$rowLevelList = function (_p29) {
+	var _p30 = _p29;
+	return _elm_lang$core$Array$toList(_p30._0.levels.rows);
 };
 var _user$project$Crosstab$levelsOf = F2(
-	function (_p29, records) {
-		var _p30 = _p29;
+	function (_p31, records) {
+		var _p32 = _p31;
 		var accum = F2(
-			function (record, _p31) {
-				var _p32 = _p31;
+			function (record, _p33) {
+				var _p34 = _p33;
 				return {
 					ctor: '_Tuple2',
 					_0: A2(
 						_elm_lang$core$Set$insert,
-						_p30._0.row(record),
-						_p32._0),
+						_p32._0.row(record),
+						_p34._0),
 					_1: A2(
 						_elm_lang$core$Set$insert,
-						_p30._0.col(record),
-						_p32._1)
+						_p32._0.col(record),
+						_p34._1)
 				};
 			});
 		var toArray = function (set) {
 			return A3(_elm_lang$core$Set$foldl, _elm_lang$core$Array$push, _elm_lang$core$Array$empty, set);
 		};
-		var finalize = function (_p33) {
-			var _p34 = _p33;
+		var finalize = function (_p35) {
+			var _p36 = _p35;
 			return {
-				rows: toArray(_p34._0),
-				cols: toArray(_p34._1)
+				rows: toArray(_p36._0),
+				cols: toArray(_p36._1)
 			};
 		};
 		return finalize(
@@ -10779,6 +10816,10 @@ var _user$project$Crosstab$Compare = F5(
 	function (a, b, c, d, e) {
 		return {table: a, row: b, col: c, prevRow: d, prevCol: e};
 	});
+var _user$project$Crosstab$CompareAccum = F7(
+	function (a, b, c, d, e, f, g) {
+		return {table: a, row: b, col: c, prevRow: d, prevCol: e, cumRow: f, cumCol: g};
+	});
 var _user$project$Crosstab$Levels = F2(
 	function (a, b) {
 		return {rows: a, cols: b};
@@ -10791,50 +10832,50 @@ var _user$project$Crosstab$Crosstab = function (a) {
 	return {ctor: 'Crosstab', _0: a};
 };
 var _user$project$Crosstab$fromListWithLevels = F5(
-	function (_p37, summary, _p36, _p35, records) {
-		var _p38 = _p37;
-		var _p43 = _p38.rows;
-		var _p42 = _p38.cols;
-		var _p39 = _p36;
-		var _p41 = _p39._0;
-		var _p40 = _p35;
+	function (_p39, summary, _p38, _p37, records) {
+		var _p40 = _p39;
+		var _p45 = _p40.rows;
+		var _p44 = _p40.cols;
+		var _p41 = _p38;
+		var _p43 = _p41._0;
+		var _p42 = _p37;
 		var finalize = function (matrix) {
 			return _user$project$Crosstab$Crosstab(
 				{
-					levels: {rows: _p43, cols: _p42},
-					values: A2(_eeue56$elm_flat_matrix$Matrix$map, _p41.map, matrix),
+					levels: {rows: _p45, cols: _p44},
+					values: A2(_eeue56$elm_flat_matrix$Matrix$map, _p43.map, matrix),
 					summary: A2(_user$project$Crosstab$calcValuesSummary, summary, matrix)
 				});
 		};
 		var initData = A3(
 			_eeue56$elm_flat_matrix$Matrix$repeat,
-			_elm_lang$core$Array$length(_p43),
-			_elm_lang$core$Array$length(_p42),
-			_p41.init);
+			_elm_lang$core$Array$length(_p45),
+			_elm_lang$core$Array$length(_p44),
+			_p43.init);
 		var accumHelp = F4(
 			function (r, c, a, matrix) {
 				return A4(
 					_eeue56$elm_flat_matrix$Matrix$update,
 					r,
 					c,
-					_p41.accum(a),
+					_p43.accum(a),
 					matrix);
 			});
-		var colMap = _user$project$Crosstab$indexMapArray(_p42);
+		var colMap = _user$project$Crosstab$indexMapArray(_p44);
 		var mcol = function (record) {
 			return A3(
 				_elm_lang$core$Basics$flip,
 				_elm_lang$core$Dict$get,
 				colMap,
-				_p40._0.col(record));
+				_p42._0.col(record));
 		};
-		var rowMap = _user$project$Crosstab$indexMapArray(_p43);
+		var rowMap = _user$project$Crosstab$indexMapArray(_p45);
 		var mrow = function (record) {
 			return A3(
 				_elm_lang$core$Basics$flip,
 				_elm_lang$core$Dict$get,
 				rowMap,
-				_p40._0.row(record));
+				_p42._0.row(record));
 		};
 		var accum = F2(
 			function (a, data) {
@@ -10864,124 +10905,148 @@ var _user$project$Crosstab$fromList = F4(
 			records);
 	});
 var _user$project$Crosstab$calc = F2(
-	function (summary, _p44) {
-		var _p45 = _p44;
-		var _p46 = _p45._0.values;
+	function (summary, _p46) {
+		var _p47 = _p46;
+		var _p48 = _p47._0.values;
 		return _user$project$Crosstab$Crosstab(
 			{
-				levels: _p45._0.levels,
-				values: _p46,
-				summary: A2(_user$project$Crosstab$calcValuesSummary, summary, _p46)
+				levels: _p47._0.levels,
+				values: _p48,
+				summary: A2(_user$project$Crosstab$calcValuesSummary, summary, _p48)
 			});
 	});
 var _user$project$Crosstab$compare = F3(
-	function (comp, init, _p47) {
-		var _p48 = _p47;
-		var _p49 = _p48._0.summary;
+	function (comp, init, _p49) {
+		var _p50 = _p49;
+		var _p51 = _p50._0.summary;
 		return _user$project$Crosstab$Crosstab(
 			{
-				levels: _p48._0.levels,
-				values: A4(_user$project$Crosstab$compareSummaryValues, comp, init, _p49, _p48._0.values),
-				summary: _p49
+				levels: _p50._0.levels,
+				values: A4(_user$project$Crosstab$compareSummaryValues, comp, init, _p51, _p50._0.values),
+				summary: _p51
+			});
+	});
+var _user$project$Crosstab$compareAccum = F3(
+	function (comp, init, _p52) {
+		var _p53 = _p52;
+		var _p54 = _p53._0.summary;
+		return _user$project$Crosstab$Crosstab(
+			{
+				levels: _p53._0.levels,
+				values: A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, init, _p54, _p53._0.values),
+				summary: _p54
 			});
 	});
 var _user$project$Crosstab$Calc = function (a) {
 	return {ctor: 'Calc', _0: a};
 };
 var _user$project$Crosstab$compareAndCalc = F3(
-	function (comp, _p51, _p50) {
-		var _p52 = _p51;
-		var _p54 = _p52._0;
-		var _p53 = _p50;
-		var newValues = A4(_user$project$Crosstab$compareSummaryValues, comp, _p54.init, _p53._0.summary, _p53._0.values);
+	function (comp, _p56, _p55) {
+		var _p57 = _p56;
+		var _p59 = _p57._0;
+		var _p58 = _p55;
+		var newValues = A4(_user$project$Crosstab$compareSummaryValues, comp, _p59.init, _p58._0.summary, _p58._0.values);
 		var newSummary = A2(
 			_user$project$Crosstab$calcValuesSummary,
-			_user$project$Crosstab$Calc(_p54),
+			_user$project$Crosstab$Calc(_p59),
 			newValues);
 		return _user$project$Crosstab$Crosstab(
-			{levels: _p53._0.levels, values: newValues, summary: newSummary});
+			{levels: _p58._0.levels, values: newValues, summary: newSummary});
 	});
-var _user$project$Crosstab$customCalc = function (_p55) {
-	var _p56 = _p55;
+var _user$project$Crosstab$compareAccumAndCalc = F3(
+	function (comp, _p61, _p60) {
+		var _p62 = _p61;
+		var _p64 = _p62._0;
+		var _p63 = _p60;
+		var newValues = A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, _p64.init, _p63._0.summary, _p63._0.values);
+		var newSummary = A2(
+			_user$project$Crosstab$calcValuesSummary,
+			_user$project$Crosstab$Calc(_p64),
+			newValues);
+		return _user$project$Crosstab$Crosstab(
+			{levels: _p63._0.levels, values: newValues, summary: newSummary});
+	});
+var _user$project$Crosstab$customCalc = function (_p65) {
+	var _p66 = _p65;
 	return _user$project$Crosstab$Calc(
-		{map: _p56.map, accum: _p56.accum, init: _p56.init});
+		{map: _p66.map, accum: _p66.accum, init: _p66.init});
 };
 var _user$project$Crosstab$mapCalcOf = F2(
-	function (getter, _p57) {
-		var _p58 = _p57;
-		var _p60 = _p58._0;
+	function (getter, _p67) {
+		var _p68 = _p67;
+		var _p70 = _p68._0;
 		return _user$project$Crosstab$Calc(
 			_elm_lang$core$Native_Utils.update(
-				_p60,
+				_p70,
 				{
-					accum: function (_p59) {
-						return _p60.accum(
-							getter(_p59));
+					accum: function (_p69) {
+						return _p70.accum(
+							getter(_p69));
 					}
 				}));
 	});
 var _user$project$Crosstab$mapCalcOf2 = F3(
-	function (func, _p62, _p61) {
-		var _p63 = _p62;
-		var _p70 = _p63._0;
-		var _p64 = _p61;
-		var _p69 = _p64._0;
-		return _user$project$Crosstab$Calc(
-			{
-				map: function (_p65) {
-					var _p66 = _p65;
-					return A2(
-						func,
-						_p70.map(_p66._0),
-						_p69.map(_p66._1));
-				},
-				accum: F2(
-					function (a, _p67) {
-						var _p68 = _p67;
-						return {
-							ctor: '_Tuple2',
-							_0: A2(_p70.accum, a, _p68._0),
-							_1: A2(_p69.accum, a, _p68._1)
-						};
-					}),
-				init: {ctor: '_Tuple2', _0: _p70.init, _1: _p69.init}
-			});
-	});
-var _user$project$Crosstab$mapCalc2 = F3(
 	function (func, _p72, _p71) {
 		var _p73 = _p72;
-		var _p82 = _p73._0;
+		var _p80 = _p73._0;
 		var _p74 = _p71;
-		var _p81 = _p74._0;
+		var _p79 = _p74._0;
 		return _user$project$Crosstab$Calc(
 			{
 				map: function (_p75) {
 					var _p76 = _p75;
 					return A2(
 						func,
-						_p82.map(_p76._0),
-						_p81.map(_p76._1));
+						_p80.map(_p76._0),
+						_p79.map(_p76._1));
 				},
 				accum: F2(
-					function (_p78, _p77) {
-						var _p79 = _p78;
-						var _p80 = _p77;
+					function (a, _p77) {
+						var _p78 = _p77;
 						return {
 							ctor: '_Tuple2',
-							_0: A2(_p82.accum, _p79._0, _p80._0),
-							_1: A2(_p81.accum, _p79._1, _p80._1)
+							_0: A2(_p80.accum, a, _p78._0),
+							_1: A2(_p79.accum, a, _p78._1)
 						};
 					}),
-				init: {ctor: '_Tuple2', _0: _p82.init, _1: _p81.init}
+				init: {ctor: '_Tuple2', _0: _p80.init, _1: _p79.init}
+			});
+	});
+var _user$project$Crosstab$mapCalc2 = F3(
+	function (func, _p82, _p81) {
+		var _p83 = _p82;
+		var _p92 = _p83._0;
+		var _p84 = _p81;
+		var _p91 = _p84._0;
+		return _user$project$Crosstab$Calc(
+			{
+				map: function (_p85) {
+					var _p86 = _p85;
+					return A2(
+						func,
+						_p92.map(_p86._0),
+						_p91.map(_p86._1));
+				},
+				accum: F2(
+					function (_p88, _p87) {
+						var _p89 = _p88;
+						var _p90 = _p87;
+						return {
+							ctor: '_Tuple2',
+							_0: A2(_p92.accum, _p89._0, _p90._0),
+							_1: A2(_p91.accum, _p89._1, _p90._1)
+						};
+					}),
+				init: {ctor: '_Tuple2', _0: _p92.init, _1: _p91.init}
 			});
 	});
 var _user$project$Crosstab$LevelMap = function (a) {
 	return {ctor: 'LevelMap', _0: a};
 };
-var _user$project$Crosstab$levelMap = function (_p83) {
-	var _p84 = _p83;
+var _user$project$Crosstab$levelMap = function (_p93) {
+	var _p94 = _p93;
 	return _user$project$Crosstab$LevelMap(
-		{row: _p84.row, col: _p84.col});
+		{row: _p94.row, col: _p94.col});
 };
 
 var _user$project$Crosstab_Calc$maybeAdd = F3(
@@ -11541,6 +11606,26 @@ var _user$project$Static$displayCrosstab = F2(
 				}
 			});
 	});
+var _user$project$Static$yearCustodyOf = function (getter) {
+	return A3(
+		_user$project$Crosstab$fromList,
+		_user$project$Crosstab_Calc$sum,
+		_user$project$Crosstab_Calc$sumOf(getter),
+		_user$project$Crosstab$levelMap(
+			{
+				row: function (_p3) {
+					return _elm_lang$core$Basics$toString(
+						function (_) {
+							return _.year;
+						}(_p3));
+				},
+				col: _elm_lang$core$Basics$always('')
+			}));
+};
+var _user$project$Static$yearCustodyOfAll = _user$project$Static$yearCustodyOf(
+	function (r) {
+		return r.totalM + r.totalF;
+	});
 var _user$project$Static$stateCustodySumsOf = F3(
 	function (getter, state1, state2) {
 		return A3(
@@ -11552,11 +11637,11 @@ var _user$project$Static$stateCustodySumsOf = F3(
 					row: function (r) {
 						return (_elm_lang$core$Native_Utils.eq(r.state, state1) || _elm_lang$core$Native_Utils.eq(r.state, state2)) ? r.state : 'zOther';
 					},
-					col: function (_p3) {
+					col: function (_p4) {
 						return _elm_lang$core$Basics$toString(
 							function (_) {
 								return _.year;
-							}(_p3));
+							}(_p4));
 					}
 				}));
 	});
@@ -11585,24 +11670,41 @@ var _user$project$Static$carryValue = F3(
 			_1: A2(func, comp, x)
 		};
 	});
+var _user$project$Static$cumRowPct = F2(
+	function (_p5, val) {
+		var _p6 = _p5;
+		return function (_p7) {
+			var _p8 = _p7;
+			return {
+				ctor: '_Tuple2',
+				_0: _p8._0 + val,
+				_1: A2(
+					_elm_lang$core$Maybe$map,
+					function (last) {
+						return last + (_elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p6.table));
+					},
+					_p8._1)
+			};
+		}(_p6.cumRow);
+	});
 var _user$project$Static$prevColPct = F2(
-	function (_p4, val) {
-		var _p5 = _p4;
+	function (_p9, val) {
+		var _p10 = _p9;
 		return A2(
 			_elm_lang$core$Maybe$map,
 			function (prev) {
 				return _elm_lang$core$Basics$toFloat(val - prev) / _elm_lang$core$Basics$toFloat(val);
 			},
-			_p5.prevCol);
+			_p10.prevCol);
 	});
 var _user$project$Static$colPct = F2(
-	function (_p6, val) {
-		var _p7 = _p6;
-		return _elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p7.col);
+	function (_p11, val) {
+		var _p12 = _p11;
+		return _elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p12.col);
 	});
 var _user$project$Static$tableConfig = function () {
-	var cell = function (_p8) {
-		var _p9 = _p8;
+	var cell = function (_p13) {
+		var _p14 = _p13;
 		var html = function (pct) {
 			return A2(
 				_elm_lang$html$Html$div,
@@ -11638,7 +11740,7 @@ var _user$project$Static$tableConfig = function () {
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html$text(
-									_elm_lang$core$Basics$toString(_p9._0)),
+									_elm_lang$core$Basics$toString(_p14._0)),
 								_1: {ctor: '[]'}
 							}),
 						_1: {ctor: '[]'}
@@ -11650,7 +11752,7 @@ var _user$project$Static$tableConfig = function () {
 			html('-'),
 			A2(
 				_elm_lang$core$Maybe$map,
-				function (_p10) {
+				function (_p15) {
 					return html(
 						A3(
 							_elm_lang$core$Basics$flip,
@@ -11668,23 +11770,37 @@ var _user$project$Static$tableConfig = function () {
 											return x * y;
 										}),
 									100,
-									_p10))));
+									_p15))));
 				},
-				_p9._1));
+				_p14._1));
 	};
 	return {
 		rowLabel: _elm_lang$html$Html$text,
 		colLabel: _elm_lang$html$Html$text,
-		rowTotalLabel: _elm_lang$html$Html$text('All Years, Total'),
-		colTotalLabel: _elm_lang$html$Html$text('US Total'),
+		rowTotalLabel: _elm_lang$html$Html$text('Total'),
+		colTotalLabel: _elm_lang$html$Html$text('Total'),
 		cell: cell,
-		summary: function (_p11) {
+		summary: function (_p16) {
 			return _elm_lang$html$Html$text(
-				_elm_lang$core$Basics$toString(_p11));
+				_elm_lang$core$Basics$toString(_p16));
 		}
 	};
 }();
-var _user$project$Static$viewTable = function (tab) {
+var _user$project$Static$viewCumRowPctTable = function (tab) {
+	return A2(
+		_user$project$Static$displayCrosstab,
+		_user$project$Static$tableConfig,
+		A3(
+			_user$project$Crosstab$compareAccum,
+			_user$project$Static$cumRowPct,
+			{
+				ctor: '_Tuple2',
+				_0: 0,
+				_1: _elm_lang$core$Maybe$Just(0)
+			},
+			tab));
+};
+var _user$project$Static$viewColPctTable = function (tab) {
 	return A2(
 		_user$project$Static$displayCrosstab,
 		_user$project$Static$tableConfig,
@@ -11716,8 +11832,8 @@ var _user$project$Static$viewErrs = function (errs) {
 						{ctor: '[]'},
 						A2(
 							_elm_lang$core$List$map,
-							function (_p12) {
-								var _p13 = _p12;
+							function (_p17) {
+								var _p18 = _p17;
 								return A2(
 									_elm_lang$html$Html$li,
 									{ctor: '[]'},
@@ -11726,13 +11842,13 @@ var _user$project$Static$viewErrs = function (errs) {
 										_0: _elm_lang$html$Html$text(
 											A2(
 												_elm_lang$core$Basics_ops['++'],
-												_p13._1,
+												_p18._1,
 												A2(
 													_elm_lang$core$Basics_ops['++'],
 													' (line ',
 													A2(
 														_elm_lang$core$Basics_ops['++'],
-														_elm_lang$core$Basics$toString(_p13._0),
+														_elm_lang$core$Basics$toString(_p18._0),
 														')')))),
 										_1: {ctor: '[]'}
 									});
@@ -11778,11 +11894,11 @@ var _user$project$Static$viewErrs = function (errs) {
 				}
 			});
 	};
-	var _p14 = errs;
-	if (_p14.ctor === 'CsvErrors') {
-		return parseErrors(_p14._0);
+	var _p19 = errs;
+	if (_p19.ctor === 'CsvErrors') {
+		return parseErrors(_p19._0);
 	} else {
-		return decodeErrors(_p14._0);
+		return decodeErrors(_p19._0);
 	}
 };
 var _user$project$Static$view = function (data) {
@@ -11801,7 +11917,7 @@ var _user$project$Static$view = function (data) {
 				}),
 			_1: {
 				ctor: '::',
-				_0: _user$project$Static$viewTable(
+				_0: _user$project$Static$viewColPctTable(
 					A3(_user$project$Static$stateCustodyW, 'PA', 'CA', data)),
 				_1: {
 					ctor: '::',
@@ -11815,57 +11931,80 @@ var _user$project$Static$view = function (data) {
 						}),
 					_1: {
 						ctor: '::',
-						_0: _user$project$Static$viewTable(
+						_0: _user$project$Static$viewColPctTable(
 							A3(_user$project$Static$stateCustodyWOC, 'PA', 'CA', data)),
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_elm_lang$html$Html$p,
-								{
+								_elm_lang$html$Html$hr,
+								{ctor: '[]'},
+								{ctor: '[]'}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$h2,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('Example cumulative percent table'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
 									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$style(
-										{
-											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
-											_1: {ctor: '[]'}
-										}),
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$span,
-										{ctor: '[]'},
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html$text('Source: '),
-											_1: {ctor: '[]'}
-										}),
+									_0: _user$project$Static$viewCumRowPctTable(
+										_user$project$Static$yearCustodyOfAll(data)),
 									_1: {
 										ctor: '::',
 										_0: A2(
-											_elm_lang$html$Html$span,
-											{ctor: '[]'},
+											_elm_lang$html$Html$p,
 											{
 												ctor: '::',
-												_0: A2(
-													_elm_lang$html$Html$a,
+												_0: _elm_lang$html$Html_Attributes$style(
 													{
 														ctor: '::',
-														_0: _elm_lang$html$Html_Attributes$href('http://www.icpsr.umich.edu/icpsrweb/NACJD/studies/36657'),
-														_1: {ctor: '[]'}
-													},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
+														_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
 														_1: {ctor: '[]'}
 													}),
 												_1: {ctor: '[]'}
+											},
+											{
+												ctor: '::',
+												_0: A2(
+													_elm_lang$html$Html$span,
+													{ctor: '[]'},
+													{
+														ctor: '::',
+														_0: _elm_lang$html$Html$text('Source: '),
+														_1: {ctor: '[]'}
+													}),
+												_1: {
+													ctor: '::',
+													_0: A2(
+														_elm_lang$html$Html$span,
+														{ctor: '[]'},
+														{
+															ctor: '::',
+															_0: A2(
+																_elm_lang$html$Html$a,
+																{
+																	ctor: '::',
+																	_0: _elm_lang$html$Html_Attributes$href('http://www.icpsr.umich.edu/icpsrweb/NACJD/studies/36657'),
+																	_1: {ctor: '[]'}
+																},
+																{
+																	ctor: '::',
+																	_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
+																	_1: {ctor: '[]'}
+																}),
+															_1: {ctor: '[]'}
+														}),
+													_1: {ctor: '[]'}
+												}
 											}),
 										_1: {ctor: '[]'}
 									}
-								}),
-							_1: {ctor: '[]'}
+								}
+							}
 						}
 					}
 				}
@@ -11879,11 +12018,11 @@ var _user$project$Static$main = _elm_lang$virtual_dom$Native_VirtualDom.staticPr
 		{
 			ctor: '::',
 			_0: function () {
-				var _p15 = _user$project$Data$parsed;
-				if (_p15.ctor === 'Ok') {
-					return _user$project$Static$view(_p15._0);
+				var _p20 = _user$project$Data$parsed;
+				if (_p20.ctor === 'Ok') {
+					return _user$project$Static$view(_p20._0);
 				} else {
-					return _user$project$Static$viewErrs(_p15._0);
+					return _user$project$Static$viewErrs(_p20._0);
 				}
 			}(),
 			_1: {ctor: '[]'}
