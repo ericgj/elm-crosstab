@@ -115,11 +115,16 @@ carryValue func comp x =
     ( x, func comp x )
 
 
-stateCustodyW : String -> String -> List Custody -> Crosstab Int Int String String
-stateCustodyW state1 state2 =
+stateCustodySumsOf : 
+    (Custody -> Int) 
+    -> String 
+    -> String 
+    -> List Custody 
+    -> Crosstab Int Int String String
+stateCustodySumsOf getter state1 state2 =
     Crosstab.fromList
         (Crosstab.Calc.sum)
-        (Crosstab.Calc.sumOf .totalF)
+        (Crosstab.Calc.sumOf getter)
         (Crosstab.levelMap
             { row =
                 (\r ->
@@ -133,27 +138,17 @@ stateCustodyW state1 state2 =
         )
 
 
+stateCustodyW : String -> String -> List Custody -> Crosstab Int Int String String
+stateCustodyW state1 state2 =
+    stateCustodySumsOf .totalF state1 state2
+
 stateCustodyWOC : String -> String -> List Custody -> Crosstab Int Int String String
 stateCustodyWOC state1 state2 =
     let
         woc r =
             r.blackF + r.hispF + r.asianF + r.nativeHawaiianF + r.asianPacificF + r.twoRaceF
     in
-        Crosstab.fromList
-            (Crosstab.Calc.sum)
-            (Crosstab.Calc.sumOf woc)
-            (Crosstab.levelMap
-                { row =
-                    (\r ->
-                        if r.state == state1 || r.state == state2 then
-                            r.state
-                        else
-                            "zOther"
-                    )
-                , col = .year >> toString
-                }
-            )
-
+        stateCustodySumsOf woc state1 state2
 
 displayCrosstab :
     { x

@@ -11541,15 +11541,12 @@ var _user$project$Static$displayCrosstab = F2(
 				}
 			});
 	});
-var _user$project$Static$stateCustodyWOC = F2(
-	function (state1, state2) {
-		var woc = function (r) {
-			return ((((r.blackF + r.hispF) + r.asianF) + r.nativeHawaiianF) + r.asianPacificF) + r.twoRaceF;
-		};
+var _user$project$Static$stateCustodySumsOf = F3(
+	function (getter, state1, state2) {
 		return A3(
 			_user$project$Crosstab$fromList,
 			_user$project$Crosstab_Calc$sum,
-			_user$project$Crosstab_Calc$sumOf(woc),
+			_user$project$Crosstab_Calc$sumOf(getter),
 			_user$project$Crosstab$levelMap(
 				{
 					row: function (r) {
@@ -11566,24 +11563,19 @@ var _user$project$Static$stateCustodyWOC = F2(
 var _user$project$Static$stateCustodyW = F2(
 	function (state1, state2) {
 		return A3(
-			_user$project$Crosstab$fromList,
-			_user$project$Crosstab_Calc$sum,
-			_user$project$Crosstab_Calc$sumOf(
-				function (_) {
-					return _.totalF;
-				}),
-			_user$project$Crosstab$levelMap(
-				{
-					row: function (r) {
-						return (_elm_lang$core$Native_Utils.eq(r.state, state1) || _elm_lang$core$Native_Utils.eq(r.state, state2)) ? r.state : 'zOther';
-					},
-					col: function (_p4) {
-						return _elm_lang$core$Basics$toString(
-							function (_) {
-								return _.year;
-							}(_p4));
-					}
-				}));
+			_user$project$Static$stateCustodySumsOf,
+			function (_) {
+				return _.totalF;
+			},
+			state1,
+			state2);
+	});
+var _user$project$Static$stateCustodyWOC = F2(
+	function (state1, state2) {
+		var woc = function (r) {
+			return ((((r.blackF + r.hispF) + r.asianF) + r.nativeHawaiianF) + r.asianPacificF) + r.twoRaceF;
+		};
+		return A3(_user$project$Static$stateCustodySumsOf, woc, state1, state2);
 	});
 var _user$project$Static$carryValue = F3(
 	function (func, comp, x) {
@@ -11594,23 +11586,23 @@ var _user$project$Static$carryValue = F3(
 		};
 	});
 var _user$project$Static$prevColPct = F2(
-	function (_p5, val) {
-		var _p6 = _p5;
+	function (_p4, val) {
+		var _p5 = _p4;
 		return A2(
 			_elm_lang$core$Maybe$map,
 			function (prev) {
 				return _elm_lang$core$Basics$toFloat(val - prev) / _elm_lang$core$Basics$toFloat(val);
 			},
-			_p6.prevCol);
+			_p5.prevCol);
 	});
 var _user$project$Static$colPct = F2(
-	function (_p7, val) {
-		var _p8 = _p7;
-		return _elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p8.col);
+	function (_p6, val) {
+		var _p7 = _p6;
+		return _elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p7.col);
 	});
 var _user$project$Static$tableConfig = function () {
-	var cell = function (_p9) {
-		var _p10 = _p9;
+	var cell = function (_p8) {
+		var _p9 = _p8;
 		var html = function (pct) {
 			return A2(
 				_elm_lang$html$Html$div,
@@ -11646,7 +11638,7 @@ var _user$project$Static$tableConfig = function () {
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html$text(
-									_elm_lang$core$Basics$toString(_p10._0)),
+									_elm_lang$core$Basics$toString(_p9._0)),
 								_1: {ctor: '[]'}
 							}),
 						_1: {ctor: '[]'}
@@ -11658,7 +11650,7 @@ var _user$project$Static$tableConfig = function () {
 			html('-'),
 			A2(
 				_elm_lang$core$Maybe$map,
-				function (_p11) {
+				function (_p10) {
 					return html(
 						A3(
 							_elm_lang$core$Basics$flip,
@@ -11676,9 +11668,9 @@ var _user$project$Static$tableConfig = function () {
 											return x * y;
 										}),
 									100,
-									_p11))));
+									_p10))));
 				},
-				_p10._1));
+				_p9._1));
 	};
 	return {
 		rowLabel: _elm_lang$html$Html$text,
@@ -11686,9 +11678,9 @@ var _user$project$Static$tableConfig = function () {
 		rowTotalLabel: _elm_lang$html$Html$text('All Years, Total'),
 		colTotalLabel: _elm_lang$html$Html$text('US Total'),
 		cell: cell,
-		summary: function (_p12) {
+		summary: function (_p11) {
 			return _elm_lang$html$Html$text(
-				_elm_lang$core$Basics$toString(_p12));
+				_elm_lang$core$Basics$toString(_p11));
 		}
 	};
 }();
@@ -11724,8 +11716,8 @@ var _user$project$Static$viewErrs = function (errs) {
 						{ctor: '[]'},
 						A2(
 							_elm_lang$core$List$map,
-							function (_p13) {
-								var _p14 = _p13;
+							function (_p12) {
+								var _p13 = _p12;
 								return A2(
 									_elm_lang$html$Html$li,
 									{ctor: '[]'},
@@ -11734,13 +11726,13 @@ var _user$project$Static$viewErrs = function (errs) {
 										_0: _elm_lang$html$Html$text(
 											A2(
 												_elm_lang$core$Basics_ops['++'],
-												_p14._1,
+												_p13._1,
 												A2(
 													_elm_lang$core$Basics_ops['++'],
 													' (line ',
 													A2(
 														_elm_lang$core$Basics_ops['++'],
-														_elm_lang$core$Basics$toString(_p14._0),
+														_elm_lang$core$Basics$toString(_p13._0),
 														')')))),
 										_1: {ctor: '[]'}
 									});
@@ -11786,11 +11778,11 @@ var _user$project$Static$viewErrs = function (errs) {
 				}
 			});
 	};
-	var _p15 = errs;
-	if (_p15.ctor === 'CsvErrors') {
-		return parseErrors(_p15._0);
+	var _p14 = errs;
+	if (_p14.ctor === 'CsvErrors') {
+		return parseErrors(_p14._0);
 	} else {
-		return decodeErrors(_p15._0);
+		return decodeErrors(_p14._0);
 	}
 };
 var _user$project$Static$view = function (data) {
@@ -11887,11 +11879,11 @@ var _user$project$Static$main = _elm_lang$virtual_dom$Native_VirtualDom.staticPr
 		{
 			ctor: '::',
 			_0: function () {
-				var _p16 = _user$project$Data$parsed;
-				if (_p16.ctor === 'Ok') {
-					return _user$project$Static$view(_p16._0);
+				var _p15 = _user$project$Data$parsed;
+				if (_p15.ctor === 'Ok') {
+					return _user$project$Static$view(_p15._0);
 				} else {
-					return _user$project$Static$viewErrs(_p16._0);
+					return _user$project$Static$viewErrs(_p15._0);
 				}
 			}(),
 			_1: {ctor: '[]'}
