@@ -33,10 +33,10 @@ view data =
         , h2 [] [ text "Example cumulative percent table" ]
         , viewCumRowPctTable ( yearCustodyOfAll data )
         , p [ style [ ( "font-size", "0.7em" ) ] ]
-            [ span [] [ text "Source: " ]
+            [ span [] [ text "Source (Public Domain): " ]
             , span []
                 [ a
-                    [ href "http://www.icpsr.umich.edu/icpsrweb/NACJD/studies/36657" ]
+                    [ href "http://doi.org/10.3886/ICPSR36657.v1" ]
                     [ text "National Prisoner Statistics, 1978-2015 (ICPSR 36657)" ]
                 ]
             ]

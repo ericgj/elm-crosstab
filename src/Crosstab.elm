@@ -62,6 +62,7 @@ Built on top of [elm-flat-matrix][] for efficient processing.
 -}
 
 import Matrix exposing (Matrix)
+import Matrix.Util
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Set exposing (Set)
@@ -343,7 +344,7 @@ Get the list of values from a crosstab (rows of columns).
 -}
 rowList : Crosstab a b comparable1 comparable2 -> List (List a)
 rowList (Crosstab { values }) =
-    toListMatrix values
+    Matrix.Util.toList values
 
 {-|
 
@@ -613,7 +614,7 @@ calcValuesSummary (Calc { init, accum, map }) matrix =
                 , cols = Array.map map v.cols
             }
     in
-        foldlMatrix accum_
+        Matrix.Util.foldl accum_
             { table = init
             , rows = Array.repeat nrows init
             , cols = Array.repeat ncols init
@@ -708,7 +709,7 @@ compareSummaryValuesAccum func init { table, rows, cols } matrix =
                     )
                     m
     in
-        foldlMatrix accum
+        Matrix.Util.foldl accum
             (Matrix.repeat nrows ncols init)
             matrix
 
@@ -741,91 +742,3 @@ setFromArray : Array comparable -> Set comparable
 setFromArray a =
     Array.foldl Set.insert Set.empty a
 
-
-filterMapArray : (a -> Maybe b) -> Array a -> Array b
-filterMapArray f xs =
-    let
-        maybePush : (a -> Maybe b) -> a -> Array b -> Array b
-        maybePush f mx xs =
-            case f mx of
-                Just x ->
-                    Array.push x xs
-
-                Nothing ->
-                    xs
-    in
-        Array.foldl (maybePush f) Array.empty xs
-
-
-filterMatrixByIndexes :
-    Array Int
-    -> Array Int
-    -> Matrix a
-    -> Matrix a
-filterMatrixByIndexes xs ys matrix =
-    let
-        levelIndexMap levels max =
-            indexMapArray levels
-                |> Dict.filter (\_ i -> i > -1 && i < max)
-
-        xsMap =
-            levelIndexMap xs (Matrix.width matrix)
-
-        ysMap =
-            levelIndexMap ys (Matrix.height matrix)
-
-        accum x y v m =
-            Maybe.map2
-                (\newX newY ->
-                    Matrix.set newX newY (Just v) m
-                )
-                (Dict.get x xsMap)
-                (Dict.get y ysMap)
-                |> Maybe.withDefault m
-
-        -- only works if every matrix element is `Just a`, but
-        -- that should be guaranteed by the xsMap, yxMap data constraints
-        finalize m =
-            { m
-                | data = filterMapArray identity m.data
-            }
-    in
-        foldlMatrix accum
-            (Matrix.repeat (Dict.size xsMap) (Dict.size ysMap) Nothing)
-            matrix
-            |> finalize
-
-
-toListMatrix : Matrix a -> List (List a)
-toListMatrix matrix =
-    let
-        accum x y a ar =
-            updateArray x ((::) a) ar
-    in
-        foldlMatrix accum
-            (Array.repeat (Matrix.width matrix) [])
-            matrix
-            |> Array.map List.reverse
-            |> Array.toList
-
-
-foldlMatrix :
-    (Int -> Int -> a -> b -> b)
-    -> b
-    -> Matrix a
-    -> b
-foldlMatrix accum init matrix =
-    let
-        accum_ a ( i, b ) =
-            let
-                x =
-                    i % (Matrix.width matrix)
-
-                y =
-                    i // (Matrix.width matrix)
-            in
-                ( i + 1, accum x y a b )
-    in
-        matrix.data
-            |> Array.foldl accum_ ( 0, init )
-            |> Tuple.second
