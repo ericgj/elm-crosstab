@@ -21,6 +21,9 @@ module Crosstab
         , compareAndCalc
         , compareAccum
         , compareAccumAndCalc
+        , sortRowsBySummary
+        , sortRowsByCol
+        , sortRowsByColIndex
         , customCalc
         , mapCalcOf
         , mapCalcOf2
@@ -44,7 +47,12 @@ Built on top of [elm-flat-matrix][] for efficient processing.
 
 # Calculating
 
-@docs calc, compare, compareAndCalc, Compare
+@docs calc, compare, compareAndCalc, Compare, compareAccum, compareAccumAndCalc, CompareAccum
+
+
+# Sorting
+
+@docs sortRowsBySummary, sortRowsByCol, sortRowsByColIndex
 
 
 # Defining calculations
@@ -54,7 +62,7 @@ Built on top of [elm-flat-matrix][] for efficient processing.
 
 # Internal types
 
-@docs Crosstab, LevelMap, Calc, Levels, Values, Summary
+@docs Crosstab, LevelMap, Calc, Levels
 
 
 [elm-flat-matrix]: https://package.elm-lang.org/packages/eeue56/elm-flat-matrix/latest
@@ -134,6 +142,19 @@ type alias Compare a b =
     , prevCol : Maybe a
     }
 
+
+{-|
+
+Summary data for calculations involving accumulating row and column values. 
+See `compareAccum` for usage example. In addition to the fields available in
+`Compare`, you have:
+
+  - **cumRow**, the last cumulative value at the previous row, or the initial
+    value if the first row.
+  - **cumCol**, the last cumulative value at the previous column, or the initial
+    value if the first column.
+
+-}
 type alias CompareAccum a b c =
    { table : b
    , row : b
@@ -543,6 +564,78 @@ compareAccumAndCalc comp (Calc calc) (Crosstab { levels, summary, values }) =
             }
 
 
+-- SORTING
+
+{-|
+
+Sort the rows of a Crosstab by a function of the row summary. 
+
+For instance, to sort rows descending, when the summary is numeric:
+
+    Crosstab.sortRowsBySummary (\n -> n * -1) crosstab
+
+-}
+sortRowsBySummary :
+    (b -> comparable3)
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab a b comparable1 comparable2
+sortRowsBySummary accessor (Crosstab c) =
+    let
+        indexes = 
+            sortedIndexesArray accessor c.summary.rows
+    in
+        sortRowsByIndexes indexes (Crosstab c)
+
+{-|
+
+Sort the rows of a Crosstab by a function of the given column. 
+
+    let
+        countsByMonthAndState =
+            Crosstab.fromList
+                Crosstab.Calc.count
+                Crosstab.Calc.count
+                ( levelMap 
+                   { row = .state
+                   , col = .month
+                   }
+                )
+                data
+    in
+        -- sort rows ascending by counts of the "2017-01" column
+        countsByMonthAndState
+            |> Crosstab.sortRowsByCol "2017-01" identity
+
+-}
+sortRowsByCol : 
+    comparable2
+    -> (a -> comparable3)
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab a b comparable1 comparable2
+sortRowsByCol col accessor (Crosstab c) =
+    findInArray col c.levels.cols
+        |> Maybe.map (\i -> sortRowsByColIndex i accessor (Crosstab c))
+        |> Maybe.withDefault (Crosstab c)
+
+
+{-|
+
+The same as `sortRowsByCol`, but specifying a column index instead of value.
+
+-}
+sortRowsByColIndex :
+    Int
+    -> (a -> comparable3)
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab a b comparable1 comparable2
+sortRowsByColIndex index accessor (Crosstab c) =
+    let
+        indexes = 
+            Matrix.Util.sortedRowIndexes index accessor c.values
+
+    in
+        sortRowsByIndexes indexes (Crosstab c)
+
 
 -- CALC CONSTRUCTORS
 
@@ -714,6 +807,31 @@ compareSummaryValuesAccum func init { table, rows, cols } matrix =
             matrix
 
 
+sortRowsByIndexes :
+    List Int
+    -> Crosstab a b comparable1 comparable2
+    -> Crosstab a b comparable1 comparable2
+sortRowsByIndexes indexes (Crosstab c) =
+    let
+        updLevels levels =
+            { levels | rows = sortByIndexesArray indexes levels.rows }
+
+        updValues values =
+            Matrix.Util.sortRowsByIndexes indexes values
+
+        updSummary summary =
+            { summary | rows = sortByIndexesArray indexes summary.rows }
+
+    in
+        Crosstab
+            { c
+                | levels = updLevels c.levels
+                , values = updValues c.values
+                , summary = updSummary c.summary
+            }
+
+
+
 
 -- UTILS
 
@@ -723,6 +841,11 @@ indexMapArray array =
     array
         |> Array.foldl (\a ( i, d ) -> ( i + 1, Dict.insert a i d )) ( 0, Dict.empty )
         |> Tuple.second
+
+findInArray : comparable -> Array comparable -> Maybe Int
+findInArray a array =
+    indexMapArray array
+        |> Dict.get a
 
 
 updateArray : Int -> (a -> a) -> Array a -> Array a
@@ -741,4 +864,29 @@ setToArray s =
 setFromArray : Array comparable -> Set comparable
 setFromArray a =
     Array.foldl Set.insert Set.empty a
+
+sortedIndexesArray : (a -> comparable) -> Array a -> List Int
+sortedIndexesArray accessor array =
+    Array.indexedMap (,) array
+        |> Array.toList
+        |> (List.sortBy (Tuple.second >> accessor))
+        |> List.map Tuple.first
+
+sortByIndexesArray : List Int -> Array a -> Array a
+sortByIndexesArray indexes array =
+    let
+        accum_ orig old (new, array_) =
+            ( new + 1
+            , Array.get old orig
+                |> Maybe.map (\a -> Array.set new a array_)
+                |> Maybe.withDefault array_
+            )
+    in
+        if Array.length array == List.length indexes then
+            List.foldl (accum_ array) (0, array) indexes
+                |> Tuple.second
+        else
+            -- TODO
+            array
+
 

@@ -10647,41 +10647,15 @@ var _user$project$Matrix_Util$toListColumns = function (matrix) {
 					{ctor: '[]'}),
 				matrix)));
 };
-var _user$project$Matrix_Util$sortColumnsByRow = F3(
-	function (index, accessor, matrix) {
-		var sortedIndexes = A2(
-			_elm_lang$core$List$map,
-			_elm_lang$core$Tuple$first,
-			A2(
-				_elm_lang$core$List$sortBy,
-				function (_p8) {
-					return accessor(
-						_elm_lang$core$Tuple$second(_p8));
-				},
-				function (_p9) {
-					return _elm_lang$core$Array$toList(
-						A2(
-							_elm_lang$core$Array$indexedMap,
-							F2(
-								function (v0, v1) {
-									return {ctor: '_Tuple2', _0: v0, _1: v1};
-								}),
-							_p9));
-				}(
-					A2(
-						_elm_lang$core$Maybe$withDefault,
-						_elm_lang$core$Array$empty,
-						A2(_eeue56$elm_flat_matrix$Matrix$getRow, index, matrix)))));
-		var _p10 = matrix.size;
-		var ncols = _p10._0;
-		var nrows = _p10._1;
-		var accum_ = F3(
-			function (origmatrix, col, _p11) {
-				var _p12 = _p11;
-				var _p13 = _p12._0;
+var _user$project$Matrix_Util$sortColumnsByIndexes = F2(
+	function (indexes, matrix) {
+		var accum_ = F4(
+			function (nrows, origMatrix, col, _p8) {
+				var _p9 = _p8;
+				var _p10 = _p9._0;
 				return {
 					ctor: '_Tuple2',
-					_0: _p13 + 1,
+					_0: _p10 + 1,
 					_1: A3(
 						_elm_lang$core$List$foldr,
 						F2(
@@ -10692,56 +10666,35 @@ var _user$project$Matrix_Util$sortColumnsByRow = F3(
 									A2(
 										_elm_lang$core$Maybe$map,
 										function (a) {
-											return A4(_eeue56$elm_flat_matrix$Matrix$set, _p13, row, a, m_);
+											return A4(_eeue56$elm_flat_matrix$Matrix$set, _p10, row, a, m_);
 										},
-										A3(_eeue56$elm_flat_matrix$Matrix$get, col, row, origmatrix)));
+										A3(_eeue56$elm_flat_matrix$Matrix$get, col, row, origMatrix)));
 							}),
-						_p12._1,
+						_p9._1,
 						A2(_elm_lang$core$List$range, 0, nrows))
 				};
 			});
-		return _elm_lang$core$Tuple$second(
+		var _p11 = matrix.size;
+		var ncols = _p11._0;
+		var nrows = _p11._1;
+		return _elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$List$length(indexes),
+			ncols) ? _elm_lang$core$Tuple$second(
 			A3(
 				_elm_lang$core$List$foldl,
-				accum_(matrix),
+				A2(accum_, nrows, matrix),
 				{ctor: '_Tuple2', _0: 0, _1: matrix},
-				sortedIndexes));
+				indexes)) : matrix;
 	});
-var _user$project$Matrix_Util$sortRowsByColumn = F3(
-	function (index, accessor, matrix) {
-		var sortedIndexes = A2(
-			_elm_lang$core$List$map,
-			_elm_lang$core$Tuple$first,
-			A2(
-				_elm_lang$core$List$sortBy,
-				function (_p14) {
-					return accessor(
-						_elm_lang$core$Tuple$second(_p14));
-				},
-				function (_p15) {
-					return _elm_lang$core$Array$toList(
-						A2(
-							_elm_lang$core$Array$indexedMap,
-							F2(
-								function (v0, v1) {
-									return {ctor: '_Tuple2', _0: v0, _1: v1};
-								}),
-							_p15));
-				}(
-					A2(
-						_elm_lang$core$Maybe$withDefault,
-						_elm_lang$core$Array$empty,
-						A2(_eeue56$elm_flat_matrix$Matrix$getColumn, index, matrix)))));
-		var _p16 = matrix.size;
-		var ncols = _p16._0;
-		var nrows = _p16._1;
-		var accum_ = F3(
-			function (origmatrix, row, _p17) {
-				var _p18 = _p17;
-				var _p19 = _p18._0;
+var _user$project$Matrix_Util$sortRowsByIndexes = F2(
+	function (indexes, matrix) {
+		var accum_ = F4(
+			function (ncols, origMatrix, row, _p12) {
+				var _p13 = _p12;
+				var _p14 = _p13._0;
 				return {
 					ctor: '_Tuple2',
-					_0: _p19 + 1,
+					_0: _p14 + 1,
 					_1: A3(
 						_elm_lang$core$List$foldr,
 						F2(
@@ -10752,22 +10705,143 @@ var _user$project$Matrix_Util$sortRowsByColumn = F3(
 									A2(
 										_elm_lang$core$Maybe$map,
 										function (a) {
-											return A4(_eeue56$elm_flat_matrix$Matrix$set, col, _p19, a, m_);
+											return A4(_eeue56$elm_flat_matrix$Matrix$set, col, _p14, a, m_);
 										},
-										A3(_eeue56$elm_flat_matrix$Matrix$get, col, row, origmatrix)));
+										A3(_eeue56$elm_flat_matrix$Matrix$get, col, row, origMatrix)));
 							}),
-						_p18._1,
+						_p13._1,
 						A2(_elm_lang$core$List$range, 0, ncols))
 				};
 			});
-		return _elm_lang$core$Tuple$second(
+		var _p15 = matrix.size;
+		var ncols = _p15._0;
+		var nrows = _p15._1;
+		return _elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$List$length(indexes),
+			nrows) ? _elm_lang$core$Tuple$second(
 			A3(
 				_elm_lang$core$List$foldl,
-				accum_(matrix),
+				A2(accum_, ncols, matrix),
 				{ctor: '_Tuple2', _0: 0, _1: matrix},
-				sortedIndexes));
+				indexes)) : matrix;
+	});
+var _user$project$Matrix_Util$sortedColumnIndexes = F3(
+	function (index, accessor, matrix) {
+		return A2(
+			_elm_lang$core$List$map,
+			_elm_lang$core$Tuple$first,
+			A2(
+				_elm_lang$core$List$sortBy,
+				function (_p16) {
+					return accessor(
+						_elm_lang$core$Tuple$second(_p16));
+				},
+				function (_p17) {
+					return _elm_lang$core$Array$toList(
+						A2(
+							_elm_lang$core$Array$indexedMap,
+							F2(
+								function (v0, v1) {
+									return {ctor: '_Tuple2', _0: v0, _1: v1};
+								}),
+							_p17));
+				}(
+					A2(
+						_elm_lang$core$Maybe$withDefault,
+						_elm_lang$core$Array$empty,
+						A2(_eeue56$elm_flat_matrix$Matrix$getRow, index, matrix)))));
+	});
+var _user$project$Matrix_Util$sortedRowIndexes = F3(
+	function (index, accessor, matrix) {
+		return A2(
+			_elm_lang$core$List$map,
+			_elm_lang$core$Tuple$first,
+			A2(
+				_elm_lang$core$List$sortBy,
+				function (_p18) {
+					return accessor(
+						_elm_lang$core$Tuple$second(_p18));
+				},
+				function (_p19) {
+					return _elm_lang$core$Array$toList(
+						A2(
+							_elm_lang$core$Array$indexedMap,
+							F2(
+								function (v0, v1) {
+									return {ctor: '_Tuple2', _0: v0, _1: v1};
+								}),
+							_p19));
+				}(
+					A2(
+						_elm_lang$core$Maybe$withDefault,
+						_elm_lang$core$Array$empty,
+						A2(_eeue56$elm_flat_matrix$Matrix$getColumn, index, matrix)))));
+	});
+var _user$project$Matrix_Util$sortColumnsByRow = F3(
+	function (index, accessor, matrix) {
+		return function (idxs) {
+			return A2(_user$project$Matrix_Util$sortColumnsByIndexes, idxs, matrix);
+		}(
+			A3(_user$project$Matrix_Util$sortedColumnIndexes, index, accessor, matrix));
+	});
+var _user$project$Matrix_Util$sortRowsByColumn = F3(
+	function (index, accessor, matrix) {
+		return function (idxs) {
+			return A2(_user$project$Matrix_Util$sortRowsByIndexes, idxs, matrix);
+		}(
+			A3(_user$project$Matrix_Util$sortedRowIndexes, index, accessor, matrix));
 	});
 
+var _user$project$Crosstab$sortByIndexesArray = F2(
+	function (indexes, array) {
+		var accum_ = F3(
+			function (orig, old, _p0) {
+				var _p1 = _p0;
+				var _p3 = _p1._0;
+				var _p2 = _p1._1;
+				return {
+					ctor: '_Tuple2',
+					_0: _p3 + 1,
+					_1: A2(
+						_elm_lang$core$Maybe$withDefault,
+						_p2,
+						A2(
+							_elm_lang$core$Maybe$map,
+							function (a) {
+								return A3(_elm_lang$core$Array$set, _p3, a, _p2);
+							},
+							A2(_elm_lang$core$Array$get, old, orig)))
+				};
+			});
+		return _elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$Array$length(array),
+			_elm_lang$core$List$length(indexes)) ? _elm_lang$core$Tuple$second(
+			A3(
+				_elm_lang$core$List$foldl,
+				accum_(array),
+				{ctor: '_Tuple2', _0: 0, _1: array},
+				indexes)) : array;
+	});
+var _user$project$Crosstab$sortedIndexesArray = F2(
+	function (accessor, array) {
+		return A2(
+			_elm_lang$core$List$map,
+			_elm_lang$core$Tuple$first,
+			A2(
+				_elm_lang$core$List$sortBy,
+				function (_p4) {
+					return accessor(
+						_elm_lang$core$Tuple$second(_p4));
+				},
+				_elm_lang$core$Array$toList(
+					A2(
+						_elm_lang$core$Array$indexedMap,
+						F2(
+							function (v0, v1) {
+								return {ctor: '_Tuple2', _0: v0, _1: v1};
+							}),
+						array))));
+	});
 var _user$project$Crosstab$setFromArray = function (a) {
 	return A3(_elm_lang$core$Array$foldl, _elm_lang$core$Set$insert, _elm_lang$core$Set$empty, a);
 };
@@ -10795,21 +10869,28 @@ var _user$project$Crosstab$indexMapArray = function (array) {
 		A3(
 			_elm_lang$core$Array$foldl,
 			F2(
-				function (a, _p0) {
-					var _p1 = _p0;
-					var _p2 = _p1._0;
+				function (a, _p5) {
+					var _p6 = _p5;
+					var _p7 = _p6._0;
 					return {
 						ctor: '_Tuple2',
-						_0: _p2 + 1,
-						_1: A3(_elm_lang$core$Dict$insert, a, _p2, _p1._1)
+						_0: _p7 + 1,
+						_1: A3(_elm_lang$core$Dict$insert, a, _p7, _p6._1)
 					};
 				}),
 			{ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Dict$empty},
 			array));
 };
+var _user$project$Crosstab$findInArray = F2(
+	function (a, array) {
+		return A2(
+			_elm_lang$core$Dict$get,
+			a,
+			_user$project$Crosstab$indexMapArray(array));
+	});
 var _user$project$Crosstab$compareSummaryValuesAccum = F4(
-	function (func, init, _p3, matrix) {
-		var _p4 = _p3;
+	function (func, init, _p8, matrix) {
+		var _p9 = _p8;
 		var comparator = F7(
 			function (t, c, r, pc, pr, cc, cr) {
 				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc, cumRow: cr, cumCol: cc};
@@ -10842,14 +10923,14 @@ var _user$project$Crosstab$compareSummaryValuesAccum = F4(
 						init,
 						A3(
 							_elm_lang$core$Maybe$map2,
-							A7(compare_, func, a, _p4.table, pc, pr, cc, cr),
-							A2(_elm_lang$core$Array$get, c, _p4.cols),
-							A2(_elm_lang$core$Array$get, r, _p4.rows))),
+							A7(compare_, func, a, _p9.table, pc, pr, cc, cr),
+							A2(_elm_lang$core$Array$get, c, _p9.cols),
+							A2(_elm_lang$core$Array$get, r, _p9.rows))),
 					m);
 			});
-		var _p5 = matrix.size;
-		var ncols = _p5._0;
-		var nrows = _p5._1;
+		var _p10 = matrix.size;
+		var ncols = _p10._0;
+		var nrows = _p10._1;
 		return A3(
 			_user$project$Matrix_Util$foldl,
 			accum,
@@ -10857,8 +10938,8 @@ var _user$project$Crosstab$compareSummaryValuesAccum = F4(
 			matrix);
 	});
 var _user$project$Crosstab$compareSummaryValues = F4(
-	function (func, init, _p6, matrix) {
-		var _p7 = _p6;
+	function (func, init, _p11, matrix) {
+		var _p12 = _p11;
 		var comparator = F5(
 			function (t, c, r, pc, pr) {
 				return {table: t, row: r, col: c, prevRow: pr, prevCol: pc};
@@ -10879,25 +10960,25 @@ var _user$project$Crosstab$compareSummaryValues = F4(
 					init,
 					A3(
 						_elm_lang$core$Maybe$map2,
-						A5(compare_, func, a, _p7.table, pc, pr),
-						A2(_elm_lang$core$Array$get, c, _p7.cols),
-						A2(_elm_lang$core$Array$get, r, _p7.rows)));
+						A5(compare_, func, a, _p12.table, pc, pr),
+						A2(_elm_lang$core$Array$get, c, _p12.cols),
+						A2(_elm_lang$core$Array$get, r, _p12.rows)));
 			});
 		return A2(_eeue56$elm_flat_matrix$Matrix$indexedMap, map_, matrix);
 	});
 var _user$project$Crosstab$calcValuesSummary = F2(
-	function (_p8, matrix) {
-		var _p9 = _p8;
-		var _p13 = _p9._0.map;
-		var _p12 = _p9._0.init;
-		var _p11 = _p9._0.accum;
+	function (_p13, matrix) {
+		var _p14 = _p13;
+		var _p18 = _p14._0.map;
+		var _p17 = _p14._0.init;
+		var _p16 = _p14._0.accum;
 		var finalize = function (v) {
 			return _elm_lang$core$Native_Utils.update(
 				v,
 				{
-					table: _p13(v.table),
-					rows: A2(_elm_lang$core$Array$map, _p13, v.rows),
-					cols: A2(_elm_lang$core$Array$map, _p13, v.cols)
+					table: _p18(v.table),
+					rows: A2(_elm_lang$core$Array$map, _p18, v.rows),
+					cols: A2(_elm_lang$core$Array$map, _p18, v.cols)
 				});
 		};
 		var accum_ = F4(
@@ -10905,83 +10986,83 @@ var _user$project$Crosstab$calcValuesSummary = F2(
 				return _elm_lang$core$Native_Utils.update(
 					v,
 					{
-						table: A2(_p11, a, v.table),
+						table: A2(_p16, a, v.table),
 						rows: A3(
 							_user$project$Crosstab$updateArray,
 							r,
-							_p11(a),
+							_p16(a),
 							v.rows),
 						cols: A3(
 							_user$project$Crosstab$updateArray,
 							c,
-							_p11(a),
+							_p16(a),
 							v.cols)
 					});
 			});
-		var _p10 = matrix.size;
-		var ncols = _p10._0;
-		var nrows = _p10._1;
+		var _p15 = matrix.size;
+		var ncols = _p15._0;
+		var nrows = _p15._1;
 		return finalize(
 			A3(
 				_user$project$Matrix_Util$foldl,
 				accum_,
 				{
-					table: _p12,
-					rows: A2(_elm_lang$core$Array$repeat, nrows, _p12),
-					cols: A2(_elm_lang$core$Array$repeat, ncols, _p12)
+					table: _p17,
+					rows: A2(_elm_lang$core$Array$repeat, nrows, _p17),
+					cols: A2(_elm_lang$core$Array$repeat, ncols, _p17)
 				},
 				matrix));
 	});
-var _user$project$Crosstab$tableSummary = function (_p14) {
-	var _p15 = _p14;
-	return _p15._0.summary.table;
+var _user$project$Crosstab$tableSummary = function (_p19) {
+	var _p20 = _p19;
+	return _p20._0.summary.table;
 };
-var _user$project$Crosstab$colSummaryList = function (_p16) {
-	var _p17 = _p16;
-	return _elm_lang$core$Array$toList(_p17._0.summary.cols);
+var _user$project$Crosstab$colSummaryList = function (_p21) {
+	var _p22 = _p21;
+	return _elm_lang$core$Array$toList(_p22._0.summary.cols);
 };
-var _user$project$Crosstab$rowSummaryList = function (_p18) {
-	var _p19 = _p18;
-	return _elm_lang$core$Array$toList(_p19._0.summary.rows);
+var _user$project$Crosstab$rowSummaryList = function (_p23) {
+	var _p24 = _p23;
+	return _elm_lang$core$Array$toList(_p24._0.summary.rows);
 };
-var _user$project$Crosstab$rowList = function (_p20) {
-	var _p21 = _p20;
-	return _user$project$Matrix_Util$toListRows(_p21._0.values);
+var _user$project$Crosstab$rowList = function (_p25) {
+	var _p26 = _p25;
+	return _user$project$Matrix_Util$toListRows(_p26._0.values);
 };
-var _user$project$Crosstab$colLevelList = function (_p22) {
-	var _p23 = _p22;
-	return _elm_lang$core$Array$toList(_p23._0.levels.cols);
+var _user$project$Crosstab$colLevelList = function (_p27) {
+	var _p28 = _p27;
+	return _elm_lang$core$Array$toList(_p28._0.levels.cols);
 };
-var _user$project$Crosstab$rowLevelList = function (_p24) {
-	var _p25 = _p24;
-	return _elm_lang$core$Array$toList(_p25._0.levels.rows);
+var _user$project$Crosstab$rowLevelList = function (_p29) {
+	var _p30 = _p29;
+	return _elm_lang$core$Array$toList(_p30._0.levels.rows);
 };
 var _user$project$Crosstab$levelsOf = F2(
-	function (_p26, records) {
-		var _p27 = _p26;
+	function (_p31, records) {
+		var _p32 = _p31;
 		var accum = F2(
-			function (record, _p28) {
-				var _p29 = _p28;
+			function (record, _p33) {
+				var _p34 = _p33;
 				return {
 					ctor: '_Tuple2',
 					_0: A2(
 						_elm_lang$core$Set$insert,
-						_p27._0.row(record),
-						_p29._0),
+						_p32._0.row(record),
+						_p34._0),
 					_1: A2(
 						_elm_lang$core$Set$insert,
-						_p27._0.col(record),
-						_p29._1)
+						_p32._0.col(record),
+						_p34._1)
 				};
 			});
 		var toArray = function (set) {
 			return A3(_elm_lang$core$Set$foldl, _elm_lang$core$Array$push, _elm_lang$core$Array$empty, set);
 		};
-		var finalize = function (_p30) {
-			var _p31 = _p30;
+		var finalize = function (_p35) {
+			var _p36 = _p35;
 			return {
-				rows: toArray(_p31._0),
-				cols: toArray(_p31._1)
+				rows: toArray(_p36._0),
+				cols: toArray(_p36._1)
 			};
 		};
 		return finalize(
@@ -11011,50 +11092,50 @@ var _user$project$Crosstab$Crosstab = function (a) {
 	return {ctor: 'Crosstab', _0: a};
 };
 var _user$project$Crosstab$fromListWithLevels = F5(
-	function (_p34, summary, _p33, _p32, records) {
-		var _p35 = _p34;
-		var _p40 = _p35.rows;
-		var _p39 = _p35.cols;
-		var _p36 = _p33;
-		var _p38 = _p36._0;
-		var _p37 = _p32;
+	function (_p39, summary, _p38, _p37, records) {
+		var _p40 = _p39;
+		var _p45 = _p40.rows;
+		var _p44 = _p40.cols;
+		var _p41 = _p38;
+		var _p43 = _p41._0;
+		var _p42 = _p37;
 		var finalize = function (matrix) {
 			return _user$project$Crosstab$Crosstab(
 				{
-					levels: {rows: _p40, cols: _p39},
-					values: A2(_eeue56$elm_flat_matrix$Matrix$map, _p38.map, matrix),
+					levels: {rows: _p45, cols: _p44},
+					values: A2(_eeue56$elm_flat_matrix$Matrix$map, _p43.map, matrix),
 					summary: A2(_user$project$Crosstab$calcValuesSummary, summary, matrix)
 				});
 		};
 		var initData = A3(
 			_eeue56$elm_flat_matrix$Matrix$repeat,
-			_elm_lang$core$Array$length(_p39),
-			_elm_lang$core$Array$length(_p40),
-			_p38.init);
+			_elm_lang$core$Array$length(_p44),
+			_elm_lang$core$Array$length(_p45),
+			_p43.init);
 		var accumHelp = F4(
 			function (c, r, a, matrix) {
 				return A4(
 					_eeue56$elm_flat_matrix$Matrix$update,
 					c,
 					r,
-					_p38.accum(a),
+					_p43.accum(a),
 					matrix);
 			});
-		var colMap = _user$project$Crosstab$indexMapArray(_p39);
+		var colMap = _user$project$Crosstab$indexMapArray(_p44);
 		var mcol = function (record) {
 			return A3(
 				_elm_lang$core$Basics$flip,
 				_elm_lang$core$Dict$get,
 				colMap,
-				_p37._0.col(record));
+				_p42._0.col(record));
 		};
-		var rowMap = _user$project$Crosstab$indexMapArray(_p40);
+		var rowMap = _user$project$Crosstab$indexMapArray(_p45);
 		var mrow = function (record) {
 			return A3(
 				_elm_lang$core$Basics$flip,
 				_elm_lang$core$Dict$get,
 				rowMap,
-				_p37._0.row(record));
+				_p42._0.row(record));
 		};
 		var accum = F2(
 			function (a, data) {
@@ -11084,148 +11165,216 @@ var _user$project$Crosstab$fromList = F4(
 			records);
 	});
 var _user$project$Crosstab$calc = F2(
-	function (summary, _p41) {
-		var _p42 = _p41;
-		var _p43 = _p42._0.values;
+	function (summary, _p46) {
+		var _p47 = _p46;
+		var _p48 = _p47._0.values;
 		return _user$project$Crosstab$Crosstab(
 			{
-				levels: _p42._0.levels,
-				values: _p43,
-				summary: A2(_user$project$Crosstab$calcValuesSummary, summary, _p43)
+				levels: _p47._0.levels,
+				values: _p48,
+				summary: A2(_user$project$Crosstab$calcValuesSummary, summary, _p48)
 			});
 	});
 var _user$project$Crosstab$compare = F3(
-	function (comp, init, _p44) {
-		var _p45 = _p44;
-		var _p46 = _p45._0.summary;
+	function (comp, init, _p49) {
+		var _p50 = _p49;
+		var _p51 = _p50._0.summary;
 		return _user$project$Crosstab$Crosstab(
 			{
-				levels: _p45._0.levels,
-				values: A4(_user$project$Crosstab$compareSummaryValues, comp, init, _p46, _p45._0.values),
-				summary: _p46
+				levels: _p50._0.levels,
+				values: A4(_user$project$Crosstab$compareSummaryValues, comp, init, _p51, _p50._0.values),
+				summary: _p51
 			});
 	});
 var _user$project$Crosstab$compareAccum = F3(
-	function (comp, init, _p47) {
-		var _p48 = _p47;
-		var _p49 = _p48._0.summary;
+	function (comp, init, _p52) {
+		var _p53 = _p52;
+		var _p54 = _p53._0.summary;
 		return _user$project$Crosstab$Crosstab(
 			{
-				levels: _p48._0.levels,
-				values: A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, init, _p49, _p48._0.values),
-				summary: _p49
+				levels: _p53._0.levels,
+				values: A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, init, _p54, _p53._0.values),
+				summary: _p54
 			});
+	});
+var _user$project$Crosstab$sortRowsByIndexes = F2(
+	function (indexes, _p55) {
+		var _p56 = _p55;
+		var _p57 = _p56._0;
+		var updSummary = function (summary) {
+			return _elm_lang$core$Native_Utils.update(
+				summary,
+				{
+					rows: A2(_user$project$Crosstab$sortByIndexesArray, indexes, summary.rows)
+				});
+		};
+		var updValues = function (values) {
+			return A2(_user$project$Matrix_Util$sortRowsByIndexes, indexes, values);
+		};
+		var updLevels = function (levels) {
+			return _elm_lang$core$Native_Utils.update(
+				levels,
+				{
+					rows: A2(_user$project$Crosstab$sortByIndexesArray, indexes, levels.rows)
+				});
+		};
+		return _user$project$Crosstab$Crosstab(
+			_elm_lang$core$Native_Utils.update(
+				_p57,
+				{
+					levels: updLevels(_p57.levels),
+					values: updValues(_p57.values),
+					summary: updSummary(_p57.summary)
+				}));
+	});
+var _user$project$Crosstab$sortRowsBySummary = F2(
+	function (accessor, _p58) {
+		var _p59 = _p58;
+		var _p60 = _p59._0;
+		var indexes = A2(_user$project$Crosstab$sortedIndexesArray, accessor, _p60.summary.rows);
+		return A2(
+			_user$project$Crosstab$sortRowsByIndexes,
+			indexes,
+			_user$project$Crosstab$Crosstab(_p60));
+	});
+var _user$project$Crosstab$sortRowsByColIndex = F3(
+	function (index, accessor, _p61) {
+		var _p62 = _p61;
+		var _p63 = _p62._0;
+		var indexes = A3(_user$project$Matrix_Util$sortedRowIndexes, index, accessor, _p63.values);
+		return A2(
+			_user$project$Crosstab$sortRowsByIndexes,
+			indexes,
+			_user$project$Crosstab$Crosstab(_p63));
+	});
+var _user$project$Crosstab$sortRowsByCol = F3(
+	function (col, accessor, _p64) {
+		var _p65 = _p64;
+		var _p66 = _p65._0;
+		return A2(
+			_elm_lang$core$Maybe$withDefault,
+			_user$project$Crosstab$Crosstab(_p66),
+			A2(
+				_elm_lang$core$Maybe$map,
+				function (i) {
+					return A3(
+						_user$project$Crosstab$sortRowsByColIndex,
+						i,
+						accessor,
+						_user$project$Crosstab$Crosstab(_p66));
+				},
+				A2(_user$project$Crosstab$findInArray, col, _p66.levels.cols)));
 	});
 var _user$project$Crosstab$Calc = function (a) {
 	return {ctor: 'Calc', _0: a};
 };
 var _user$project$Crosstab$compareAndCalc = F3(
-	function (comp, _p51, _p50) {
-		var _p52 = _p51;
-		var _p54 = _p52._0;
-		var _p53 = _p50;
-		var newValues = A4(_user$project$Crosstab$compareSummaryValues, comp, _p54.init, _p53._0.summary, _p53._0.values);
+	function (comp, _p68, _p67) {
+		var _p69 = _p68;
+		var _p71 = _p69._0;
+		var _p70 = _p67;
+		var newValues = A4(_user$project$Crosstab$compareSummaryValues, comp, _p71.init, _p70._0.summary, _p70._0.values);
 		var newSummary = A2(
 			_user$project$Crosstab$calcValuesSummary,
-			_user$project$Crosstab$Calc(_p54),
+			_user$project$Crosstab$Calc(_p71),
 			newValues);
 		return _user$project$Crosstab$Crosstab(
-			{levels: _p53._0.levels, values: newValues, summary: newSummary});
+			{levels: _p70._0.levels, values: newValues, summary: newSummary});
 	});
 var _user$project$Crosstab$compareAccumAndCalc = F3(
-	function (comp, _p56, _p55) {
-		var _p57 = _p56;
-		var _p59 = _p57._0;
-		var _p58 = _p55;
-		var newValues = A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, _p59.init, _p58._0.summary, _p58._0.values);
+	function (comp, _p73, _p72) {
+		var _p74 = _p73;
+		var _p76 = _p74._0;
+		var _p75 = _p72;
+		var newValues = A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, _p76.init, _p75._0.summary, _p75._0.values);
 		var newSummary = A2(
 			_user$project$Crosstab$calcValuesSummary,
-			_user$project$Crosstab$Calc(_p59),
+			_user$project$Crosstab$Calc(_p76),
 			newValues);
 		return _user$project$Crosstab$Crosstab(
-			{levels: _p58._0.levels, values: newValues, summary: newSummary});
+			{levels: _p75._0.levels, values: newValues, summary: newSummary});
 	});
-var _user$project$Crosstab$customCalc = function (_p60) {
-	var _p61 = _p60;
+var _user$project$Crosstab$customCalc = function (_p77) {
+	var _p78 = _p77;
 	return _user$project$Crosstab$Calc(
-		{map: _p61.map, accum: _p61.accum, init: _p61.init});
+		{map: _p78.map, accum: _p78.accum, init: _p78.init});
 };
 var _user$project$Crosstab$mapCalcOf = F2(
-	function (getter, _p62) {
-		var _p63 = _p62;
-		var _p65 = _p63._0;
+	function (getter, _p79) {
+		var _p80 = _p79;
+		var _p82 = _p80._0;
 		return _user$project$Crosstab$Calc(
 			_elm_lang$core$Native_Utils.update(
-				_p65,
+				_p82,
 				{
-					accum: function (_p64) {
-						return _p65.accum(
-							getter(_p64));
+					accum: function (_p81) {
+						return _p82.accum(
+							getter(_p81));
 					}
 				}));
 	});
 var _user$project$Crosstab$mapCalcOf2 = F3(
-	function (func, _p67, _p66) {
-		var _p68 = _p67;
-		var _p75 = _p68._0;
-		var _p69 = _p66;
-		var _p74 = _p69._0;
+	function (func, _p84, _p83) {
+		var _p85 = _p84;
+		var _p92 = _p85._0;
+		var _p86 = _p83;
+		var _p91 = _p86._0;
 		return _user$project$Crosstab$Calc(
 			{
-				map: function (_p70) {
-					var _p71 = _p70;
+				map: function (_p87) {
+					var _p88 = _p87;
 					return A2(
 						func,
-						_p75.map(_p71._0),
-						_p74.map(_p71._1));
+						_p92.map(_p88._0),
+						_p91.map(_p88._1));
 				},
 				accum: F2(
-					function (a, _p72) {
-						var _p73 = _p72;
+					function (a, _p89) {
+						var _p90 = _p89;
 						return {
 							ctor: '_Tuple2',
-							_0: A2(_p75.accum, a, _p73._0),
-							_1: A2(_p74.accum, a, _p73._1)
+							_0: A2(_p92.accum, a, _p90._0),
+							_1: A2(_p91.accum, a, _p90._1)
 						};
 					}),
-				init: {ctor: '_Tuple2', _0: _p75.init, _1: _p74.init}
+				init: {ctor: '_Tuple2', _0: _p92.init, _1: _p91.init}
 			});
 	});
 var _user$project$Crosstab$mapCalc2 = F3(
-	function (func, _p77, _p76) {
-		var _p78 = _p77;
-		var _p87 = _p78._0;
-		var _p79 = _p76;
-		var _p86 = _p79._0;
+	function (func, _p94, _p93) {
+		var _p95 = _p94;
+		var _p104 = _p95._0;
+		var _p96 = _p93;
+		var _p103 = _p96._0;
 		return _user$project$Crosstab$Calc(
 			{
-				map: function (_p80) {
-					var _p81 = _p80;
+				map: function (_p97) {
+					var _p98 = _p97;
 					return A2(
 						func,
-						_p87.map(_p81._0),
-						_p86.map(_p81._1));
+						_p104.map(_p98._0),
+						_p103.map(_p98._1));
 				},
 				accum: F2(
-					function (_p83, _p82) {
-						var _p84 = _p83;
-						var _p85 = _p82;
+					function (_p100, _p99) {
+						var _p101 = _p100;
+						var _p102 = _p99;
 						return {
 							ctor: '_Tuple2',
-							_0: A2(_p87.accum, _p84._0, _p85._0),
-							_1: A2(_p86.accum, _p84._1, _p85._1)
+							_0: A2(_p104.accum, _p101._0, _p102._0),
+							_1: A2(_p103.accum, _p101._1, _p102._1)
 						};
 					}),
-				init: {ctor: '_Tuple2', _0: _p87.init, _1: _p86.init}
+				init: {ctor: '_Tuple2', _0: _p104.init, _1: _p103.init}
 			});
 	});
 var _user$project$Crosstab$LevelMap = function (a) {
 	return {ctor: 'LevelMap', _0: a};
 };
-var _user$project$Crosstab$levelMap = function (_p88) {
-	var _p89 = _p88;
+var _user$project$Crosstab$levelMap = function (_p105) {
+	var _p106 = _p105;
 	return _user$project$Crosstab$LevelMap(
-		{row: _p89.row, col: _p89.col});
+		{row: _p106.row, col: _p106.col});
 };
 
 var _user$project$Crosstab_Calc$maybeAdd = F3(
@@ -11814,7 +11963,7 @@ var _user$project$Static$stateCustodySumsOf = F3(
 			_user$project$Crosstab$levelMap(
 				{
 					row: function (r) {
-						return (_elm_lang$core$Native_Utils.eq(r.state, state1) || _elm_lang$core$Native_Utils.eq(r.state, state2)) ? r.state : 'zOther';
+						return (_elm_lang$core$Native_Utils.eq(r.state, state1) || _elm_lang$core$Native_Utils.eq(r.state, state2)) ? r.state : 'All Other';
 					},
 					col: function (_p4) {
 						return _elm_lang$core$Basics$toString(
@@ -11983,11 +12132,17 @@ var _user$project$Static$viewColPctTable = function (tab) {
 	return A2(
 		_user$project$Static$displayCrosstab,
 		_user$project$Static$tableConfig,
-		A3(
-			_user$project$Crosstab$compare,
-			_user$project$Static$carryValue(_user$project$Static$prevColPct),
-			{ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Maybe$Nothing},
-			tab));
+		A2(
+			_user$project$Crosstab$sortRowsBySummary,
+			F2(
+				function (x, y) {
+					return x * y;
+				})(-1),
+			A3(
+				_user$project$Crosstab$compare,
+				_user$project$Static$carryValue(_user$project$Static$prevColPct),
+				{ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Maybe$Nothing},
+				tab)));
 };
 var _user$project$Static$viewErrs = function (errs) {
 	var decodeErrors = function (errs) {
@@ -12091,98 +12246,82 @@ var _user$project$Static$view = function (data) {
 				{ctor: '[]'},
 				{
 					ctor: '::',
-					_0: _elm_lang$html$Html$text('Women in US prisons by year, % change'),
+					_0: _elm_lang$html$Html$text('Women of Color in US prisons by year, % change, sorted descending by total'),
 					_1: {ctor: '[]'}
 				}),
 			_1: {
 				ctor: '::',
 				_0: _user$project$Static$viewColPctTable(
-					A3(_user$project$Static$stateCustodyW, 'PA', 'CA', data)),
+					A3(_user$project$Static$stateCustodyWOC, 'PA', 'CA', data)),
 				_1: {
 					ctor: '::',
 					_0: A2(
-						_elm_lang$html$Html$h1,
+						_elm_lang$html$Html$hr,
 						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('Women of Color in US prisons by year, % change'),
-							_1: {ctor: '[]'}
-						}),
+						{ctor: '[]'}),
 					_1: {
 						ctor: '::',
-						_0: _user$project$Static$viewColPctTable(
-							A3(_user$project$Static$stateCustodyWOC, 'PA', 'CA', data)),
+						_0: A2(
+							_elm_lang$html$Html$h2,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Example cumulative percent table'),
+								_1: {ctor: '[]'}
+							}),
 						_1: {
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$hr,
-								{ctor: '[]'},
-								{ctor: '[]'}),
+							_0: _user$project$Static$viewCumRowPctTable(
+								_user$project$Static$yearCustodyOfAll(data)),
 							_1: {
 								ctor: '::',
 								_0: A2(
-									_elm_lang$html$Html$h2,
-									{ctor: '[]'},
+									_elm_lang$html$Html$p,
 									{
 										ctor: '::',
-										_0: _elm_lang$html$Html$text('Example cumulative percent table'),
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
+												_1: {ctor: '[]'}
+											}),
 										_1: {ctor: '[]'}
-									}),
-								_1: {
-									ctor: '::',
-									_0: _user$project$Static$viewCumRowPctTable(
-										_user$project$Static$yearCustodyOfAll(data)),
-									_1: {
+									},
+									{
 										ctor: '::',
 										_0: A2(
-											_elm_lang$html$Html$p,
+											_elm_lang$html$Html$span,
+											{ctor: '[]'},
 											{
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$style(
-													{
-														ctor: '::',
-														_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
-														_1: {ctor: '[]'}
-													}),
+												_0: _elm_lang$html$Html$text('Source (Public Domain): '),
 												_1: {ctor: '[]'}
-											},
-											{
-												ctor: '::',
-												_0: A2(
-													_elm_lang$html$Html$span,
-													{ctor: '[]'},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text('Source (Public Domain): '),
-														_1: {ctor: '[]'}
-													}),
-												_1: {
+											}),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$span,
+												{ctor: '[]'},
+												{
 													ctor: '::',
 													_0: A2(
-														_elm_lang$html$Html$span,
-														{ctor: '[]'},
+														_elm_lang$html$Html$a,
 														{
 															ctor: '::',
-															_0: A2(
-																_elm_lang$html$Html$a,
-																{
-																	ctor: '::',
-																	_0: _elm_lang$html$Html_Attributes$href('http://doi.org/10.3886/ICPSR36657.v1'),
-																	_1: {ctor: '[]'}
-																},
-																{
-																	ctor: '::',
-																	_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
-																	_1: {ctor: '[]'}
-																}),
+															_0: _elm_lang$html$Html_Attributes$href('http://doi.org/10.3886/ICPSR36657.v1'),
+															_1: {ctor: '[]'}
+														},
+														{
+															ctor: '::',
+															_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
 															_1: {ctor: '[]'}
 														}),
 													_1: {ctor: '[]'}
-												}
-											}),
-										_1: {ctor: '[]'}
-									}
-								}
+												}),
+											_1: {ctor: '[]'}
+										}
+									}),
+								_1: {ctor: '[]'}
 							}
 						}
 					}

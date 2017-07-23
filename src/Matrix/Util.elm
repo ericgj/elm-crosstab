@@ -2,6 +2,10 @@ module Matrix.Util
     exposing
         ( sortRowsByColumn
         , sortColumnsByRow
+        , sortRowsByIndexes
+        , sortColumnsByIndexes
+        , sortedRowIndexes
+        , sortedColumnIndexes
         , toListColumns
         , toListRows
         , foldl
@@ -15,64 +19,85 @@ import Tuple
 
 sortRowsByColumn : Int -> (a -> comparable) -> Matrix a -> Matrix a
 sortRowsByColumn index accessor matrix =
-    let
-        ( ncols, nrows ) =
-            matrix.size
-
-        sortedIndexes : List Int
-        sortedIndexes =
-            Matrix.getColumn index matrix
-                |> Maybe.withDefault (Array.empty)
-                |> (Array.indexedMap (,) >> Array.toList)
-                |> (List.sortBy (Tuple.second >> accessor))
-                |> List.map Tuple.first
-
-        accum_ origmatrix row ( newrow, newmatrix ) =
-            ( newrow + 1
-            , List.foldr
-                (\col m_ ->
-                    Matrix.get col row origmatrix
-                        |> Maybe.map
-                            (\a -> Matrix.set col newrow a m_)
-                        |> Maybe.withDefault m_
-                )
-                newmatrix
-                (List.range 0 ncols)
-            )
-    in
-        List.foldl (accum_ matrix) ( 0, matrix ) sortedIndexes
-            |> Tuple.second
-
+    sortedRowIndexes index accessor matrix
+        |> (\idxs -> sortRowsByIndexes idxs matrix)
 
 sortColumnsByRow : Int -> (a -> comparable) -> Matrix a -> Matrix a
 sortColumnsByRow index accessor matrix =
+    sortedColumnIndexes index accessor matrix
+        |> (\idxs -> sortColumnsByIndexes idxs matrix)
+
+sortedRowIndexes : Int -> (a -> comparable) -> Matrix a -> List Int
+sortedRowIndexes index accessor matrix =
+    Matrix.getColumn index matrix
+        |> Maybe.withDefault (Array.empty)
+        |> (Array.indexedMap (,) >> Array.toList)
+        |> (List.sortBy (Tuple.second >> accessor))
+        |> List.map Tuple.first
+    
+sortedColumnIndexes : Int -> (a -> comparable) -> Matrix a -> List Int
+sortedColumnIndexes index accessor matrix =
+    Matrix.getRow index matrix
+        |> Maybe.withDefault (Array.empty)
+        |> (Array.indexedMap (,) >> Array.toList)
+        |> (List.sortBy (Tuple.second >> accessor))
+        |> List.map Tuple.first
+    
+
+sortRowsByIndexes : List Int -> Matrix a -> Matrix a
+sortRowsByIndexes indexes matrix =
     let
-        ( ncols, nrows ) =
+        (ncols, nrows) =
             matrix.size
 
-        sortedIndexes : List Int
-        sortedIndexes =
-            Matrix.getRow index matrix
-                |> Maybe.withDefault (Array.empty)
-                |> (Array.indexedMap (,) >> Array.toList)
-                |> (List.sortBy (Tuple.second >> accessor))
-                |> List.map Tuple.first
-
-        accum_ origmatrix col ( newcol, newmatrix ) =
-            ( newcol + 1
+        accum_ ncols origMatrix row ( newRow, newMatrix ) =
+            ( newRow + 1
             , List.foldr
-                (\row m_ ->
-                    Matrix.get col row origmatrix
+                (\col m_ ->
+                    Matrix.get col row origMatrix
                         |> Maybe.map
-                            (\a -> Matrix.set newcol row a m_)
+                            (\a -> Matrix.set col newRow a m_)
                         |> Maybe.withDefault m_
                 )
-                newmatrix
+                newMatrix
+                (List.range 0 ncols)
+            )
+    in
+        if List.length indexes == nrows then 
+            List.foldl (accum_ ncols matrix) ( 0, matrix ) indexes
+                |> Tuple.second
+        else
+          -- TODO: if nrows > indexes then put any missing at the end
+          matrix
+
+
+sortColumnsByIndexes : List Int -> Matrix a -> Matrix a
+sortColumnsByIndexes indexes matrix =
+    let
+        (ncols, nrows) =
+            matrix.size
+
+        accum_ nrows origMatrix col ( newCol, newMatrix ) =
+            ( newCol + 1
+            , List.foldr
+                (\row m_ ->
+                    Matrix.get col row origMatrix
+                        |> Maybe.map
+                            (\a -> Matrix.set newCol row a m_)
+                        |> Maybe.withDefault m_
+                )
+                newMatrix
                 (List.range 0 nrows)
             )
     in
-        List.foldl (accum_ matrix) ( 0, matrix ) sortedIndexes
-            |> Tuple.second
+        if List.length indexes == ncols then
+            List.foldl (accum_ nrows matrix) ( 0, matrix ) indexes
+                |> Tuple.second
+        else
+            -- TODO: if ncols > indexes then put any missing at the end
+            matrix
+
+    
 
 
 toListColumns : Matrix a -> List (List a)

@@ -25,9 +25,7 @@ main =
 view : List Custody -> Html msg
 view data =
     div []
-        [ h1 [] [ text "Women in US prisons by year, % change" ]
-        , viewColPctTable ( stateCustodyW "PA" "CA" data )
-        , h1 [] [ text "Women of Color in US prisons by year, % change" ]
+        [ h1 [] [ text "Women of Color in US prisons by year, % change, sorted descending by total" ]
         , viewColPctTable ( stateCustodyWOC "PA" "CA" data )
         , hr [] []
         , h2 [] [ text "Example cumulative percent table" ]
@@ -75,7 +73,10 @@ viewColPctTable : Crosstab Int Int String String -> Html msg
 viewColPctTable tab =
     displayCrosstab
         tableConfig
-        ( tab |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ) )
+        ( tab 
+            |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ) 
+            |> Crosstab.sortRowsBySummary ((*) -1) 
+        )
 
 viewCumRowPctTable : Crosstab Int Int String String -> Html msg
 viewCumRowPctTable tab =
@@ -151,7 +152,7 @@ stateCustodySumsOf getter state1 state2 =
                     if r.state == state1 || r.state == state2 then
                         r.state
                     else
-                        "zOther"
+                        "All Other"
                 )
             , col = .year >> toString
             }
