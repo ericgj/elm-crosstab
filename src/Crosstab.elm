@@ -6,6 +6,7 @@ module Crosstab
         , Compare
         , CompareAccum
         , Levels
+        , SortDirection(..)
         , fromList
         , fromListWithLevels
         , levelsOf
@@ -186,6 +187,14 @@ type alias Summary a =
     , cols : Array a
     }
 
+{-|
+
+Sort ascending or descending.
+
+-}
+type SortDirection
+    = Asc
+    | Desc
 
 
 -- CONSTRUCTING
@@ -572,19 +581,32 @@ Sort the rows of a Crosstab by a function of the row summary.
 
 For instance, to sort rows descending, when the summary is numeric:
 
-    Crosstab.sortRowsBySummary (\n -> n * -1) crosstab
+    Crosstab.sortRowsBySummary identity Crosstab.Desc crosstab
+
+If your summary is a record of values, you can pull out what you need to sort
+by (anything `comparable`, including tuples of comparables):
+
+    Crosstab.sortRowsBySummary 
+        (\{maxGrade, meanAge} -> (maxGrade, meanAge))
+        Crosstab.Asc
+        crosstab
 
 -}
 sortRowsBySummary :
     (b -> comparable3)
+    -> SortDirection
     -> Crosstab a b comparable1 comparable2
     -> Crosstab a b comparable1 comparable2
-sortRowsBySummary accessor (Crosstab c) =
+sortRowsBySummary accessor dir (Crosstab c) =
     let
         indexes = 
             sortedIndexesArray accessor c.summary.rows
     in
-        sortRowsByIndexes indexes (Crosstab c)
+        case dir of
+            Asc ->
+                sortRowsByIndexes indexes (Crosstab c)
+            Desc ->
+                sortRowsByIndexes (List.reverse indexes) (Crosstab c)
 
 {-|
 
@@ -604,17 +626,18 @@ Sort the rows of a Crosstab by a function of the given column.
     in
         -- sort rows ascending by counts of the "2017-01" column
         countsByMonthAndState
-            |> Crosstab.sortRowsByCol "2017-01" identity
+            |> Crosstab.sortRowsByCol "2017-01" identity Crosstab.Asc
 
 -}
 sortRowsByCol : 
     comparable2
     -> (a -> comparable3)
+    -> SortDirection
     -> Crosstab a b comparable1 comparable2
     -> Crosstab a b comparable1 comparable2
-sortRowsByCol col accessor (Crosstab c) =
+sortRowsByCol col accessor dir (Crosstab c) =
     findInArray col c.levels.cols
-        |> Maybe.map (\i -> sortRowsByColIndex i accessor (Crosstab c))
+        |> Maybe.map (\i -> sortRowsByColIndex i accessor dir (Crosstab c))
         |> Maybe.withDefault (Crosstab c)
 
 
@@ -626,15 +649,20 @@ The same as `sortRowsByCol`, but specifying a column index instead of value.
 sortRowsByColIndex :
     Int
     -> (a -> comparable3)
+    -> SortDirection
     -> Crosstab a b comparable1 comparable2
     -> Crosstab a b comparable1 comparable2
-sortRowsByColIndex index accessor (Crosstab c) =
+sortRowsByColIndex index accessor dir (Crosstab c) =
     let
         indexes = 
             Matrix.Util.sortedRowIndexes index accessor c.values
 
     in
-        sortRowsByIndexes indexes (Crosstab c)
+        case dir of
+            Asc ->
+                sortRowsByIndexes indexes (Crosstab c)
+            Desc ->
+                sortRowsByIndexes (List.reverse indexes) (Crosstab c)
 
 
 -- CALC CONSTRUCTORS

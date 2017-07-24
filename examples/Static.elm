@@ -75,7 +75,7 @@ viewColPctTable tab =
         tableConfig
         ( tab 
             |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ) 
-            |> Crosstab.sortRowsBySummary ((*) -1) 
+            |> Crosstab.sortRowsBySummary identity Crosstab.Desc
         )
 
 viewCumRowPctTable : Crosstab Int Int String String -> Html msg
