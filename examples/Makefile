@@ -1,7 +1,7 @@
-CLIENT_SOURCES = $(wildcard *.elm) $(wildcard ../src/*.elm) $(wildcard ../src/Crosstab/*.elm) 
+CLIENT_SOURCES = $(wildcard *.elm) $(wildcard ../src/*.elm) $(wildcard ../src/*/*.elm) 
 CLIENT_TARGET = app.js 
 CLIENT_DEV_TARGET = app-debug.js 
-CLIENT_MAIN = Static.elm
+CLIENT_MAIN = Main.elm
 
 dev: $(CLIENT_DEV_TARGET)
 

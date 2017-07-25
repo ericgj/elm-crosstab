@@ -1,4 +1,4 @@
-module Static exposing (main)
+module Static exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -9,12 +9,12 @@ import Crosstab.Calc
 import Data exposing (parsed, Custody)
 
 
-main : Html msg
-main =
+view : Html msg
+view =
     div []
         [ (case parsed of
             Ok data ->
-                view data
+                viewData data
 
             Err errs ->
                 viewErrs errs
@@ -22,8 +22,8 @@ main =
         ]
 
 
-view : List Custody -> Html msg
-view data =
+viewData : List Custody -> Html msg
+viewData data =
     div []
         [ h1 [] [ text "Women of Color in US prisons by year, % change, sorted descending by total" ]
         , viewColPctTable ( stateCustodyWOC "PA" "CA" data )

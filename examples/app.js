@@ -9770,6 +9770,129 @@ var _elm_lang$core$Set$partition = F2(
 		};
 	});
 
+var _elm_lang$html$Html_Events$keyCode = A2(_elm_lang$core$Json_Decode$field, 'keyCode', _elm_lang$core$Json_Decode$int);
+var _elm_lang$html$Html_Events$targetChecked = A2(
+	_elm_lang$core$Json_Decode$at,
+	{
+		ctor: '::',
+		_0: 'target',
+		_1: {
+			ctor: '::',
+			_0: 'checked',
+			_1: {ctor: '[]'}
+		}
+	},
+	_elm_lang$core$Json_Decode$bool);
+var _elm_lang$html$Html_Events$targetValue = A2(
+	_elm_lang$core$Json_Decode$at,
+	{
+		ctor: '::',
+		_0: 'target',
+		_1: {
+			ctor: '::',
+			_0: 'value',
+			_1: {ctor: '[]'}
+		}
+	},
+	_elm_lang$core$Json_Decode$string);
+var _elm_lang$html$Html_Events$defaultOptions = _elm_lang$virtual_dom$VirtualDom$defaultOptions;
+var _elm_lang$html$Html_Events$onWithOptions = _elm_lang$virtual_dom$VirtualDom$onWithOptions;
+var _elm_lang$html$Html_Events$on = _elm_lang$virtual_dom$VirtualDom$on;
+var _elm_lang$html$Html_Events$onFocus = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'focus',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onBlur = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'blur',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onSubmitOptions = _elm_lang$core$Native_Utils.update(
+	_elm_lang$html$Html_Events$defaultOptions,
+	{preventDefault: true});
+var _elm_lang$html$Html_Events$onSubmit = function (msg) {
+	return A3(
+		_elm_lang$html$Html_Events$onWithOptions,
+		'submit',
+		_elm_lang$html$Html_Events$onSubmitOptions,
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onCheck = function (tagger) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'change',
+		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetChecked));
+};
+var _elm_lang$html$Html_Events$onInput = function (tagger) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'input',
+		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetValue));
+};
+var _elm_lang$html$Html_Events$onMouseOut = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseout',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseOver = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseover',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseLeave = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseleave',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseEnter = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseenter',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseUp = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseup',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseDown = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mousedown',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onDoubleClick = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'dblclick',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onClick = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'click',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$Options = F2(
+	function (a, b) {
+		return {stopPropagation: a, preventDefault: b};
+	});
+
+var _elm_lang$html$Html_Keyed$node = _elm_lang$virtual_dom$VirtualDom$keyedNode;
+var _elm_lang$html$Html_Keyed$ol = _elm_lang$html$Html_Keyed$node('ol');
+var _elm_lang$html$Html_Keyed$ul = _elm_lang$html$Html_Keyed$node('ul');
+
+var _elm_lang$html$Html_Lazy$lazy3 = _elm_lang$virtual_dom$VirtualDom$lazy3;
+var _elm_lang$html$Html_Lazy$lazy2 = _elm_lang$virtual_dom$VirtualDom$lazy2;
+var _elm_lang$html$Html_Lazy$lazy = _elm_lang$virtual_dom$VirtualDom$lazy;
+
 var _ericgj$elm_csv_decode$Csv_Decode$listFindOk = F2(
 	function (fn, list) {
 		listFindOk:
@@ -10116,6 +10239,480 @@ var _ericgj$elm_csv_decode$Csv_Decode$decode = function (decoder) {
 			A2(_elm_lang$core$Result$mapError, _ericgj$elm_csv_decode$Csv_Decode$CsvErrors, _p47));
 	};
 };
+
+var _evancz$elm_sortable_table$Table$findSorter = F2(
+	function (selectedColumn, columnData) {
+		findSorter:
+		while (true) {
+			var _p0 = columnData;
+			if (_p0.ctor === '[]') {
+				return _elm_lang$core$Maybe$Nothing;
+			} else {
+				if (_elm_lang$core$Native_Utils.eq(_p0._0.name, selectedColumn)) {
+					return _elm_lang$core$Maybe$Just(_p0._0.sorter);
+				} else {
+					var _v1 = selectedColumn,
+						_v2 = _p0._1;
+					selectedColumn = _v1;
+					columnData = _v2;
+					continue findSorter;
+				}
+			}
+		}
+	});
+var _evancz$elm_sortable_table$Table$applySorter = F3(
+	function (isReversed, sorter, data) {
+		var _p1 = sorter;
+		switch (_p1.ctor) {
+			case 'None':
+				return data;
+			case 'Increasing':
+				return _p1._0(data);
+			case 'Decreasing':
+				return _elm_lang$core$List$reverse(
+					_p1._0(data));
+			case 'IncOrDec':
+				var _p2 = _p1._0;
+				return isReversed ? _elm_lang$core$List$reverse(
+					_p2(data)) : _p2(data);
+			default:
+				var _p3 = _p1._0;
+				return isReversed ? _p3(data) : _elm_lang$core$List$reverse(
+					_p3(data));
+		}
+	});
+var _evancz$elm_sortable_table$Table$sort = F3(
+	function (_p4, columnData, data) {
+		var _p5 = _p4;
+		var _p6 = A2(_evancz$elm_sortable_table$Table$findSorter, _p5._0, columnData);
+		if (_p6.ctor === 'Nothing') {
+			return data;
+		} else {
+			return A3(_evancz$elm_sortable_table$Table$applySorter, _p5._1, _p6._0, data);
+		}
+	});
+var _evancz$elm_sortable_table$Table$viewCell = F2(
+	function (data, _p7) {
+		var _p8 = _p7;
+		var details = _p8.viewData(data);
+		return A2(_elm_lang$html$Html$td, details.attributes, details.children);
+	});
+var _evancz$elm_sortable_table$Table$viewRowHelp = F3(
+	function (columns, toRowAttrs, data) {
+		return A2(
+			_elm_lang$html$Html$tr,
+			toRowAttrs(data),
+			A2(
+				_elm_lang$core$List$map,
+				_evancz$elm_sortable_table$Table$viewCell(data),
+				columns));
+	});
+var _evancz$elm_sortable_table$Table$viewRow = F4(
+	function (toId, columns, toRowAttrs, data) {
+		return {
+			ctor: '_Tuple2',
+			_0: toId(data),
+			_1: A4(_elm_lang$html$Html_Lazy$lazy3, _evancz$elm_sortable_table$Table$viewRowHelp, columns, toRowAttrs, data)
+		};
+	});
+var _evancz$elm_sortable_table$Table$simpleRowAttrs = function (_p9) {
+	return {ctor: '[]'};
+};
+var _evancz$elm_sortable_table$Table$lightGrey = function (symbol) {
+	return A2(
+		_elm_lang$html$Html$span,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'color', _1: '#ccc'},
+					_1: {ctor: '[]'}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(
+				A2(_elm_lang$core$Basics_ops['++'], ' ', symbol)),
+			_1: {ctor: '[]'}
+		});
+};
+var _evancz$elm_sortable_table$Table$darkGrey = function (symbol) {
+	return A2(
+		_elm_lang$html$Html$span,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'color', _1: '#555'},
+					_1: {ctor: '[]'}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(
+				A2(_elm_lang$core$Basics_ops['++'], ' ', symbol)),
+			_1: {ctor: '[]'}
+		});
+};
+var _evancz$elm_sortable_table$Table$simpleTheadHelp = function (_p10) {
+	var _p11 = _p10;
+	var _p13 = _p11._0;
+	var content = function () {
+		var _p12 = _p11._1;
+		switch (_p12.ctor) {
+			case 'Unsortable':
+				return {
+					ctor: '::',
+					_0: _elm_lang$html$Html$text(_p13),
+					_1: {ctor: '[]'}
+				};
+			case 'Sortable':
+				return {
+					ctor: '::',
+					_0: _elm_lang$html$Html$text(_p13),
+					_1: {
+						ctor: '::',
+						_0: _p12._0 ? _evancz$elm_sortable_table$Table$darkGrey('↓') : _evancz$elm_sortable_table$Table$lightGrey('↓'),
+						_1: {ctor: '[]'}
+					}
+				};
+			default:
+				if (_p12._0.ctor === 'Nothing') {
+					return {
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(_p13),
+						_1: {
+							ctor: '::',
+							_0: _evancz$elm_sortable_table$Table$lightGrey('↕'),
+							_1: {ctor: '[]'}
+						}
+					};
+				} else {
+					return {
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(_p13),
+						_1: {
+							ctor: '::',
+							_0: _evancz$elm_sortable_table$Table$darkGrey(
+								_p12._0._0 ? '↑' : '↓'),
+							_1: {ctor: '[]'}
+						}
+					};
+				}
+		}
+	}();
+	return A2(
+		_elm_lang$html$Html$th,
+		{
+			ctor: '::',
+			_0: _p11._2,
+			_1: {ctor: '[]'}
+		},
+		content);
+};
+var _evancz$elm_sortable_table$Table$Customizations = F6(
+	function (a, b, c, d, e, f) {
+		return {tableAttrs: a, caption: b, thead: c, tfoot: d, tbodyAttrs: e, rowAttrs: f};
+	});
+var _evancz$elm_sortable_table$Table$HtmlDetails = F2(
+	function (a, b) {
+		return {attributes: a, children: b};
+	});
+var _evancz$elm_sortable_table$Table$simpleThead = function (headers) {
+	return A2(
+		_evancz$elm_sortable_table$Table$HtmlDetails,
+		{ctor: '[]'},
+		A2(_elm_lang$core$List$map, _evancz$elm_sortable_table$Table$simpleTheadHelp, headers));
+};
+var _evancz$elm_sortable_table$Table$defaultCustomizations = {
+	tableAttrs: {ctor: '[]'},
+	caption: _elm_lang$core$Maybe$Nothing,
+	thead: _evancz$elm_sortable_table$Table$simpleThead,
+	tfoot: _elm_lang$core$Maybe$Nothing,
+	tbodyAttrs: {ctor: '[]'},
+	rowAttrs: _evancz$elm_sortable_table$Table$simpleRowAttrs
+};
+var _evancz$elm_sortable_table$Table$textDetails = function (str) {
+	return A2(
+		_evancz$elm_sortable_table$Table$HtmlDetails,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(str),
+			_1: {ctor: '[]'}
+		});
+};
+var _evancz$elm_sortable_table$Table$ColumnData = F3(
+	function (a, b, c) {
+		return {name: a, viewData: b, sorter: c};
+	});
+var _evancz$elm_sortable_table$Table$State = F2(
+	function (a, b) {
+		return {ctor: 'State', _0: a, _1: b};
+	});
+var _evancz$elm_sortable_table$Table$initialSort = function (header) {
+	return A2(_evancz$elm_sortable_table$Table$State, header, false);
+};
+var _evancz$elm_sortable_table$Table$onClick = F3(
+	function (name, isReversed, toMsg) {
+		return A2(
+			_elm_lang$html$Html_Events$on,
+			'click',
+			A2(
+				_elm_lang$core$Json_Decode$map,
+				toMsg,
+				A3(
+					_elm_lang$core$Json_Decode$map2,
+					_evancz$elm_sortable_table$Table$State,
+					_elm_lang$core$Json_Decode$succeed(name),
+					_elm_lang$core$Json_Decode$succeed(isReversed))));
+	});
+var _evancz$elm_sortable_table$Table$Config = function (a) {
+	return {ctor: 'Config', _0: a};
+};
+var _evancz$elm_sortable_table$Table$config = function (_p14) {
+	var _p15 = _p14;
+	return _evancz$elm_sortable_table$Table$Config(
+		{
+			toId: _p15.toId,
+			toMsg: _p15.toMsg,
+			columns: A2(
+				_elm_lang$core$List$map,
+				function (_p16) {
+					var _p17 = _p16;
+					return _p17._0;
+				},
+				_p15.columns),
+			customizations: _evancz$elm_sortable_table$Table$defaultCustomizations
+		});
+};
+var _evancz$elm_sortable_table$Table$customConfig = function (_p18) {
+	var _p19 = _p18;
+	return _evancz$elm_sortable_table$Table$Config(
+		{
+			toId: _p19.toId,
+			toMsg: _p19.toMsg,
+			columns: A2(
+				_elm_lang$core$List$map,
+				function (_p20) {
+					var _p21 = _p20;
+					return _p21._0;
+				},
+				_p19.columns),
+			customizations: _p19.customizations
+		});
+};
+var _evancz$elm_sortable_table$Table$Reversible = function (a) {
+	return {ctor: 'Reversible', _0: a};
+};
+var _evancz$elm_sortable_table$Table$Sortable = function (a) {
+	return {ctor: 'Sortable', _0: a};
+};
+var _evancz$elm_sortable_table$Table$Unsortable = {ctor: 'Unsortable'};
+var _evancz$elm_sortable_table$Table$toHeaderInfo = F3(
+	function (_p23, toMsg, _p22) {
+		var _p24 = _p23;
+		var _p29 = _p24._0;
+		var _p28 = _p24._1;
+		var _p25 = _p22;
+		var _p27 = _p25.name;
+		var _p26 = _p25.sorter;
+		switch (_p26.ctor) {
+			case 'None':
+				return {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Unsortable,
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p29, _p28, toMsg)
+				};
+			case 'Increasing':
+				return {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Sortable(
+						_elm_lang$core$Native_Utils.eq(_p27, _p29)),
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p27, false, toMsg)
+				};
+			case 'Decreasing':
+				return {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Sortable(
+						_elm_lang$core$Native_Utils.eq(_p27, _p29)),
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p27, false, toMsg)
+				};
+			case 'IncOrDec':
+				return _elm_lang$core$Native_Utils.eq(_p27, _p29) ? {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Reversible(
+						_elm_lang$core$Maybe$Just(_p28)),
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p27, !_p28, toMsg)
+				} : {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Reversible(_elm_lang$core$Maybe$Nothing),
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p27, false, toMsg)
+				};
+			default:
+				return _elm_lang$core$Native_Utils.eq(_p27, _p29) ? {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Reversible(
+						_elm_lang$core$Maybe$Just(_p28)),
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p27, !_p28, toMsg)
+				} : {
+					ctor: '_Tuple3',
+					_0: _p27,
+					_1: _evancz$elm_sortable_table$Table$Reversible(_elm_lang$core$Maybe$Nothing),
+					_2: A3(_evancz$elm_sortable_table$Table$onClick, _p27, false, toMsg)
+				};
+		}
+	});
+var _evancz$elm_sortable_table$Table$view = F3(
+	function (_p30, state, data) {
+		var _p31 = _p30;
+		var _p35 = _p31._0.customizations;
+		var _p34 = _p31._0.columns;
+		var theadDetails = _p35.thead(
+			A2(
+				_elm_lang$core$List$map,
+				A2(_evancz$elm_sortable_table$Table$toHeaderInfo, state, _p31._0.toMsg),
+				_p34));
+		var thead = A2(_elm_lang$html$Html$thead, theadDetails.attributes, theadDetails.children);
+		var sortedData = A3(_evancz$elm_sortable_table$Table$sort, state, _p34, data);
+		var tbody = A3(
+			_elm_lang$html$Html_Keyed$node,
+			'tbody',
+			_p35.tbodyAttrs,
+			A2(
+				_elm_lang$core$List$map,
+				A3(_evancz$elm_sortable_table$Table$viewRow, _p31._0.toId, _p34, _p35.rowAttrs),
+				sortedData));
+		var withFoot = function () {
+			var _p32 = _p35.tfoot;
+			if (_p32.ctor === 'Nothing') {
+				return {
+					ctor: '::',
+					_0: tbody,
+					_1: {ctor: '[]'}
+				};
+			} else {
+				return {
+					ctor: '::',
+					_0: A2(_elm_lang$html$Html$tfoot, _p32._0.attributes, _p32._0.children),
+					_1: {
+						ctor: '::',
+						_0: tbody,
+						_1: {ctor: '[]'}
+					}
+				};
+			}
+		}();
+		return A2(
+			_elm_lang$html$Html$table,
+			_p35.tableAttrs,
+			function () {
+				var _p33 = _p35.caption;
+				if (_p33.ctor === 'Nothing') {
+					return {ctor: '::', _0: thead, _1: withFoot};
+				} else {
+					return {
+						ctor: '::',
+						_0: A2(_elm_lang$html$Html$caption, _p33._0.attributes, _p33._0.children),
+						_1: {ctor: '::', _0: thead, _1: withFoot}
+					};
+				}
+			}());
+	});
+var _evancz$elm_sortable_table$Table$Column = function (a) {
+	return {ctor: 'Column', _0: a};
+};
+var _evancz$elm_sortable_table$Table$customColumn = function (_p36) {
+	var _p37 = _p36;
+	return _evancz$elm_sortable_table$Table$Column(
+		A3(
+			_evancz$elm_sortable_table$Table$ColumnData,
+			_p37.name,
+			function (_p38) {
+				return _evancz$elm_sortable_table$Table$textDetails(
+					_p37.viewData(_p38));
+			},
+			_p37.sorter));
+};
+var _evancz$elm_sortable_table$Table$veryCustomColumn = _evancz$elm_sortable_table$Table$Column;
+var _evancz$elm_sortable_table$Table$DecOrInc = function (a) {
+	return {ctor: 'DecOrInc', _0: a};
+};
+var _evancz$elm_sortable_table$Table$decreasingOrIncreasingBy = function (toComparable) {
+	return _evancz$elm_sortable_table$Table$DecOrInc(
+		_elm_lang$core$List$sortBy(toComparable));
+};
+var _evancz$elm_sortable_table$Table$IncOrDec = function (a) {
+	return {ctor: 'IncOrDec', _0: a};
+};
+var _evancz$elm_sortable_table$Table$increasingOrDecreasingBy = function (toComparable) {
+	return _evancz$elm_sortable_table$Table$IncOrDec(
+		_elm_lang$core$List$sortBy(toComparable));
+};
+var _evancz$elm_sortable_table$Table$stringColumn = F2(
+	function (name, toStr) {
+		return _evancz$elm_sortable_table$Table$Column(
+			{
+				name: name,
+				viewData: function (_p39) {
+					return _evancz$elm_sortable_table$Table$textDetails(
+						toStr(_p39));
+				},
+				sorter: _evancz$elm_sortable_table$Table$increasingOrDecreasingBy(toStr)
+			});
+	});
+var _evancz$elm_sortable_table$Table$intColumn = F2(
+	function (name, toInt) {
+		return _evancz$elm_sortable_table$Table$Column(
+			{
+				name: name,
+				viewData: function (_p40) {
+					return _evancz$elm_sortable_table$Table$textDetails(
+						_elm_lang$core$Basics$toString(
+							toInt(_p40)));
+				},
+				sorter: _evancz$elm_sortable_table$Table$increasingOrDecreasingBy(toInt)
+			});
+	});
+var _evancz$elm_sortable_table$Table$floatColumn = F2(
+	function (name, toFloat) {
+		return _evancz$elm_sortable_table$Table$Column(
+			{
+				name: name,
+				viewData: function (_p41) {
+					return _evancz$elm_sortable_table$Table$textDetails(
+						_elm_lang$core$Basics$toString(
+							toFloat(_p41)));
+				},
+				sorter: _evancz$elm_sortable_table$Table$increasingOrDecreasingBy(toFloat)
+			});
+	});
+var _evancz$elm_sortable_table$Table$Decreasing = function (a) {
+	return {ctor: 'Decreasing', _0: a};
+};
+var _evancz$elm_sortable_table$Table$decreasingBy = function (toComparable) {
+	return _evancz$elm_sortable_table$Table$Decreasing(
+		_elm_lang$core$List$sortBy(toComparable));
+};
+var _evancz$elm_sortable_table$Table$Increasing = function (a) {
+	return {ctor: 'Increasing', _0: a};
+};
+var _evancz$elm_sortable_table$Table$increasingBy = function (toComparable) {
+	return _evancz$elm_sortable_table$Table$Increasing(
+		_elm_lang$core$List$sortBy(toComparable));
+};
+var _evancz$elm_sortable_table$Table$None = {ctor: 'None'};
+var _evancz$elm_sortable_table$Table$unsortable = _evancz$elm_sortable_table$Table$None;
 
 var _myrho$elm_round$Round$funNum = F3(
 	function (fun, s, fl) {
@@ -11700,280 +12297,209 @@ var _user$project$Data$parsed = A2(
 	_user$project$Data$custody,
 	_periodic$elm_csv$Csv$parse(_user$project$Data$data));
 
-var _user$project$Static$displayCrosstab = F2(
-	function (_p0, crosstab) {
-		var _p1 = _p0;
-		var _p2 = _p1.summary;
-		var vertAlign = {ctor: '_Tuple2', _0: 'vertical-align', _1: 'bottom'};
-		var widthCols = {ctor: '_Tuple2', _0: 'min-width', _1: '100px'};
-		var styleRowHeads = _elm_lang$html$Html_Attributes$style(
-			{
-				ctor: '::',
-				_0: widthCols,
-				_1: {
-					ctor: '::',
-					_0: vertAlign,
-					_1: {ctor: '[]'}
-				}
-			});
-		var alignCols = {ctor: '_Tuple2', _0: 'text-align', _1: 'right'};
-		var styleCols = _elm_lang$html$Html_Attributes$style(
-			{
-				ctor: '::',
-				_0: widthCols,
-				_1: {
-					ctor: '::',
-					_0: vertAlign,
-					_1: {
-						ctor: '::',
-						_0: alignCols,
-						_1: {ctor: '[]'}
-					}
-				}
-			});
-		var styleRowSums = _elm_lang$html$Html_Attributes$style(
-			{
-				ctor: '::',
-				_0: widthCols,
-				_1: {
-					ctor: '::',
-					_0: vertAlign,
-					_1: {
-						ctor: '::',
-						_0: alignCols,
-						_1: {ctor: '[]'}
-					}
-				}
-			});
-		var bodyRow = F3(
-			function (r, cvalues, csum) {
+var _user$project$SortableTable$tableSummaryCols = function (ctab) {
+	return {
+		values: _user$project$Crosstab$colSummaryList(ctab),
+		summary: _user$project$Crosstab$tableSummary(ctab)
+	};
+};
+var _user$project$SortableTable$tableRows = function (ctab) {
+	var construct = F3(
+		function (level, cvals, rsum) {
+			return {
+				level: level,
+				values: _elm_lang$core$Array$fromList(cvals),
+				summary: rsum
+			};
+		});
+	var rowsums = _user$project$Crosstab$rowSummaryList(ctab);
+	var values = _user$project$Crosstab$rowList(ctab);
+	var rowLevels = _user$project$Crosstab$rowLevelList(ctab);
+	return A4(_elm_lang$core$List$map3, construct, rowLevels, values, rowsums);
+};
+var _user$project$SortableTable$sortableColumn = function (_p0) {
+	var _p1 = _p0;
+	var _p5 = _p1.maybeValue;
+	return _evancz$elm_sortable_table$Table$veryCustomColumn(
+		{
+			name: _p1.name,
+			viewData: function (_p2) {
 				return A2(
-					_elm_lang$html$Html$tr,
+					_elm_lang$core$Maybe$withDefault,
+					A2(
+						_evancz$elm_sortable_table$Table$HtmlDetails,
+						{ctor: '[]'},
+						{ctor: '[]'}),
+					A2(
+						_elm_lang$core$Maybe$map,
+						_p1.toHtml,
+						_p5(_p2)));
+			},
+			sorter: _evancz$elm_sortable_table$Table$increasingOrDecreasingBy(
+				function (_p3) {
+					return A2(
+						_elm_lang$core$Maybe$withDefault,
+						{ctor: '[]'},
+						A2(
+							_elm_lang$core$Maybe$map,
+							function (_p4) {
+								return _elm_lang$core$List$singleton(
+									_p1.sortValue(_p4));
+							},
+							_p5(_p3)));
+				})
+		});
+};
+var _user$project$SortableTable$sortableColumns = F2(
+	function (c, cols) {
+		return A2(
+			_elm_lang$core$Basics_ops['++'],
+			{
+				ctor: '::',
+				_0: function (name) {
+					return A2(
+						_evancz$elm_sortable_table$Table$stringColumn,
+						name,
+						function (_p6) {
+							return c.rowLevel(
+								function (_) {
+									return _.level;
+								}(_p6));
+						});
+				}(
+					A2(_elm_lang$core$Maybe$withDefault, '', c.rowColumnLabel)),
+				_1: {ctor: '[]'}
+			},
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				A2(
+					_elm_lang$core$List$indexedMap,
+					F2(
+						function (i, name) {
+							return _user$project$SortableTable$sortableColumn(
+								{
+									maybeValue: function (_p7) {
+										return A2(
+											_elm_lang$core$Array$get,
+											i,
+											function (_) {
+												return _.values;
+											}(_p7));
+									},
+									toHtml: c.value,
+									sortValue: c.sortValue,
+									name: c.colLevel(name)
+								});
+						}),
+					cols),
+				{
+					ctor: '::',
+					_0: function (name) {
+						return _user$project$SortableTable$sortableColumn(
+							{
+								maybeValue: function (_p8) {
+									return _elm_lang$core$Maybe$Just(
+										function (_) {
+											return _.summary;
+										}(_p8));
+								},
+								toHtml: c.summary,
+								sortValue: c.sortSummary,
+								name: name
+							});
+					}(
+						A2(_elm_lang$core$Maybe$withDefault, '', c.rowSummaryLabel)),
+					_1: {ctor: '[]'}
+				}));
+	});
+var _user$project$SortableTable$sortableCustomize = F2(
+	function (c, colSums) {
+		var htmlHeader = function (_p9) {
+			var _p10 = _p9;
+			return A2(_elm_lang$html$Html$th, _p10.attributes, _p10.children);
+		};
+		var textHeader = function (s) {
+			return A2(
+				_elm_lang$html$Html$th,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text(s),
+					_1: {ctor: '[]'}
+				});
+		};
+		var footer = F2(
+			function (c, _p11) {
+				var _p12 = _p11;
+				return A2(
+					_evancz$elm_sortable_table$Table$HtmlDetails,
 					{ctor: '[]'},
 					A2(
 						_elm_lang$core$Basics_ops['++'],
 						{
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$td,
-								{
-									ctor: '::',
-									_0: styleRowHeads,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _p1.rowLabel(r),
-									_1: {ctor: '[]'}
-								}),
+							_0: textHeader(
+								A2(_elm_lang$core$Maybe$withDefault, '', c.colSummaryLabel)),
 							_1: {ctor: '[]'}
 						},
 						A2(
 							_elm_lang$core$Basics_ops['++'],
 							A2(
 								_elm_lang$core$List$map,
-								function (v) {
-									return A2(
-										_elm_lang$html$Html$td,
-										{
-											ctor: '::',
-											_0: styleCols,
-											_1: {ctor: '[]'}
-										},
-										{
-											ctor: '::',
-											_0: _p1.cell(v),
-											_1: {ctor: '[]'}
-										});
+								function (_p13) {
+									return htmlHeader(
+										c.summary(_p13));
 								},
-								cvalues),
+								_p12.values),
 							{
 								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$td,
-									{
-										ctor: '::',
-										_0: styleRowSums,
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: _p2(csum),
-										_1: {ctor: '[]'}
-									}),
+								_0: htmlHeader(
+									c.summary(_p12.summary)),
 								_1: {ctor: '[]'}
 							})));
 			});
-		var tableSummary = _user$project$Crosstab$tableSummary(crosstab);
-		var colSummary = _user$project$Crosstab$colSummaryList(crosstab);
-		var foot = {
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$tr,
-				{ctor: '[]'},
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$td,
-							{
-								ctor: '::',
-								_0: styleRowHeads,
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: _p1.colTotalLabel,
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					},
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						A2(
-							_elm_lang$core$List$map,
-							function (c) {
-								return A2(
-									_elm_lang$html$Html$td,
-									{
-										ctor: '::',
-										_0: styleCols,
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: _p2(c),
-										_1: {ctor: '[]'}
-									});
-							},
-							colSummary),
-						{
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$td,
-								{
-									ctor: '::',
-									_0: styleRowSums,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _p2(tableSummary),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}))),
-			_1: {ctor: '[]'}
-		};
-		var rowSummary = _user$project$Crosstab$rowSummaryList(crosstab);
-		var values = _user$project$Crosstab$rowList(crosstab);
-		var colLevels = _user$project$Crosstab$colLevelList(crosstab);
-		var head = {
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$tr,
-				{ctor: '[]'},
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$th,
-							{
-								ctor: '::',
-								_0: styleRowHeads,
-								_1: {ctor: '[]'}
-							},
-							{ctor: '[]'}),
-						_1: {ctor: '[]'}
-					},
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						A2(
-							_elm_lang$core$List$map,
-							function (col) {
-								return A2(
-									_elm_lang$html$Html$th,
-									{
-										ctor: '::',
-										_0: styleCols,
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: _p1.colLabel(col),
-										_1: {ctor: '[]'}
-									});
-							},
-							colLevels),
-						{
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$th,
-								{
-									ctor: '::',
-									_0: styleRowSums,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _p1.rowTotalLabel,
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}))),
-			_1: {ctor: '[]'}
-		};
-		var rowLevels = _user$project$Crosstab$rowLevelList(crosstab);
-		var body = A4(_elm_lang$core$List$map3, bodyRow, rowLevels, values, rowSummary);
-		return A2(
-			_elm_lang$html$Html$table,
-			{ctor: '[]'},
+		return function (custom) {
+			return _elm_lang$core$Native_Utils.update(
+				custom,
+				{
+					tfoot: _elm_lang$core$Maybe$Just(
+						A2(footer, c, colSums))
+				});
+		}(_evancz$elm_sortable_table$Table$defaultCustomizations);
+	});
+var _user$project$SortableTable$sortableConfigHelp = F3(
+	function (c, colLevels, colSums) {
+		return _evancz$elm_sortable_table$Table$customConfig(
 			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$thead,
-					{ctor: '[]'},
-					head),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$tbody,
-						{ctor: '[]'},
-						body),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$tfoot,
-							{ctor: '[]'},
-							foot),
-						_1: {ctor: '[]'}
-					}
-				}
+				toId: function (_p14) {
+					return c.rowLevel(
+						function (_) {
+							return _.level;
+						}(_p14));
+				},
+				toMsg: c.toMsg,
+				columns: A2(_user$project$SortableTable$sortableColumns, c, colLevels),
+				customizations: A2(_user$project$SortableTable$sortableCustomize, c, colSums)
 			});
 	});
-var _user$project$Static$yearCustodyOf = function (getter) {
-	return A3(
-		_user$project$Crosstab$fromList,
-		_user$project$Crosstab_Calc$sum,
-		_user$project$Crosstab_Calc$sumOf(getter),
-		_user$project$Crosstab$levelMap(
-			{
-				row: function (_p3) {
-					return _elm_lang$core$Basics$toString(
-						function (_) {
-							return _.year;
-						}(_p3));
-				},
-				col: _elm_lang$core$Basics$always('')
-			}));
-};
-var _user$project$Static$yearCustodyOfAll = _user$project$Static$yearCustodyOf(
-	function (r) {
-		return r.totalM + r.totalF;
+var _user$project$SortableTable$sortableConfig = F2(
+	function (config, ctab) {
+		var colSums = _user$project$SortableTable$tableSummaryCols(ctab);
+		var colLevels = _user$project$Crosstab$colLevelList(ctab);
+		return A3(_user$project$SortableTable$sortableConfigHelp, config, colLevels, colSums);
 	});
-var _user$project$Static$stateCustodySumsOf = F3(
+var _user$project$SortableTable$viewSortable = F3(
+	function (config, state, ctab) {
+		return function (c) {
+			return A3(
+				_evancz$elm_sortable_table$Table$view,
+				c,
+				state,
+				_user$project$SortableTable$tableRows(ctab));
+		}(
+			A2(_user$project$SortableTable$sortableConfig, config, ctab));
+	});
+var _user$project$SortableTable$stateCustodySumsOf = F3(
 	function (getter, state1, state2) {
 		return A3(
 			_user$project$Crosstab$fromList,
@@ -11984,32 +12510,22 @@ var _user$project$Static$stateCustodySumsOf = F3(
 					row: function (r) {
 						return (_elm_lang$core$Native_Utils.eq(r.state, state1) || _elm_lang$core$Native_Utils.eq(r.state, state2)) ? r.state : 'All Other';
 					},
-					col: function (_p4) {
+					col: function (_p15) {
 						return _elm_lang$core$Basics$toString(
 							function (_) {
 								return _.year;
-							}(_p4));
+							}(_p15));
 					}
 				}));
 	});
-var _user$project$Static$stateCustodyW = F2(
-	function (state1, state2) {
-		return A3(
-			_user$project$Static$stateCustodySumsOf,
-			function (_) {
-				return _.totalF;
-			},
-			state1,
-			state2);
-	});
-var _user$project$Static$stateCustodyWOC = F2(
+var _user$project$SortableTable$stateCustodyWOC = F2(
 	function (state1, state2) {
 		var woc = function (r) {
 			return ((((r.blackF + r.hispF) + r.asianF) + r.nativeHawaiianF) + r.asianPacificF) + r.twoRaceF;
 		};
-		return A3(_user$project$Static$stateCustodySumsOf, woc, state1, state2);
+		return A3(_user$project$SortableTable$stateCustodySumsOf, woc, state1, state2);
 	});
-var _user$project$Static$carryValue = F3(
+var _user$project$SortableTable$carryValue = F3(
 	function (func, comp, x) {
 		return {
 			ctor: '_Tuple2',
@@ -12017,151 +12533,55 @@ var _user$project$Static$carryValue = F3(
 			_1: A2(func, comp, x)
 		};
 	});
-var _user$project$Static$cumRowPct = F2(
-	function (_p5, val) {
-		var _p6 = _p5;
-		return function (_p7) {
-			var _p8 = _p7;
-			return {
-				ctor: '_Tuple2',
-				_0: _p8._0 + val,
-				_1: A2(
-					_elm_lang$core$Maybe$map,
-					function (last) {
-						return last + (_elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p6.table));
-					},
-					_p8._1)
-			};
-		}(_p6.cumRow);
-	});
-var _user$project$Static$prevColPct = F2(
-	function (_p9, val) {
-		var _p10 = _p9;
+var _user$project$SortableTable$prevColPct = F2(
+	function (_p16, val) {
+		var _p17 = _p16;
 		return A2(
 			_elm_lang$core$Maybe$map,
 			function (prev) {
 				return _elm_lang$core$Basics$toFloat(val - prev) / _elm_lang$core$Basics$toFloat(val);
 			},
-			_p10.prevCol);
+			_p17.prevCol);
 	});
-var _user$project$Static$colPct = F2(
-	function (_p11, val) {
-		var _p12 = _p11;
-		return _elm_lang$core$Basics$toFloat(val) / _elm_lang$core$Basics$toFloat(_p12.col);
-	});
-var _user$project$Static$tableConfig = function () {
-	var cell = function (_p13) {
-		var _p14 = _p13;
-		var html = function (pct) {
-			return A2(
+var _user$project$SortableTable$colPctTable = function (tab) {
+	return A3(
+		_user$project$Crosstab$compare,
+		_user$project$SortableTable$carryValue(_user$project$SortableTable$prevColPct),
+		{ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Maybe$Nothing},
+		tab);
+};
+var _user$project$SortableTable$htmlColPctSummary = function (count) {
+	return A2(
+		_evancz$elm_sortable_table$Table$HtmlDetails,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'right'},
+					_1: {
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'min-width', _1: '100px'},
+						_1: {ctor: '[]'}
+					}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
 				_elm_lang$html$Html$div,
 				{ctor: '[]'},
 				{
 					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$div,
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text(pct),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$div,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$style(
-									{
-										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'opacity', _1: '0.5'},
-										_1: {
-											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
-											_1: {ctor: '[]'}
-										}
-									}),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(
-									_elm_lang$core$Basics$toString(_p14._0)),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}
-				});
-		};
-		return A2(
-			_elm_lang$core$Maybe$withDefault,
-			html('-'),
-			A2(
-				_elm_lang$core$Maybe$map,
-				function (_p15) {
-					return html(
-						A3(
-							_elm_lang$core$Basics$flip,
-							F2(
-								function (x, y) {
-									return A2(_elm_lang$core$Basics_ops['++'], x, y);
-								}),
-							'%',
-							A2(
-								_myrho$elm_round$Round$round,
-								1,
-								A2(
-									F2(
-										function (x, y) {
-											return x * y;
-										}),
-									100,
-									_p15))));
-				},
-				_p14._1));
-	};
-	return {
-		rowLabel: _elm_lang$html$Html$text,
-		colLabel: _elm_lang$html$Html$text,
-		rowTotalLabel: _elm_lang$html$Html$text('Total'),
-		colTotalLabel: _elm_lang$html$Html$text('Total'),
-		cell: cell,
-		summary: function (_p16) {
-			return _elm_lang$html$Html$text(
-				_elm_lang$core$Basics$toString(_p16));
-		}
-	};
-}();
-var _user$project$Static$viewCumRowPctTable = function (tab) {
-	return A2(
-		_user$project$Static$displayCrosstab,
-		_user$project$Static$tableConfig,
-		A3(
-			_user$project$Crosstab$compareAccum,
-			_user$project$Static$cumRowPct,
-			{
-				ctor: '_Tuple2',
-				_0: 0,
-				_1: _elm_lang$core$Maybe$Just(0)
-			},
-			tab));
+					_0: _elm_lang$html$Html$text(
+						_elm_lang$core$Basics$toString(count)),
+					_1: {ctor: '[]'}
+				}),
+			_1: {ctor: '[]'}
+		});
 };
-var _user$project$Static$viewColPctTable = function (tab) {
-	return A2(
-		_user$project$Static$displayCrosstab,
-		_user$project$Static$tableConfig,
-		A3(
-			_user$project$Crosstab$sortRowsBySummary,
-			_elm_lang$core$Basics$identity,
-			_user$project$Crosstab$Desc,
-			A3(
-				_user$project$Crosstab$compare,
-				_user$project$Static$carryValue(_user$project$Static$prevColPct),
-				{ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Maybe$Nothing},
-				tab)));
-};
-var _user$project$Static$viewErrs = function (errs) {
+var _user$project$SortableTable$viewErrs = function (errs) {
 	var decodeErrors = function (errs) {
 		return A2(
 			_elm_lang$html$Html$div,
@@ -12183,8 +12603,8 @@ var _user$project$Static$viewErrs = function (errs) {
 						{ctor: '[]'},
 						A2(
 							_elm_lang$core$List$map,
-							function (_p17) {
-								var _p18 = _p17;
+							function (_p18) {
+								var _p19 = _p18;
 								return A2(
 									_elm_lang$html$Html$li,
 									{ctor: '[]'},
@@ -12193,13 +12613,13 @@ var _user$project$Static$viewErrs = function (errs) {
 										_0: _elm_lang$html$Html$text(
 											A2(
 												_elm_lang$core$Basics_ops['++'],
-												_p18._1,
+												_p19._1,
 												A2(
 													_elm_lang$core$Basics_ops['++'],
 													' (line ',
 													A2(
 														_elm_lang$core$Basics_ops['++'],
-														_elm_lang$core$Basics$toString(_p18._0),
+														_elm_lang$core$Basics$toString(_p19._0),
 														')')))),
 										_1: {ctor: '[]'}
 									});
@@ -12245,128 +12665,350 @@ var _user$project$Static$viewErrs = function (errs) {
 				}
 			});
 	};
-	var _p19 = errs;
-	if (_p19.ctor === 'CsvErrors') {
-		return parseErrors(_p19._0);
+	var _p20 = errs;
+	if (_p20.ctor === 'CsvErrors') {
+		return parseErrors(_p20._0);
 	} else {
-		return decodeErrors(_p19._0);
+		return decodeErrors(_p20._0);
 	}
 };
-var _user$project$Static$view = function (data) {
+var _user$project$SortableTable$update = F2(
+	function (msg, model) {
+		var _p21 = msg;
+		if (_p21.ctor === 'TableMsg') {
+			return _elm_lang$core$Native_Utils.update(
+				model,
+				{table: _p21._0});
+		} else {
+			return _elm_lang$core$Native_Utils.update(
+				model,
+				{sortBy: _p21._0});
+		}
+	});
+var _user$project$SortableTable$Model = F2(
+	function (a, b) {
+		return {table: a, sortBy: b};
+	});
+var _user$project$SortableTable$SortableConfig = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return {toMsg: a, rowLevel: b, colLevel: c, value: d, summary: e, sortValue: f, sortSummary: g, rowColumnLabel: h, rowSummaryLabel: i, colSummaryLabel: j};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var _user$project$SortableTable$TableRow = F3(
+	function (a, b, c) {
+		return {level: a, values: b, summary: c};
+	});
+var _user$project$SortableTable$TableSummary = F2(
+	function (a, b) {
+		return {values: a, summary: b};
+	});
+var _user$project$SortableTable$SetSortBy = function (a) {
+	return {ctor: 'SetSortBy', _0: a};
+};
+var _user$project$SortableTable$TableMsg = function (a) {
+	return {ctor: 'TableMsg', _0: a};
+};
+var _user$project$SortableTable$SortByColPct = {ctor: 'SortByColPct'};
+var _user$project$SortableTable$SortByCount = {ctor: 'SortByCount'};
+var _user$project$SortableTable$init = {
+	table: _evancz$elm_sortable_table$Table$initialSort('rowLabels'),
+	sortBy: _user$project$SortableTable$SortByCount
+};
+var _user$project$SortableTable$htmlColPctValue = F2(
+	function (sortBy, _p22) {
+		var _p23 = _p22;
+		var greaterStyle = {ctor: '[]'};
+		var lesserStyle = {
+			ctor: '::',
+			_0: {ctor: '_Tuple2', _0: 'opacity', _1: '0.5'},
+			_1: {
+				ctor: '::',
+				_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
+				_1: {ctor: '[]'}
+			}
+		};
+		var formatPct = function ($float) {
+			return function (s) {
+				return A2(_elm_lang$core$Basics_ops['++'], s, '%');
+			}(
+				A2(_myrho$elm_round$Round$round, 1, $float * 100));
+		};
+		return A2(
+			_evancz$elm_sortable_table$Table$HtmlDetails,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'right'},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'min-width', _1: '100px'},
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									_elm_lang$core$Native_Utils.eq(sortBy, _user$project$SortableTable$SortByCount) ? greaterStyle : lesserStyle),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(
+									_elm_lang$core$Basics$toString(_p23._0)),
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$div,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$style(
+										_elm_lang$core$Native_Utils.eq(sortBy, _user$project$SortableTable$SortByColPct) ? greaterStyle : lesserStyle),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(
+										A2(
+											_elm_lang$core$Maybe$withDefault,
+											'-',
+											A2(_elm_lang$core$Maybe$map, formatPct, _p23._1))),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$SortableTable$colPctTableConfig = function (sortBy) {
+	return {
+		toMsg: _user$project$SortableTable$TableMsg,
+		rowLevel: _elm_lang$core$Basics$identity,
+		colLevel: _elm_lang$core$Basics$identity,
+		value: _user$project$SortableTable$htmlColPctValue(sortBy),
+		summary: _user$project$SortableTable$htmlColPctSummary,
+		sortValue: function () {
+			var _p24 = sortBy;
+			if (_p24.ctor === 'SortByCount') {
+				return function (_p25) {
+					return _elm_lang$core$Basics$toFloat(
+						_elm_lang$core$Tuple$first(_p25));
+				};
+			} else {
+				return function (_p26) {
+					return A2(
+						_elm_lang$core$Maybe$withDefault,
+						0.0,
+						_elm_lang$core$Tuple$second(_p26));
+				};
+			}
+		}(),
+		sortSummary: _elm_lang$core$Basics$identity,
+		rowColumnLabel: _elm_lang$core$Maybe$Nothing,
+		rowSummaryLabel: _elm_lang$core$Maybe$Just('Total'),
+		colSummaryLabel: _elm_lang$core$Maybe$Just('Total')
+	};
+};
+var _user$project$SortableTable$viewData = F2(
+	function (data, _p27) {
+		var _p28 = _p27;
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$h1,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Women of Color in US prisons by year, % change, sorting by total'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$input,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$type_('radio'),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$id('count'),
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$name('sortby'),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$value('count'),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Events$onClick(
+														_user$project$SortableTable$SetSortBy(_user$project$SortableTable$SortByCount)),
+													_1: {ctor: '[]'}
+												}
+											}
+										}
+									}
+								},
+								{ctor: '[]'}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$label,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$for('count'),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('sort by count'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$input,
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$type_('radio'),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$id('pct'),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Attributes$name('sortby'),
+													_1: {
+														ctor: '::',
+														_0: _elm_lang$html$Html_Attributes$value('pct'),
+														_1: {
+															ctor: '::',
+															_0: _elm_lang$html$Html_Events$onClick(
+																_user$project$SortableTable$SetSortBy(_user$project$SortableTable$SortByColPct)),
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											}
+										},
+										{ctor: '[]'}),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$label,
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$for('pct'),
+												_1: {ctor: '[]'}
+											},
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html$text('sort by % change'),
+												_1: {ctor: '[]'}
+											}),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}),
+					_1: {
+						ctor: '::',
+						_0: function (tab) {
+							return A3(
+								_user$project$SortableTable$viewSortable,
+								_user$project$SortableTable$colPctTableConfig(_p28.sortBy),
+								_p28.table,
+								tab);
+						}(
+							_user$project$SortableTable$colPctTable(
+								A3(_user$project$SortableTable$stateCustodyWOC, 'PA', 'CA', data))),
+						_1: {ctor: '[]'}
+					}
+				}
+			});
+	});
+var _user$project$SortableTable$view = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$h1,
-				{ctor: '[]'},
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html$text('Women of Color in US prisons by year, % change, sorted descending by total'),
-					_1: {ctor: '[]'}
-				}),
-			_1: {
-				ctor: '::',
-				_0: _user$project$Static$viewColPctTable(
-					A3(_user$project$Static$stateCustodyWOC, 'PA', 'CA', data)),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$hr,
-						{ctor: '[]'},
-						{ctor: '[]'}),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$h2,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text('Example cumulative percent table'),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
-							ctor: '::',
-							_0: _user$project$Static$viewCumRowPctTable(
-								_user$project$Static$yearCustodyOfAll(data)),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$p,
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$style(
-											{
-												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
-												_1: {ctor: '[]'}
-											}),
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$span,
-											{ctor: '[]'},
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html$text('Source (Public Domain): '),
-												_1: {ctor: '[]'}
-											}),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$span,
-												{ctor: '[]'},
-												{
-													ctor: '::',
-													_0: A2(
-														_elm_lang$html$Html$a,
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html_Attributes$href('http://doi.org/10.3886/ICPSR36657.v1'),
-															_1: {ctor: '[]'}
-														},
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
-															_1: {ctor: '[]'}
-														}),
-													_1: {ctor: '[]'}
-												}),
-											_1: {ctor: '[]'}
-										}
-									}),
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				}
-			}
-		});
-};
-var _user$project$Static$main = _elm_lang$virtual_dom$Native_VirtualDom.staticProgram(
-	A2(
-		_elm_lang$html$Html$div,
-		{ctor: '[]'},
-		{
-			ctor: '::',
 			_0: function () {
-				var _p20 = _user$project$Data$parsed;
-				if (_p20.ctor === 'Ok') {
-					return _user$project$Static$view(_p20._0);
+				var _p29 = _user$project$Data$parsed;
+				if (_p29.ctor === 'Ok') {
+					return A2(_user$project$SortableTable$viewData, _p29._0, model);
 				} else {
-					return _user$project$Static$viewErrs(_p20._0);
+					return _user$project$SortableTable$viewErrs(_p29._0);
 				}
 			}(),
 			_1: {ctor: '[]'}
-		}));
+		});
+};
+
+var _user$project$Main$SortableTableModel = function (a) {
+	return {ctor: 'SortableTableModel', _0: a};
+};
+var _user$project$Main$init = _user$project$Main$SortableTableModel(_user$project$SortableTable$init);
+var _user$project$Main$update = F2(
+	function (msg, model) {
+		var _p0 = {ctor: '_Tuple2', _0: msg, _1: model};
+		return _user$project$Main$SortableTableModel(
+			A2(_user$project$SortableTable$update, _p0._0._0, _p0._1._0));
+	});
+var _user$project$Main$SortableTableMsg = function (a) {
+	return {ctor: 'SortableTableMsg', _0: a};
+};
+var _user$project$Main$view = function (model) {
+	var _p1 = model;
+	return A2(
+		_elm_lang$html$Html$map,
+		_user$project$Main$SortableTableMsg,
+		_user$project$SortableTable$view(_p1._0));
+};
+var _user$project$Main$main = _elm_lang$html$Html$beginnerProgram(
+	{model: _user$project$Main$init, update: _user$project$Main$update, view: _user$project$Main$view})();
 
 var Elm = {};
-Elm['Static'] = Elm['Static'] || {};
-if (typeof _user$project$Static$main !== 'undefined') {
-    _user$project$Static$main(Elm['Static'], 'Static', undefined);
+Elm['Main'] = Elm['Main'] || {};
+if (typeof _user$project$Main$main !== 'undefined') {
+    _user$project$Main$main(Elm['Main'], 'Main', undefined);
 }
 
 if (typeof define === "function" && define['amd'])
