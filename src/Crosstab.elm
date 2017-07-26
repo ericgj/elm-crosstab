@@ -16,7 +16,7 @@ module Crosstab
         , rowSummaryList
         , colSummaryList
         , tableSummary
-        , calc
+        , summarize
         , compare
         , compareAccum
         , sortRowsBySummary
@@ -45,7 +45,7 @@ Built on top of [elm-flat-matrix] for efficient processing.
 
 # Calculating
 
-@docs calc, compare, Compare, compareAccum, CompareAccum
+@docs summarize, compare, Compare, compareAccum, CompareAccum
 
 
 # Sorting
@@ -369,14 +369,14 @@ in again:
             data
 
     iqrs =
-        uniqueCounts |> calc (quantiles [ 0.25, 0.5, 0.75 ])
+        uniqueCounts |> summarize (quantiles [ 0.25, 0.5, 0.75 ])
 
 -}
-calc :
+summarize :
     Calc a b c
     -> Crosstab a b comparable1 comparable2
     -> Crosstab a c comparable1 comparable2
-calc summary (Crosstab { levels, values }) =
+summarize summary (Crosstab { levels, values }) =
     Crosstab
         { levels = levels
         , values = values
