@@ -1,10 +1,11 @@
-module SortableTable exposing 
-    ( view
-    , update
-    , init
-    , Model
-    , Msg
-    )
+module SortableTable
+    exposing
+        ( view
+        , update
+        , init
+        , Model
+        , Msg
+        )
 
 import Array exposing (Array)
 import Tuple
@@ -24,19 +25,23 @@ type alias Model =
     , sortBy : SortBy
     }
 
+
 type Msg
     = TableMsg Table.State
     | SetSortBy SortBy
+
 
 type SortBy
     = SortByCount
     | SortByColPct
 
+
 init : Model
-init = 
+init =
     { table = Table.initialSort "rowLabels"
     , sortBy = SortByCount
     }
+
 
 update : Msg -> Model -> Model
 update msg model =
@@ -90,84 +95,104 @@ viewErrs errs =
 
 
 viewData : List Custody -> Model -> Html Msg
-viewData data {table, sortBy} =
+viewData data { table, sortBy } =
     div []
-        [ h1 [] [ text "Women of Color in US prisons by year, % change, sorting by total" ]
+        [ h1 [] [ text "Women of Color in US prisons by year, % change" ]
         , div []
-            [ input 
+            [ input
                 [ type_ "radio"
                 , id "count"
                 , name "sortby"
                 , value "count"
-                , onClick (SetSortBy SortByCount) 
-                ] [] 
+                , onClick (SetSortBy SortByCount)
+                ]
+                []
             , label [ for "count" ] [ text "sort by count" ]
-            , input 
+            , input
                 [ type_ "radio"
                 , id "pct"
                 , name "sortby"
                 , value "pct"
-                , onClick (SetSortBy SortByColPct) 
-                ] []
+                , onClick (SetSortBy SortByColPct)
+                ]
+                []
             , label [ for "pct" ] [ text "sort by % change" ]
             ]
         , data
-             |> stateCustodyWOC "PA" "CA"
-             |> colPctTable
-             |> (\tab -> viewSortable (colPctTableConfig sortBy) table tab)
+            |> stateCustodyWOC "PA" "CA"
+            |> colPctTable
+            |> (\tab -> viewSortable (colPctTableConfig sortBy) table tab)
         ]
 
 
-colPctTableConfig : 
-    SortBy 
-    -> SortableConfig (Int,Maybe Float) Int Float Int String String Msg
+colPctTableConfig :
+    SortBy
+    -> SortableConfig ( Int, Maybe Float ) Int Float Int String String Msg
 colPctTableConfig sortBy =
     { toMsg = TableMsg
     , rowLevel = identity
     , colLevel = identity
-    , value =  htmlColPctValue sortBy
+    , value = htmlColPctValue sortBy
     , summary = htmlColPctSummary
-    , sortValue = 
+    , sortValue =
         case sortBy of
-            SortByCount -> Tuple.first >> toFloat
-            SortByColPct -> Tuple.second >> Maybe.withDefault 0.0
-    , sortSummary = identity 
+            SortByCount ->
+                Tuple.first >> toFloat
+
+            SortByColPct ->
+                Tuple.second >> Maybe.withDefault 0.0
+    , sortSummary = identity
     , rowColumnLabel = Nothing
     , rowSummaryLabel = Just "Total"
     , colSummaryLabel = Just "Total"
     }
 
 
-htmlColPctValue : SortBy -> (Int, Maybe Float) -> Table.HtmlDetails msg
-htmlColPctValue sortBy (count,mpct) =
+htmlColPctValue : SortBy -> ( Int, Maybe Float ) -> Table.HtmlDetails msg
+htmlColPctValue sortBy ( count, mpct ) =
     let
-       formatPct float =
-           float * 100 |> Round.round 1 |> (\s -> s ++ "%")
+        formatPct float =
+            float * 100 |> Round.round 1 |> (\s -> s ++ "%")
 
-       lesserStyle =
-           [("opacity","0.5"), ("font-size","0.7em")]
+        lesserStyle =
+            [ ( "opacity", "0.5" ), ( "font-size", "0.7em" ) ]
 
-       greaterStyle =
-           []
+        greaterStyle =
+            []
     in
-    Table.HtmlDetails
-        [ style [("text-align","right"), ("min-width","100px")] ]
-        [ div []
-            [ div [ style (if sortBy == SortByCount then greaterStyle else lesserStyle) ]
-                [ count |> toString |> text ]
-            , div [ style (if sortBy == SortByColPct then greaterStyle else lesserStyle) ]
-                [ mpct
-                    |> Maybe.map formatPct
-                    |> Maybe.withDefault "-"
-                    |> text
+        Table.HtmlDetails
+            [ style [ ( "text-align", "right" ), ( "min-width", "100px" ) ] ]
+            [ div []
+                [ div
+                    [ style
+                        (if sortBy == SortByCount then
+                            greaterStyle
+                         else
+                            lesserStyle
+                        )
+                    ]
+                    [ count |> toString |> text ]
+                , div
+                    [ style
+                        (if sortBy == SortByColPct then
+                            greaterStyle
+                         else
+                            lesserStyle
+                        )
+                    ]
+                    [ mpct
+                        |> Maybe.map formatPct
+                        |> Maybe.withDefault "-"
+                        |> text
+                    ]
                 ]
             ]
-        ]
+
 
 htmlColPctSummary : Int -> Table.HtmlDetails msg
 htmlColPctSummary count =
     Table.HtmlDetails
-        [ style [("text-align","right"), ("min-width","100px")] ]
+        [ style [ ( "text-align", "right" ), ( "min-width", "100px" ) ] ]
         [ div [] [ count |> toString |> text ]
         ]
 
@@ -175,10 +200,11 @@ htmlColPctSummary count =
 
 -- DATA MODEL
 
-colPctTable : Crosstab Int Int String String -> Crosstab (Int, Maybe Float) Int String String
+
+colPctTable : Crosstab Int Int String String -> Crosstab ( Int, Maybe Float ) Int String String
 colPctTable tab =
-    tab 
-        |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ) 
+    tab
+        |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing )
 
 
 prevColPct : { x | prevCol : Maybe Int } -> Int -> Maybe Float
@@ -186,15 +212,17 @@ prevColPct { prevCol } val =
     prevCol
         |> Maybe.map (\prev -> (toFloat (val - prev)) / (toFloat val))
 
+
 carryValue : (compare -> x -> new) -> compare -> x -> ( x, new )
 carryValue func comp x =
     ( x, func comp x )
 
-stateCustodySumsOf : 
-    (Custody -> Int) 
-    -> String 
-    -> String 
-    -> List Custody 
+
+stateCustodySumsOf :
+    (Custody -> Int)
+    -> String
+    -> String
+    -> List Custody
     -> Crosstab Int Int String String
 stateCustodySumsOf getter state1 state2 =
     Crosstab.fromList
@@ -223,17 +251,14 @@ stateCustodyWOC state1 state2 =
 
 
 
-
-
-
-
 -- GENERIC BIT BELOW
+
 
 type alias SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg =
     { toMsg : Table.State -> msg
     , rowLevel : comparableRow -> String
     , colLevel : comparableCol -> String
-    , value :  value -> Table.HtmlDetails msg
+    , value : value -> Table.HtmlDetails msg
     , summary : summary -> Table.HtmlDetails msg
     , sortValue : value -> comparableValue
     , sortSummary : summary -> comparableSummary
@@ -244,7 +269,7 @@ type alias SortableConfig value summary comparableValue comparableSummary compar
 
 
 viewSortable :
-    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg 
+    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
     -> Table.State
     -> Crosstab value summary comparableRow comparableCol
     -> Html msg
@@ -253,142 +278,150 @@ viewSortable config state ctab =
         |> (\c -> Table.view c state (tableRows ctab))
 
 
-sortableConfig : 
-    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg 
+sortableConfig :
+    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
     -> Crosstab value summary comparableRow comparableCol
     -> Table.Config (TableRow value summary comparableRow) msg
-sortableConfig config ctab = 
+sortableConfig config ctab =
     let
-        colLevels = Crosstab.colLevelList ctab
-        colSums = tableSummaryCols ctab
+        colLevels =
+            Crosstab.colLevelList ctab
+
+        colSums =
+            tableSummaryCols ctab
     in
         sortableConfigHelp config colLevels colSums
 
 
 sortableConfigHelp :
-    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg 
+    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
     -> List comparableCol
     -> TableSummary summary
     -> Table.Config (TableRow value summary comparableRow) msg
-sortableConfigHelp c colLevels colSums = 
+sortableConfigHelp c colLevels colSums =
     Table.customConfig
         { toId = .level >> c.rowLevel
         , toMsg = c.toMsg
         , columns = sortableColumns c colLevels
-        , customizations = sortableCustomize c colSums 
+        , customizations = sortableCustomize c colSums
         }
 
 
 sortableCustomize :
-    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg 
+    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
     -> TableSummary summary
     -> Table.Customizations x msg
 sortableCustomize c colSums =
     let
         textHeader s =
-            Html.th [] [Html.text s]
+            Html.th [] [ Html.text s ]
 
-        htmlHeader {attributes,children} =
+        htmlHeader { attributes, children } =
             Html.th attributes children
 
-        footer c {values, summary} =
+        footer c { values, summary } =
             Table.HtmlDetails
                 []
-                ( [ c.colSummaryLabel |> Maybe.withDefault "" |> textHeader ]  ++ 
-                  ( values |> List.map (c.summary >> htmlHeader) ) ++
-                  [ summary |> c.summary |> htmlHeader ]
-                ) 
+                ([ c.colSummaryLabel |> Maybe.withDefault "" |> textHeader ]
+                    ++ (values |> List.map (c.summary >> htmlHeader))
+                    ++ [ summary |> c.summary |> htmlHeader ]
+                )
     in
         Table.defaultCustomizations
             |> (\custom -> { custom | tfoot = footer c colSums |> Just })
 
 
 sortableColumns :
-    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg 
+    SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
     -> List comparableCol
     -> List (Table.Column (TableRow value summary comparableRow) msg)
 sortableColumns c cols =
-    [ c.rowColumnLabel 
-        |> Maybe.withDefault "" 
-        |> (\name -> 
-                Table.stringColumn name (.level >> c.rowLevel)
-           ) 
-    ] ++
-    ( cols
-        |> List.indexedMap 
-            (\i name -> 
-                sortableColumn 
-                    { maybeValue = .values >> Array.get i 
-                    , toHtml = c.value
-                    , sortValue = c.sortValue
-                    , name = c.colLevel name
-                    }
-            )
-    ) ++
-    [ c.rowSummaryLabel
+    [ c.rowColumnLabel
         |> Maybe.withDefault ""
         |> (\name ->
-                sortableColumn
-                    { maybeValue = .summary >> Just
-                    , toHtml = c.summary
-                    , sortValue = c.sortSummary
-                    , name = name
-                    }
+                Table.stringColumn name (.level >> c.rowLevel)
            )
     ]
+        ++ (cols
+                |> List.indexedMap
+                    (\i name ->
+                        sortableColumn
+                            { maybeValue = .values >> Array.get i
+                            , toHtml = c.value
+                            , sortValue = c.sortValue
+                            , name = c.colLevel name
+                            }
+                    )
+           )
+        ++ [ c.rowSummaryLabel
+                |> Maybe.withDefault ""
+                |> (\name ->
+                        sortableColumn
+                            { maybeValue = .summary >> Just
+                            , toHtml = c.summary
+                            , sortValue = c.sortSummary
+                            , name = name
+                            }
+                   )
+           ]
 
 
-sortableColumn : 
-    { maybeValue : (a -> Maybe value)
-    , toHtml : (value -> Table.HtmlDetails msg)
-    , sortValue : (value -> comparable)
+sortableColumn :
+    { maybeValue : a -> Maybe value
+    , toHtml : value -> Table.HtmlDetails msg
+    , sortValue : value -> comparable
     , name : String
     }
     -> Table.Column a msg
-sortableColumn {maybeValue, toHtml, sortValue, name} =
+sortableColumn { maybeValue, toHtml, sortValue, name } =
     Table.veryCustomColumn
         { name = name
-        , viewData = 
-            ( maybeValue
-                >> Maybe.map toHtml 
+        , viewData =
+            (maybeValue
+                >> Maybe.map toHtml
                 >> Maybe.withDefault (Table.HtmlDetails [] [])
             )
-        , sorter = 
+        , sorter =
             Table.increasingOrDecreasingBy
-                ( maybeValue
-                    >> Maybe.map (sortValue >> List.singleton) 
-                    >> Maybe.withDefault [] 
+                (maybeValue
+                    >> Maybe.map (sortValue >> List.singleton)
+                    >> Maybe.withDefault []
                 )
         }
-
 
 
 type alias TableRow a b comparable =
     { level : comparable
     , values : Array a
-    , summary : b 
+    , summary : b
     }
+
 
 type alias TableSummary b =
     { values : List b
-    , summary : b 
+    , summary : b
     }
 
-tableRows : 
-    Crosstab a b comparable1 comparable2 
+
+tableRows :
+    Crosstab a b comparable1 comparable2
     -> List (TableRow a b comparable1)
 tableRows ctab =
     let
-        rowLevels = Crosstab.rowLevelList ctab
-        values = Crosstab.rowList ctab
-        rowsums = Crosstab.rowSummaryList ctab
-    
+        rowLevels =
+            Crosstab.rowLevelList ctab
+
+        values =
+            Crosstab.rowList ctab
+
+        rowsums =
+            Crosstab.rowSummaryList ctab
+
         construct level cvals rsum =
             { level = level
             , values = Array.fromList cvals
             , summary = rsum
             }
-
     in
         List.map3 construct
             rowLevels
@@ -397,11 +430,9 @@ tableRows ctab =
 
 
 tableSummaryCols :
-    Crosstab a b comparable1 comparable2 
+    Crosstab a b comparable1 comparable2
     -> TableSummary b
 tableSummaryCols ctab =
     { values = Crosstab.colSummaryList ctab
     , summary = Crosstab.tableSummary ctab
     }
-
-

@@ -26,10 +26,10 @@ viewData : List Custody -> Html msg
 viewData data =
     div []
         [ h1 [] [ text "Women of Color in US prisons by year, % change, sorted descending by total" ]
-        , viewColPctTable ( stateCustodyWOC "PA" "CA" data )
+        , viewColPctTable (stateCustodyWOC "PA" "CA" data)
         , hr [] []
         , h2 [] [ text "Example cumulative percent table" ]
-        , viewCumRowPctTable ( yearCustodyOfAll data )
+        , viewCumRowPctTable (yearCustodyOfAll data)
         , p [ style [ ( "font-size", "0.7em" ) ] ]
             [ span [] [ text "Source (Public Domain): " ]
             , span []
@@ -73,16 +73,17 @@ viewColPctTable : Crosstab Int Int String String -> Html msg
 viewColPctTable tab =
     displayCrosstab
         tableConfig
-        ( tab 
-            |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing ) 
+        (tab
+            |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing )
             |> Crosstab.sortRowsBySummary identity Crosstab.Desc
         )
+
 
 viewCumRowPctTable : Crosstab Int Int String String -> Html msg
 viewCumRowPctTable tab =
     displayCrosstab
         tableConfig
-        ( tab |> Crosstab.compareAccum cumRowPct ( 0, Just 0 ) )
+        (tab |> Crosstab.compareAccum cumRowPct ( 0, Just 0 ))
 
 
 tableConfig =
@@ -120,15 +121,15 @@ prevColPct { prevCol } val =
         |> Maybe.map (\prev -> (toFloat (val - prev)) / (toFloat val))
 
 
-cumRowPct : { x | cumRow : (Int, Maybe Float), table : Int } -> Int -> (Int, Maybe Float)
+cumRowPct : { x | cumRow : ( Int, Maybe Float ), table : Int } -> Int -> ( Int, Maybe Float )
 cumRowPct { cumRow, table } val =
-    cumRow 
-      |>  (\(sum,pct) -> 
-            ( sum + val
-            , pct
-                |> Maybe.map (\last -> last + ((toFloat val) / (toFloat table)) )
-            )
-          )
+    cumRow
+        |> (\( sum, pct ) ->
+                ( sum + val
+                , pct
+                    |> Maybe.map (\last -> last + ((toFloat val) / (toFloat table)))
+                )
+           )
 
 
 carryValue : (compare -> x -> new) -> compare -> x -> ( x, new )
@@ -136,11 +137,11 @@ carryValue func comp x =
     ( x, func comp x )
 
 
-stateCustodySumsOf : 
-    (Custody -> Int) 
-    -> String 
-    -> String 
-    -> List Custody 
+stateCustodySumsOf :
+    (Custody -> Int)
+    -> String
+    -> String
+    -> List Custody
     -> Crosstab Int Int String String
 stateCustodySumsOf getter state1 state2 =
     Crosstab.fromList
@@ -163,6 +164,7 @@ stateCustodyW : String -> String -> List Custody -> Crosstab Int Int String Stri
 stateCustodyW state1 state2 =
     stateCustodySumsOf .totalF state1 state2
 
+
 stateCustodyWOC : String -> String -> List Custody -> Crosstab Int Int String String
 stateCustodyWOC state1 state2 =
     let
@@ -182,6 +184,7 @@ yearCustodyOf getter =
             , col = always ""
             }
         )
+
 
 yearCustodyOfAll : List Custody -> Crosstab Int Int String String
 yearCustodyOfAll =

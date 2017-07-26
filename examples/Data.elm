@@ -1,12 +1,14 @@
-module Data exposing 
-    ( Region
-    , Custody
-    , parsed
-    , custody
-    )
+module Data
+    exposing
+        ( Region
+        , Custody
+        , parsed
+        , custody
+        )
 
 import Csv
 import Csv.Decode exposing (..)
+
 
 type Region
     = Northeast
@@ -17,7 +19,8 @@ type Region
     | Fed
     | StateTotal
 
-type alias Custody = 
+
+type alias Custody =
     { year : Int
     , state : String
     , region : Region
@@ -30,21 +33,23 @@ type alias Custody =
     , totalM : Int
     , totalF : Int
     , blackF : Int
-    , hispF: Int
+    , hispF : Int
     , asianF : Int
     , nativeHawaiianF : Int
-    , asianPacificF: Int
-    , twoRaceF: Int
+    , asianPacificF : Int
+    , twoRaceF : Int
     }
+
 
 parsed : Result Errors (List Custody)
 parsed =
     Csv.parse data |> decode custody
 
+
 custody : Decoder (Custody -> a) a
 custody =
     map Custody
-        ( field "YEAR" String.toInt
+        (field "YEAR" String.toInt
             |> andMap (field "STATE" Ok)
             |> andMap (field "REGION" mapRegion)
             |> andMap (field "CUSGT1M" String.toInt)
@@ -61,22 +66,39 @@ custody =
             |> andMap (field "NHPIF" String.toInt)
             |> andMap (field "APIF" String.toInt)
             |> andMap (field "TWORACEF" String.toInt)
-         )
+        )
+
 
 mapRegion : String -> Result String Region
 mapRegion s =
     case s of
-        "1" -> Ok Northeast
-        "2" -> Ok Midwest
-        "3" -> Ok South
-        "4" -> Ok West
-        "5" -> Ok USTotal
-        "6" -> Ok Fed
-        "7" -> Ok StateTotal
-        _ -> Err ("Unknown region code: " ++ s)
+        "1" ->
+            Ok Northeast
+
+        "2" ->
+            Ok Midwest
+
+        "3" ->
+            Ok South
+
+        "4" ->
+            Ok West
+
+        "5" ->
+            Ok USTotal
+
+        "6" ->
+            Ok Fed
+
+        "7" ->
+            Ok StateTotal
+
+        _ ->
+            Err ("Unknown region code: " ++ s)
 
 
-data = """YEAR,STATE,REGION,CUSGT1M,CUSGT1F,CUSLT1M,CUSLT1F,CUSUNSM,CUSUNSF,CUSTOTM,CUSTOTF,LFCROWDM,LFCROWDF,WHITEM,WHITEF,BLACKM,BLACKF,HISPM,HISPF,AIANM,AIANF,ASIANM,ASIANF,NHPIM,NHPIF,APIM,APIF,TWORACEM,TWORACEF,ADDRACEM,ADDRACEF,UNKRACEM,UNKRACEF,TOTRACEM,TOTRACEF,NOTHISPM,NOTHISPF,UNKHISPM,UNKHISPF,TOTHCATM,TOTHCATF,COMMITM,COMMITF,RLDEATHM,RLDEATHF,RLTOTM,RLTOTF,CAPRATEM,CAPRATEF,CAPOPM,CAPOPF,CAPDESM,CAPDESF,CAPRATET,CAPOPT,CAPDEST,CUSLT18M,CUSLT18F,CUSCTZNM,CUSCTZNF,DTHEXECM,DTHEXECF,DTHILLNM,DTHILLNF,DTHAIDSM,DTHAIDSF,DTHSUICM,DTHSUICF,DTHACCM,DTHACCF,DTHHOMIM,DTHHOMIF,DTHHOMOM,DTHHOMOF,DTHPERSM,DTHPERSF,DTHOTHM,DTHOTHF,DTHTOTM,DTHTOTF,HANDLEM,HANDLEF
+data =
+    """YEAR,STATE,REGION,CUSGT1M,CUSGT1F,CUSLT1M,CUSLT1F,CUSUNSM,CUSUNSF,CUSTOTM,CUSTOTF,LFCROWDM,LFCROWDF,WHITEM,WHITEF,BLACKM,BLACKF,HISPM,HISPF,AIANM,AIANF,ASIANM,ASIANF,NHPIM,NHPIF,APIM,APIF,TWORACEM,TWORACEF,ADDRACEM,ADDRACEF,UNKRACEM,UNKRACEF,TOTRACEM,TOTRACEF,NOTHISPM,NOTHISPF,UNKHISPM,UNKHISPF,TOTHCATM,TOTHCATF,COMMITM,COMMITF,RLDEATHM,RLDEATHF,RLTOTM,RLTOTF,CAPRATEM,CAPRATEF,CAPOPM,CAPOPF,CAPDESM,CAPDESF,CAPRATET,CAPOPT,CAPDEST,CUSLT18M,CUSLT18F,CUSCTZNM,CUSCTZNF,DTHEXECM,DTHEXECF,DTHILLNM,DTHILLNF,DTHAIDSM,DTHAIDSF,DTHSUICM,DTHSUICF,DTHACCM,DTHACCF,DTHHOMIM,DTHHOMIF,DTHHOMOM,DTHHOMOF,DTHPERSM,DTHPERSF,DTHOTHM,DTHOTHF,DTHTOTM,DTHTOTF,HANDLEM,HANDLEF
 1983,AL,3,8267,420,160,8,0,0,8427,428,948,53,3658,178,5711,301,1,0,3,1,-1,-1,-1,-1,2,1,-1,-1,-9,-9,1,0,9375,481,9373,481,1,0,-1,-1,4103,316,-1,-1,3305,297,-2,-2,-2,-2,-2,-2,7783,7783,7783,-1,-1,-1,-1,1,0,0,0,-1,-1,0,0,0,0,-1,-1,-1,-1,0,0,22,2,-1,-1,-9,-9
 1983,AK,4,776,32,124,11,384,23,1284,66,-8,-8,905,42,140,7,31,1,499,24,-1,-1,-1,-1,16,1,-1,-1,-9,-9,0,0,1560,74,1529,73,0,0,-1,-1,604,27,-1,-1,635,26,-2,-2,-2,-2,-2,-2,1359,1429,1124,-1,-1,-1,-1,-8,-8,0,0,-1,-1,0,0,0,0,-1,-1,-1,-1,0,0,0,0,-1,-1,-9,-9
 1983,AZ,4,6432,311,134,12,0,0,6566,323,0,0,5381,260,1271,62,1583,56,189,25,-1,-1,-1,-1,8,0,-1,-1,-9,-9,55,0,6904,347,5321,291,0,0,-1,-1,2709,171,-1,-1,2107,136,-2,-2,-2,-2,-2,-2,-9,6021,-9,-1,-1,-1,-1,0,0,10,0,-1,-1,1,0,0,0,-1,-1,-1,-1,0,0,0,0,-1,-1,-9,-9
