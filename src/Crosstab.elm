@@ -18,9 +18,7 @@ module Crosstab
         , tableSummary
         , calc
         , compare
-        , compareAndCalc
         , compareAccum
-        , compareAccumAndCalc
         , sortRowsBySummary
         , sortRowsByCol
         , sortRowsByColIndex
@@ -47,7 +45,7 @@ Built on top of [elm-flat-matrix] for efficient processing.
 
 # Calculating
 
-@docs calc, compare, compareAndCalc, Compare, compareAccum, compareAccumAndCalc, CompareAccum
+@docs calc, compare, Compare, compareAccum, CompareAccum
 
 
 # Sorting
@@ -413,27 +411,6 @@ compare comp init (Crosstab { levels, summary, values }) =
         }
 
 
-{-| Compare, and then calculate summaries with the results of the compare operation.
--}
-compareAndCalc :
-    (Compare a b -> a -> c)
-    -> Calc c c d
-    -> Crosstab a b comparable1 comparable2
-    -> Crosstab c d comparable1 comparable2
-compareAndCalc comp (Calc calc) (Crosstab { levels, summary, values }) =
-    let
-        newValues =
-            compareSummaryValues comp calc.init summary values
-
-        newSummary =
-            calcValuesSummary (Calc calc) newValues
-    in
-        Crosstab
-            { levels = levels
-            , values = newValues
-            , summary = newSummary
-            }
-
 
 {-| The same as `compare`, except the data passed in to your compare function
 includes *cumulative row* and *cumulative column* values. In other words,
@@ -479,29 +456,6 @@ compareAccum comp init (Crosstab { levels, summary, values }) =
         , values = compareSummaryValuesAccum comp init summary values
         , summary = summary
         }
-
-
-{-| The same as `compareAndCalc`, but using `compareAccum`.
--}
-compareAccumAndCalc :
-    (CompareAccum a b c -> a -> c)
-    -> Calc c c d
-    -> Crosstab a b comparable1 comparable2
-    -> Crosstab c d comparable1 comparable2
-compareAccumAndCalc comp (Calc calc) (Crosstab { levels, summary, values }) =
-    let
-        newValues =
-            compareSummaryValuesAccum comp calc.init summary values
-
-        newSummary =
-            calcValuesSummary (Calc calc) newValues
-    in
-        Crosstab
-            { levels = levels
-            , values = newValues
-            , summary = newSummary
-            }
-
 
 
 -- SORTING

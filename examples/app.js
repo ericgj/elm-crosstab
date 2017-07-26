@@ -11886,104 +11886,78 @@ var _user$project$Crosstab$sortRowsByCol = F4(
 var _user$project$Crosstab$Calc = function (a) {
 	return {ctor: 'Calc', _0: a};
 };
-var _user$project$Crosstab$compareAndCalc = F3(
-	function (comp, _p70, _p69) {
-		var _p71 = _p70;
-		var _p73 = _p71._0;
-		var _p72 = _p69;
-		var newValues = A4(_user$project$Crosstab$compareSummaryValues, comp, _p73.init, _p72._0.summary, _p72._0.values);
-		var newSummary = A2(
-			_user$project$Crosstab$calcValuesSummary,
-			_user$project$Crosstab$Calc(_p73),
-			newValues);
-		return _user$project$Crosstab$Crosstab(
-			{levels: _p72._0.levels, values: newValues, summary: newSummary});
-	});
-var _user$project$Crosstab$compareAccumAndCalc = F3(
-	function (comp, _p75, _p74) {
-		var _p76 = _p75;
-		var _p78 = _p76._0;
-		var _p77 = _p74;
-		var newValues = A4(_user$project$Crosstab$compareSummaryValuesAccum, comp, _p78.init, _p77._0.summary, _p77._0.values);
-		var newSummary = A2(
-			_user$project$Crosstab$calcValuesSummary,
-			_user$project$Crosstab$Calc(_p78),
-			newValues);
-		return _user$project$Crosstab$Crosstab(
-			{levels: _p77._0.levels, values: newValues, summary: newSummary});
-	});
-var _user$project$Crosstab$customCalc = function (_p79) {
-	var _p80 = _p79;
+var _user$project$Crosstab$customCalc = function (_p69) {
+	var _p70 = _p69;
 	return _user$project$Crosstab$Calc(
-		{map: _p80.map, accum: _p80.accum, init: _p80.init});
+		{map: _p70.map, accum: _p70.accum, init: _p70.init});
 };
 var _user$project$Crosstab$mapCalcOf = F2(
-	function (getter, _p81) {
-		var _p82 = _p81;
-		var _p84 = _p82._0;
+	function (getter, _p71) {
+		var _p72 = _p71;
+		var _p74 = _p72._0;
 		return _user$project$Crosstab$Calc(
 			_elm_lang$core$Native_Utils.update(
-				_p84,
+				_p74,
 				{
-					accum: function (_p83) {
-						return _p84.accum(
-							getter(_p83));
+					accum: function (_p73) {
+						return _p74.accum(
+							getter(_p73));
 					}
 				}));
 	});
 var _user$project$Crosstab$mapCalcOf2 = F3(
+	function (func, _p76, _p75) {
+		var _p77 = _p76;
+		var _p84 = _p77._0;
+		var _p78 = _p75;
+		var _p83 = _p78._0;
+		return _user$project$Crosstab$Calc(
+			{
+				map: function (_p79) {
+					var _p80 = _p79;
+					return A2(
+						func,
+						_p84.map(_p80._0),
+						_p83.map(_p80._1));
+				},
+				accum: F2(
+					function (a, _p81) {
+						var _p82 = _p81;
+						return {
+							ctor: '_Tuple2',
+							_0: A2(_p84.accum, a, _p82._0),
+							_1: A2(_p83.accum, a, _p82._1)
+						};
+					}),
+				init: {ctor: '_Tuple2', _0: _p84.init, _1: _p83.init}
+			});
+	});
+var _user$project$Crosstab$mapCalc2 = F3(
 	function (func, _p86, _p85) {
 		var _p87 = _p86;
-		var _p94 = _p87._0;
+		var _p96 = _p87._0;
 		var _p88 = _p85;
-		var _p93 = _p88._0;
+		var _p95 = _p88._0;
 		return _user$project$Crosstab$Calc(
 			{
 				map: function (_p89) {
 					var _p90 = _p89;
 					return A2(
 						func,
-						_p94.map(_p90._0),
-						_p93.map(_p90._1));
+						_p96.map(_p90._0),
+						_p95.map(_p90._1));
 				},
 				accum: F2(
-					function (a, _p91) {
-						var _p92 = _p91;
+					function (_p92, _p91) {
+						var _p93 = _p92;
+						var _p94 = _p91;
 						return {
 							ctor: '_Tuple2',
-							_0: A2(_p94.accum, a, _p92._0),
-							_1: A2(_p93.accum, a, _p92._1)
+							_0: A2(_p96.accum, _p93._0, _p94._0),
+							_1: A2(_p95.accum, _p93._1, _p94._1)
 						};
 					}),
-				init: {ctor: '_Tuple2', _0: _p94.init, _1: _p93.init}
-			});
-	});
-var _user$project$Crosstab$mapCalc2 = F3(
-	function (func, _p96, _p95) {
-		var _p97 = _p96;
-		var _p106 = _p97._0;
-		var _p98 = _p95;
-		var _p105 = _p98._0;
-		return _user$project$Crosstab$Calc(
-			{
-				map: function (_p99) {
-					var _p100 = _p99;
-					return A2(
-						func,
-						_p106.map(_p100._0),
-						_p105.map(_p100._1));
-				},
-				accum: F2(
-					function (_p102, _p101) {
-						var _p103 = _p102;
-						var _p104 = _p101;
-						return {
-							ctor: '_Tuple2',
-							_0: A2(_p106.accum, _p103._0, _p104._0),
-							_1: A2(_p105.accum, _p103._1, _p104._1)
-						};
-					}),
-				init: {ctor: '_Tuple2', _0: _p106.init, _1: _p105.init}
+				init: {ctor: '_Tuple2', _0: _p96.init, _1: _p95.init}
 			});
 	});
 var _user$project$Crosstab$Desc = {ctor: 'Desc'};
