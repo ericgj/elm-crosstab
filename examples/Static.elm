@@ -147,17 +147,15 @@ stateCustodySumsOf getter state1 state2 =
     Crosstab.fromList
         (Crosstab.Calc.sum)
         (Crosstab.Calc.sumOf getter)
-        (Crosstab.levelMap
-            { row =
-                (\r ->
-                    if r.state == state1 || r.state == state2 then
-                        r.state
-                    else
-                        "All Other"
-                )
-            , col = .year >> toString
-            }
-        )
+        { row =
+            (\r ->
+                if r.state == state1 || r.state == state2 then
+                    r.state
+                else
+                    "All Other"
+            )
+        , col = .year >> toString
+        }
 
 
 stateCustodyW : String -> String -> List Custody -> Crosstab Int Int String String
@@ -179,11 +177,9 @@ yearCustodyOf getter =
     Crosstab.fromList
         (Crosstab.Calc.sum)
         (Crosstab.Calc.sumOf getter)
-        (Crosstab.levelMap
-            { row = .year >> toString
-            , col = always ""
-            }
-        )
+        { row = .year >> toString
+        , col = always ""
+        }
 
 
 yearCustodyOfAll : List Custody -> Crosstab Int Int String String

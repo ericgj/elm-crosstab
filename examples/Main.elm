@@ -1,6 +1,8 @@
 module Main exposing (main)
 
 import Html exposing (Html)
+
+import Static
 import SortableTable
 
 
