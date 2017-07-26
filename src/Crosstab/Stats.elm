@@ -1,18 +1,19 @@
-module Crosstab.Stats exposing 
-    ( Summary
-    , summaryOf
-    , summary
-    , summaryAndValuesOf
-    , summaryAndValues
-    , summaryAndUniquesOf
-    , summaryAndUniques
-    , sd
-    , chisq
-    )
+module Crosstab.Stats
+    exposing
+        ( Summary
+        , summaryOf
+        , summary
+        , summaryAndValuesOf
+        , summaryAndValues
+        , summaryAndUniquesOf
+        , summaryAndUniques
+        , sd
+        , chisq
+        )
 
 import Set exposing (Set)
 import Crosstab exposing (Calc, Compare, customCalc, mapCalcOf, mapCalc2, mapCalcOf2)
-import Crosstab.Calc exposing (listOf,list,uniqueOf,unique)
+import Crosstab.Calc exposing (listOf, list, uniqueOf, unique)
 
 
 type alias Summary =
@@ -51,16 +52,17 @@ summaryOf getter map_ =
         }
 
 
-summaryAndValuesOf : 
-    (a -> Float) 
-    -> (Summary -> List Float -> b) 
+summaryAndValuesOf :
+    (a -> Float)
+    -> (Summary -> List Float -> b)
     -> Calc a ( Summary, List Float ) b
 summaryAndValuesOf getter map_ =
     mapCalcOf2 map_ (summaryOf getter identity) (listOf getter identity)
 
-summaryAndUniquesOf : 
-    (a -> Float) 
-    -> (Summary -> Set Float -> b) 
+
+summaryAndUniquesOf :
+    (a -> Float)
+    -> (Summary -> Set Float -> b)
     -> Calc a ( Summary, Set Float ) b
 summaryAndUniquesOf getter map_ =
     mapCalcOf2 map_ (summaryOf getter identity) (uniqueOf getter identity)
@@ -74,27 +76,32 @@ summary map_ =
         , init = emptySummary
         }
 
-summaryAndValues : 
-    (Summary -> List Float -> b) 
+
+summaryAndValues :
+    (Summary -> List Float -> b)
     -> Calc ( Summary, List Float ) ( Summary, List Float ) b
 summaryAndValues map_ =
     mapCalc2 map_ (summary identity) (list identity)
 
 
-summaryAndUniques : 
-    (Summary -> Set Float -> b) 
+summaryAndUniques :
+    (Summary -> Set Float -> b)
     -> Calc ( Summary, Set Float ) ( Summary, Set Float ) b
 summaryAndUniques map_ =
     mapCalc2 map_ (summary identity) (unique identity)
 
+
+
 {-
 
-Note: the variance calculations use Welford's single-pass algorithm described 
-here:
+   Note: the variance calculations use Welford's single-pass algorithm described
+   here:
 
-https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
+   https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
 
 -}
+
+
 accumSummary : Float -> Summary -> Summary
 accumSummary x sums =
     let
@@ -138,14 +145,18 @@ accumSummary x sums =
             , sd = newvar |> Maybe.map sqrt
         }
 
+
+
 {-
 
-Note: the summary variance calculations use a weighted version of Welford's 
-algorithm with the counts as the weights, described here:
+   Note: the summary variance calculations use a weighted version of Welford's
+   algorithm with the counts as the weights, described here:
 
-https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
+   https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
 
 -}
+
+
 addSummary : Summary -> Summary -> Summary
 addSummary new sums =
     let
@@ -157,7 +168,7 @@ addSummary new sums =
 
         newmean =
             Just (newsum / (toFloat newcount))
-        
+
         newrunMean =
             sums.runMean + (((toFloat new.count) / (toFloat newcount)) * (new.sum - sums.runMean))
 
@@ -234,13 +245,13 @@ addMaybe add_ m1 m2 =
         ( Just a1, Just a2 ) ->
             add_ a1 a2 |> Just
 
-            
+
+
 -- MAPS
 
-{-|
 
-Calculate "second pass" standard deviation from summary stats and a list of raw 
-values.  Usually this will not be needed as the single-pass standard deviation
+{-| Calculate "second pass" standard deviation from summary stats and a list of raw
+values. Usually this will not be needed as the single-pass standard deviation
 is good enough in most cases.
 
     fromList (summaryAndValues sd) (summaryAndValuesOf .floatField sd) levels data
@@ -257,12 +268,14 @@ sdHelp m c vs =
         |> (\ss -> sqrt (ss / (toFloat (c - 1))))
 
 
+
 -- COMPARISONS
 
+
 chisq : Compare Float Float -> Float -> Float
-chisq {row, col, table} value =
+chisq { row, col, table } value =
     let
-        exp = col * (row / table)
+        exp =
+            col * (row / table)
     in
         ((value - exp) ^ 2) / exp
-

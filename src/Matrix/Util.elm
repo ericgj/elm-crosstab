@@ -22,10 +22,12 @@ sortRowsByColumn index accessor matrix =
     sortedRowIndexes index accessor matrix
         |> (\idxs -> sortRowsByIndexes idxs matrix)
 
+
 sortColumnsByRow : Int -> (a -> comparable) -> Matrix a -> Matrix a
 sortColumnsByRow index accessor matrix =
     sortedColumnIndexes index accessor matrix
         |> (\idxs -> sortColumnsByIndexes idxs matrix)
+
 
 sortedRowIndexes : Int -> (a -> comparable) -> Matrix a -> List Int
 sortedRowIndexes index accessor matrix =
@@ -34,7 +36,8 @@ sortedRowIndexes index accessor matrix =
         |> (Array.indexedMap (,) >> Array.toList)
         |> (List.sortBy (Tuple.second >> accessor))
         |> List.map Tuple.first
-    
+
+
 sortedColumnIndexes : Int -> (a -> comparable) -> Matrix a -> List Int
 sortedColumnIndexes index accessor matrix =
     Matrix.getRow index matrix
@@ -42,12 +45,12 @@ sortedColumnIndexes index accessor matrix =
         |> (Array.indexedMap (,) >> Array.toList)
         |> (List.sortBy (Tuple.second >> accessor))
         |> List.map Tuple.first
-    
+
 
 sortRowsByIndexes : List Int -> Matrix a -> Matrix a
 sortRowsByIndexes indexes matrix =
     let
-        (ncols, nrows) =
+        ( ncols, nrows ) =
             matrix.size
 
         accum_ ncols origMatrix row ( newRow, newMatrix ) =
@@ -63,18 +66,18 @@ sortRowsByIndexes indexes matrix =
                 (List.range 0 ncols)
             )
     in
-        if List.length indexes == nrows then 
+        if List.length indexes == nrows then
             List.foldl (accum_ ncols matrix) ( 0, matrix ) indexes
                 |> Tuple.second
         else
-          -- TODO: if nrows > indexes then put any missing at the end
-          matrix
+            -- TODO: if nrows > indexes then put any missing at the end
+            matrix
 
 
 sortColumnsByIndexes : List Int -> Matrix a -> Matrix a
 sortColumnsByIndexes indexes matrix =
     let
-        (ncols, nrows) =
+        ( ncols, nrows ) =
             matrix.size
 
         accum_ nrows origMatrix col ( newCol, newMatrix ) =
@@ -97,8 +100,6 @@ sortColumnsByIndexes indexes matrix =
             -- TODO: if ncols > indexes then put any missing at the end
             matrix
 
-    
-
 
 toListColumns : Matrix a -> List (List a)
 toListColumns matrix =
@@ -111,6 +112,7 @@ toListColumns matrix =
             matrix
             |> Array.map List.reverse
             |> Array.toList
+
 
 toListRows : Matrix a -> List (List a)
 toListRows matrix =

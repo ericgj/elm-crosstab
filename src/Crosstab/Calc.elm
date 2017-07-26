@@ -27,6 +27,7 @@ import Crosstab exposing (Calc, customCalc, mapCalcOf)
 
 -- BASE CALCS
 
+
 maybe :
     (a -> a -> a)
     -> (Maybe a -> b)
@@ -34,6 +35,7 @@ maybe :
 maybe accum map =
     customCalc
         { map = map, accum = maybeAdd accum, init = Nothing }
+
 
 maybeOf :
     (a -> Maybe b)
@@ -51,6 +53,7 @@ list map =
     customCalc
         { map = map, accum = (++), init = [] }
 
+
 listOf :
     (a -> b)
     -> (List b -> c)
@@ -59,12 +62,14 @@ listOf getter map =
     customCalc
         { map = map, accum = getter >> (::), init = [] }
 
+
 unique :
     (Set comparable -> b)
     -> Calc (Set comparable) (Set comparable) b
 unique map =
     customCalc
         { map = map, accum = Set.union, init = Set.empty }
+
 
 uniqueOf :
     (a -> comparable)
@@ -82,12 +87,14 @@ float accum =
     customCalc
         { map = identity, accum = accum, init = 0.0 }
 
+
 floatOf :
     (a -> Float)
     -> (Float -> Float -> Float)
     -> Calc a Float Float
 floatOf getter accum =
     mapCalcOf getter (float accum)
+
 
 number :
     (number -> number -> number)
@@ -96,12 +103,14 @@ number accum =
     customCalc
         { map = identity, accum = accum, init = 0 }
 
+
 numberOf :
     (a -> number)
     -> (number -> number -> number)
     -> Calc a number number
 numberOf getter accum =
     mapCalcOf getter (number accum)
+
 
 
 --  TYPICAL CALCS
@@ -118,22 +127,24 @@ count =
 
 sum : Calc number number number
 sum =
-    number (+) 
+    number (+)
+
 
 sumOf : (a -> number) -> Calc a number number
 sumOf getter =
     numberOf getter (+)
 
 
-mean : Calc Float (Float, Int) Float
+mean : Calc Float ( Float, Int ) Float
 mean =
     customCalc
-        { accum = (\v (s,c) -> (s + v, c + 1))
-        , init = (0.0, 0)
-        , map = (\(s,c) -> s / (toFloat c))
+        { accum = (\v ( s, c ) -> ( s + v, c + 1 ))
+        , init = ( 0.0, 0 )
+        , map = (\( s, c ) -> s / (toFloat c))
         }
 
-meanOf : (a -> Float) -> Calc a (Float, Int) Float
+
+meanOf : (a -> Float) -> Calc a ( Float, Int ) Float
 meanOf getter =
     mapCalcOf getter mean
 
@@ -146,9 +157,11 @@ firstNumber =
         , map = identity
         }
 
+
 firstNumberOf : (a -> number) -> Calc a number number
 firstNumberOf getter =
     mapCalcOf getter firstNumber
+
 
 lastNumber : Calc number number number
 lastNumber =
@@ -157,6 +170,7 @@ lastNumber =
         , init = 0
         , map = identity
         }
+
 
 lastNumberOf : (a -> number) -> Calc a number number
 lastNumberOf getter =
@@ -167,21 +181,23 @@ first : Calc (Maybe a) (Maybe a) (Maybe a)
 first =
     maybe (\a2 a1 -> a1) identity
 
+
 firstOf : (a -> Maybe a) -> Calc a (Maybe a) (Maybe a)
 firstOf getter =
     mapCalcOf getter first
 
+
 last : Calc (Maybe a) (Maybe a) (Maybe a)
 last =
     maybe (\a2 a1 -> a2) identity
+
 
 lastOf : (a -> Maybe a) -> Calc a (Maybe a) (Maybe a)
 lastOf getter =
     mapCalcOf getter last
 
 
-
-maybeAdd : 
+maybeAdd :
     (a -> a -> a)
     -> Maybe a
     -> Maybe a
@@ -199,4 +215,3 @@ maybeAdd accum new old =
 
         ( Just a, Just b ) ->
             accum a b |> Just
-
