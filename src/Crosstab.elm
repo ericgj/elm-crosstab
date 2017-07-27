@@ -296,24 +296,28 @@ of the rows, columns, and overall table are the *means* of those sums.
         data
 
 Please note there is some subtlety in the structure of the *value* vs.
-*summary* calculations. The former *accumulates* source records while the
-latter *adds* together previous accumulations. The type signatures help
-tell the story.
+*summary* calculations. The types tell part of the story. Value calculations
+accumulate to a value, which are then accumulated in summary calculations (i.e.
+for the row, column, and table totals). The calculations are independent, except
+that the summary calculations start with the accumulated values.
+
+In addition, both value and summary calculations have a final mapping over the 
+accumulated values. In this way you can do "two-pass" calculations.
 
 If you are using prebuilt calculations from `Crosstab.Calc` or
 `Crosstab.Stats`, the main thing to be aware of is the functions ending in
-`Of` define *value* calculations, while those that don't end in `Of` define
-*summary* calculations.
+`Of` typically are used for *value* calculations, while those that don't end in 
+`Of` typically are used for *summary* calculations.
 
 For more details, see [Defining calculations](#defining-calculations).
 
 -}
 fromList :
-    Calc b b d
+    Calc b d e
     -> Calc a b c
     -> LevelMap a comparable1 comparable2
     -> List a
-    -> Crosstab c d comparable1 comparable2
+    -> Crosstab c e comparable1 comparable2
 fromList summary value map records =
     fromListWithLevels
         (levelsOf map records)
@@ -328,11 +332,11 @@ one pass through the source data, if you know them up front.
 -}
 fromListWithLevels :
     Levels comparable1 comparable2
-    -> Calc b b d
+    -> Calc b d e
     -> Calc a b c
     -> LevelMap a comparable1 comparable2
     -> List a
-    -> Crosstab c d comparable1 comparable2
+    -> Crosstab c e comparable1 comparable2
 fromListWithLevels { rows, cols } summary (Calc value) { row, col } records =
     let
         rowMap =
