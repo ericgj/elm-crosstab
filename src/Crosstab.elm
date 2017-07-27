@@ -7,6 +7,10 @@ module Crosstab
         , CompareAccum
         , Levels
         , SortDirection(..)
+        , count
+        , sum
+        , mean
+        , meanWithValuesOf
         , fromList
         , fromListWithLevels
         , levelsOf
@@ -33,7 +37,17 @@ module Crosstab
 Built on top of [elm-flat-matrix] for efficient processing.
 
 
+# Basic usage
+
+@docs count, sum, mean, meanWithValuesOf
+
+
 # Constructing
+
+Sometimes you need more flexibility in how you accumulate values into a 
+crosstab, and how you calculate summaries from these accumulated values. For
+this, you need `fromList`. You can make use of the calculations defined in
+`Crosstab.Calc`, or define your own with `customCalc`. 
 
 @docs fromList, fromListWithLevels, levelsOf, Levels, LevelMap
 
@@ -179,8 +193,101 @@ type SortDirection
 
 -- CONSTRUCTING
 
+{-| Build a crosstab of counts summarized by sum of counts from the given data.
 
-{-| Load and calculate a crosstab table from source data given:
+    Crosstab.count { row = .ageBracket, col = .postcode } residency
+
+-}
+count :
+    LevelMap a comparable1 comparable2
+    -> List a
+    -> Crosstab Int Int comparable1 comparable2
+count mapl data =
+    fromList
+        ( Calc { init = 0, accum = (+), map = identity } )
+        ( Calc { init = 0, accum = (\_ b -> b + 1), map = identity } )
+        mapl
+        data
+
+
+{-| Build a crosstab of sums (or "weighted counts") from the given data.
+
+    Crosstab.sum .numberOfPets { row = .ageBracket, col = .postcode } residency
+
+-}
+sum :
+    (a -> number)
+    -> LevelMap a comparable1 comparable2
+    -> List a
+    -> Crosstab number number comparable1 comparable2
+sum mapv mapl data =
+    fromList
+        ( Calc { init = 0, accum = (+), map = identity } )
+        ( Calc { init = 0, accum = mapv >> (+), map = identity } )
+        mapl
+        data
+
+
+{-| Build a crosstab of means from the given data. Both the values in the table
+and the summaries are means of the underlying data.
+
+    Crosstab.mean .numberOfPets { row = .ageBracket, col = .postcode } residency
+
+-}
+mean :
+    (a -> number)
+    -> LevelMap a comparable1 comparable2
+    -> List a
+    -> Crosstab (Maybe Float) (Maybe Float) comparable1 comparable2
+mean =
+    meanWithValuesOf dividePair
+
+
+
+{-| Build a crosstab of means, with the values in the table a given function of 
+the sum and the count.
+
+For instance, to summarize by means but accumulate the values in the table as
+sums:
+
+    Crosstab.meanWithValuesOf .sum { row = .ageBracket, col = .postcode } residency
+
+-}
+meanWithValuesOf : 
+    ({ sum : number, count : number } -> b)
+    -> (a -> number)
+    -> LevelMap a comparable1 comparable2
+    -> List a
+    -> Crosstab b (Maybe Float) comparable1 comparable2
+meanWithValuesOf mapc mapv mapl data =
+    fromList
+        ( Calc 
+            { init = {sum = 0, count = 0}
+            , accum = (\p1 p2 -> {sum = p1.sum + p2.sum, count = p1.count + p2.count})
+            , map = dividePair
+            }
+        )
+        ( Calc 
+            { init = {sum = 0, count = 0}
+            , accum = (\a {sum,count} -> {sum = mapv a + sum, count = count + 1})
+            , map = mapc
+            } 
+        )
+        mapl
+        data
+
+
+dividePair : {sum : number, count : number } -> Maybe Float
+dividePair {sum,count} =
+   if count == 0 then 
+     Nothing
+   else
+     Just (sum / count)
+
+
+
+
+{-| Build and calculate a crosstab table from source data given:
 
   - a *summary* calculation,
   - a *value* calculation, and
