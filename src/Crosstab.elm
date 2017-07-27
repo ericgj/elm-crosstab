@@ -10,7 +10,6 @@ module Crosstab
         , count
         , sum
         , mean
-        , meanWithValuesOf
         , fromList
         , fromListWithLevels
         , levelsOf
@@ -39,7 +38,7 @@ Built on top of [elm-flat-matrix] for efficient processing.
 
 # Basic usage
 
-@docs count, sum, mean, meanWithValuesOf
+@docs count, sum, mean
 
 
 # Constructing
@@ -244,15 +243,7 @@ mean =
 
 
 
-{-| Build a crosstab of means, with the values in the table a given function of 
-the sum and the count.
 
-For instance, to summarize by means but accumulate the values in the table as
-sums:
-
-    Crosstab.meanWithValuesOf .sum { row = .ageBracket, col = .postcode } residency
-
--}
 meanWithValuesOf : 
     ({ sum : number, count : number } -> b)
     -> (a -> number)
