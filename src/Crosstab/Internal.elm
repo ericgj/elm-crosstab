@@ -1,10 +1,52 @@
 module Crosstab.Internal exposing 
-    ( Calc(..)
+    ( Table(..)
+    , Column(..)
+    , Levels
+    , Values
+    , Summary
+    , Calc(..)
     , customCalc
     , mapCalcOf
     , mapCalcOf2
     , mapCalc2
     )
+
+import Array exposing (Array)
+import Matrix exposing (Matrix)
+
+type Table a b comparable1 comparable2
+    = Table
+        { levels : Levels comparable1 comparable2
+        , values : Values a
+        , summary : Summary b
+        }
+
+type Column a b comparable
+    = Column
+        { levels : Array comparable
+        , values : Array a
+        , summary : b
+        }
+
+
+{-| Row and column levels. See `tableWithLevels` for usage example.
+-}
+type alias Levels comparable1 comparable2 =
+    { rows : Array comparable1
+    , cols : Array comparable2
+    }
+
+
+type alias Values a =
+    Matrix a
+
+
+type alias Summary a =
+    { table : a
+    , rows : Array a
+    , cols : Array a
+    }
+
 
 
 type Calc a b c

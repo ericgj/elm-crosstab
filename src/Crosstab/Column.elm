@@ -19,14 +19,10 @@ import Tuple
 import Set exposing (Set)
 
 import Array.Util
-import Crosstab.Internal exposing (Calc(..))
+import Crosstab.Internal exposing (Calc(..), Column(..))
 
-type Column a b comparable
-    = Column
-        { levels : Array comparable
-        , values : Array a
-        , summary : b
-        }
+type alias Column a b comparable =
+    Crosstab.Internal.Column a b comparable
 
 type alias Compare a b =
     { column : b

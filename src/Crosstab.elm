@@ -100,7 +100,6 @@ meanColumn toFloat levelMap records =
         levelMap
         records
 
-
 column :
     Calc b d e
     -> Calc a b c

@@ -1,7 +1,6 @@
 module Crosstab.Table exposing
     ( Table
     , LevelMap
-    , Levels
     , Compare
     , CompareAccum
     , table
@@ -13,6 +12,8 @@ module Crosstab.Table exposing
     , rowSummaryList
     , colSummaryList
     , tableSummary
+    , rowSummaryColumn
+    , colSummaryColumn
     , summarize
     , compare
     , compareAccum
@@ -28,19 +29,19 @@ import Matrix exposing (Matrix)
 
 import Matrix.Util
 import Array.Util
-import Crosstab.Internal exposing (Calc(..))
+import Crosstab.Internal exposing 
+    ( Calc(..), Table(..), Column(..)
+    , Levels, Values, Summary
+    )
 import Crosstab.Sort as Sort exposing (Direction(..))
 
 
 {-| Internal structure of a crosstab table. See `table` and `tableWithLevels`
 for how to construct a Crosstab from source data.
 -}
-type Table a b comparable1 comparable2
-    = Table
-        { levels : Levels comparable1 comparable2
-        , values : Values a
-        , summary : Summary b
-        }
+type alias Table a b comparable1 comparable2 =
+    Crosstab.Internal.Table a b comparable1 comparable2
+
 
 {-| Mapping from source data to row and column levels.
 -}
@@ -87,25 +88,6 @@ type alias CompareAccum a b c =
     , prevCol : Maybe a
     , cumRow : c
     , cumCol : c
-    }
-
-
-{-| Row and column levels. See `tableWithLevels` for usage example.
--}
-type alias Levels comparable1 comparable2 =
-    { rows : Array comparable1
-    , cols : Array comparable2
-    }
-
-
-type alias Values a =
-    Matrix a
-
-
-type alias Summary a =
-    { table : a
-    , rows : Array a
-    , cols : Array a
     }
 
 
@@ -164,6 +146,14 @@ table summary value map records =
 
 {-| Like `table`, but specifying row and column levels explicitly. This saves
 one pass through the source data, if you know them up front.
+
+Note that `Levels` is 
+
+    type alias Levels comparable1 comparable2 =
+        { rows : Array comparable1
+        , cols : Array comparable2
+        }
+
 -}
 tableWithLevels :
     Levels comparable1 comparable2
@@ -275,6 +265,26 @@ colSummaryList (Table { summary }) =
 tableSummary : Table a b comparable1 comparable2 -> b
 tableSummary (Table { summary }) =
     summary.table
+
+{-| Convert row summaries to a one-dimensional crosstab (Column).
+-}
+rowSummaryColumn : Table a b comparable1 comparable2 -> Column b b comparable2
+rowSummaryColumn (Table { levels, summary }) =
+    Column
+        { levels = levels.cols
+        , values = summary.rows
+        , summary = summary.table
+        }
+
+{-| Convert col summaries to a one-dimensional crosstab (Column).
+-}
+colSummaryColumn : Table a b comparable1 comparable2 -> Column b b comparable1
+colSummaryColumn (Table { levels, summary }) =
+    Column
+        { levels = levels.rows
+        , values = summary.cols
+        , summary = summary.table
+        }
 
 
 
