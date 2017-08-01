@@ -4,8 +4,9 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Csv.Decode exposing (Errors(..))
 import Round
-import Crosstab exposing (Crosstab)
+import Crosstab.Table exposing (Table)
 import Crosstab.Calc
+import Crosstab.Sort
 import Data exposing (parsed, Custody)
 
 
@@ -69,21 +70,21 @@ viewErrs errs =
                 decodeErrors errs
 
 
-viewColPctTable : Crosstab Int Int String String -> Html msg
+viewColPctTable : Table Int Int String String -> Html msg
 viewColPctTable tab =
     displayCrosstab
         tableConfig
         (tab
-            |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing )
-            |> Crosstab.sortRowsBySummary identity Crosstab.Desc
+            |> Crosstab.Table.compare (carryValue prevColPct) ( 0, Nothing )
+            |> Crosstab.Table.sortRowsBySummary identity Crosstab.Sort.Desc
         )
 
 
-viewCumRowPctTable : Crosstab Int Int String String -> Html msg
+viewCumRowPctTable : Table Int Int String String -> Html msg
 viewCumRowPctTable tab =
     displayCrosstab
         tableConfig
-        (tab |> Crosstab.compareAccum cumRowPct ( 0, Just 0 ))
+        (tab |> Crosstab.Table.compareAccum cumRowPct ( 0, Just 0 ))
 
 
 tableConfig =
@@ -142,9 +143,9 @@ stateCustodySumsOf :
     -> String
     -> String
     -> List Custody
-    -> Crosstab Int Int String String
+    -> Table Int Int String String
 stateCustodySumsOf getter state1 state2 =
-    Crosstab.fromList
+    Crosstab.Table.table
         (Crosstab.Calc.sum)
         (Crosstab.Calc.sumOf getter)
         { row =
@@ -158,12 +159,12 @@ stateCustodySumsOf getter state1 state2 =
         }
 
 
-stateCustodyW : String -> String -> List Custody -> Crosstab Int Int String String
+stateCustodyW : String -> String -> List Custody -> Table Int Int String String
 stateCustodyW state1 state2 =
     stateCustodySumsOf .totalF state1 state2
 
 
-stateCustodyWOC : String -> String -> List Custody -> Crosstab Int Int String String
+stateCustodyWOC : String -> String -> List Custody -> Table Int Int String String
 stateCustodyWOC state1 state2 =
     let
         woc r =
@@ -172,9 +173,9 @@ stateCustodyWOC state1 state2 =
         stateCustodySumsOf woc state1 state2
 
 
-yearCustodyOf : (Custody -> Int) -> List Custody -> Crosstab Int Int String String
+yearCustodyOf : (Custody -> Int) -> List Custody -> Table Int Int String String
 yearCustodyOf getter =
-    Crosstab.fromList
+    Crosstab.Table.table
         (Crosstab.Calc.sum)
         (Crosstab.Calc.sumOf getter)
         { row = .year >> toString
@@ -182,7 +183,7 @@ yearCustodyOf getter =
         }
 
 
-yearCustodyOfAll : List Custody -> Crosstab Int Int String String
+yearCustodyOfAll : List Custody -> Table Int Int String String
 yearCustodyOfAll =
     yearCustodyOf (\r -> r.totalM + r.totalF)
 
@@ -196,27 +197,27 @@ displayCrosstab :
         , cell : a -> Html msg
         , summary : b -> Html msg
     }
-    -> Crosstab a b comparable1 comparable2
+    -> Table a b comparable1 comparable2
     -> Html msg
 displayCrosstab { rowLabel, colLabel, rowTotalLabel, colTotalLabel, cell, summary } crosstab =
     let
         rowLevels =
-            Crosstab.rowLevelList crosstab
+            Crosstab.Table.rowLevelList crosstab
 
         colLevels =
-            Crosstab.colLevelList crosstab
+            Crosstab.Table.colLevelList crosstab
 
         values =
-            Crosstab.rowList crosstab
+            Crosstab.Table.rowList crosstab
 
         rowSummary =
-            Crosstab.rowSummaryList crosstab
+            Crosstab.Table.rowSummaryList crosstab
 
         colSummary =
-            Crosstab.colSummaryList crosstab
+            Crosstab.Table.colSummaryList crosstab
 
         tableSummary =
-            Crosstab.tableSummary crosstab
+            Crosstab.Table.tableSummary crosstab
 
         alignCols =
             ( "text-align", "right" )
@@ -271,3 +272,4 @@ displayCrosstab { rowLabel, colLabel, rowTotalLabel, colTotalLabel, cell, summar
             , tbody [] body
             , tfoot [] foot
             ]
+

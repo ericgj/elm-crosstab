@@ -15,7 +15,7 @@ import Html.Events exposing (onClick)
 import Round
 import Table
 import Csv.Decode exposing (Errors(..))
-import Crosstab exposing (Crosstab)
+import Crosstab.Table as CT
 import Crosstab.Calc
 import Data exposing (parsed, Custody)
 
@@ -201,10 +201,12 @@ htmlColPctSummary count =
 -- DATA MODEL
 
 
-colPctTable : Crosstab Int Int String String -> Crosstab ( Int, Maybe Float ) Int String String
+colPctTable : 
+    CT.Table Int Int String String 
+    -> CT.Table ( Int, Maybe Float ) Int String String
 colPctTable tab =
     tab
-        |> Crosstab.compare (carryValue prevColPct) ( 0, Nothing )
+        |> CT.compare (carryValue prevColPct) ( 0, Nothing )
 
 
 prevColPct : { x | prevCol : Maybe Int } -> Int -> Maybe Float
@@ -223,9 +225,9 @@ stateCustodySumsOf :
     -> String
     -> String
     -> List Custody
-    -> Crosstab Int Int String String
+    -> CT.Table Int Int String String
 stateCustodySumsOf getter state1 state2 =
-    Crosstab.fromList
+    CT.table
         (Crosstab.Calc.sum)
         (Crosstab.Calc.sumOf getter)
         { row =
@@ -239,7 +241,7 @@ stateCustodySumsOf getter state1 state2 =
         }
 
 
-stateCustodyWOC : String -> String -> List Custody -> Crosstab Int Int String String
+stateCustodyWOC : String -> String -> List Custody -> CT.Table Int Int String String
 stateCustodyWOC state1 state2 =
     let
         woc r =
@@ -269,7 +271,7 @@ type alias SortableConfig value summary comparableValue comparableSummary compar
 viewSortable :
     SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
     -> Table.State
-    -> Crosstab value summary comparableRow comparableCol
+    -> CT.Table value summary comparableRow comparableCol
     -> Html msg
 viewSortable config state ctab =
     sortableConfig config ctab
@@ -278,12 +280,12 @@ viewSortable config state ctab =
 
 sortableConfig :
     SortableConfig value summary comparableValue comparableSummary comparableRow comparableCol msg
-    -> Crosstab value summary comparableRow comparableCol
+    -> CT.Table value summary comparableRow comparableCol
     -> Table.Config (TableRow value summary comparableRow) msg
 sortableConfig config ctab =
     let
         colLevels =
-            Crosstab.colLevelList ctab
+            CT.colLevelList ctab
 
         colSums =
             tableSummaryCols ctab
@@ -402,18 +404,18 @@ type alias TableSummary b =
 
 
 tableRows :
-    Crosstab a b comparable1 comparable2
+    CT.Table a b comparable1 comparable2
     -> List (TableRow a b comparable1)
 tableRows ctab =
     let
         rowLevels =
-            Crosstab.rowLevelList ctab
+            CT.rowLevelList ctab
 
         values =
-            Crosstab.rowList ctab
+            CT.rowList ctab
 
         rowsums =
-            Crosstab.rowSummaryList ctab
+            CT.rowSummaryList ctab
 
         construct level cvals rsum =
             { level = level
@@ -428,9 +430,9 @@ tableRows ctab =
 
 
 tableSummaryCols :
-    Crosstab a b comparable1 comparable2
+    CT.Table a b comparable1 comparable2
     -> TableSummary b
 tableSummaryCols ctab =
-    { values = Crosstab.colSummaryList ctab
-    , summary = Crosstab.tableSummary ctab
+    { values = CT.colSummaryList ctab
+    , summary = CT.tableSummary ctab
     }
