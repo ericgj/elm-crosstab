@@ -5,6 +5,7 @@ import Html.Attributes exposing (..)
 import Csv.Decode exposing (Errors(..))
 import Round
 import Crosstab.Table exposing (Table)
+import Crosstab.Column exposing (Column)
 import Crosstab.Calc
 import Crosstab.Sort
 import Data exposing (parsed, Custody)
@@ -29,8 +30,8 @@ viewData data =
         [ h1 [] [ text "Women of Color in US prisons by year, % change, sorted descending by total" ]
         , viewColPctTable (stateCustodyWOC "PA" "CA" data)
         , hr [] []
-        , h2 [] [ text "Example cumulative percent table" ]
-        , viewCumRowPctTable (yearCustodyOfAll data)
+        , h2 [] [ text "Example cumulative percent column" ]
+        , viewCumPctColumn (yearCustodyOfAll data)
         , p [ style [ ( "font-size", "0.7em" ) ] ]
             [ span [] [ text "Source (Public Domain): " ]
             , span []
@@ -72,7 +73,7 @@ viewErrs errs =
 
 viewColPctTable : Table Int Int String String -> Html msg
 viewColPctTable tab =
-    displayCrosstab
+    displayTable
         tableConfig
         (tab
             |> Crosstab.Table.compare (carryValue prevColPct) ( 0, Nothing )
@@ -80,11 +81,11 @@ viewColPctTable tab =
         )
 
 
-viewCumRowPctTable : Table Int Int String String -> Html msg
-viewCumRowPctTable tab =
-    displayCrosstab
-        tableConfig
-        (tab |> Crosstab.Table.compareAccum cumRowPct ( 0, Just 0 ))
+viewCumPctColumn : Column Int Int String -> Html msg
+viewCumPctColumn col =
+    displayColumn
+        columnConfig
+        (col |> Crosstab.Column.compareAccum cumPct ( 0, Just 0 ))
 
 
 tableConfig =
@@ -110,6 +111,28 @@ tableConfig =
         , summary = toString >> text
         }
 
+columnConfig =
+    let
+        cell ( value, colpct ) =
+            let
+                html pct =
+                    div []
+                        [ div [] [ text pct ]
+                        , div [ style [ ( "opacity", "0.5" ), ( "font-size", "0.7em" ) ] ]
+                            [ text (toString value) ]
+                        ]
+            in
+                colpct
+                    |> Maybe.map (((*) 100) >> Round.round 1 >> (flip (++) "%") >> html)
+                    |> Maybe.withDefault (html "-")
+    in
+        { label = text
+        , summaryLabel = text "Total"
+        , unitsLabel = text "Cumulative %"
+        , cell = cell
+        , summary = toString >> text
+        }
+
 
 colPct : { x | col : Int } -> Int -> Float
 colPct { col } val =
@@ -122,13 +145,13 @@ prevColPct { prevCol } val =
         |> Maybe.map (\prev -> (toFloat (val - prev)) / (toFloat val))
 
 
-cumRowPct : { x | cumRow : ( Int, Maybe Float ), table : Int } -> Int -> ( Int, Maybe Float )
-cumRowPct { cumRow, table } val =
-    cumRow
+cumPct : { x | cum : ( Int, Maybe Float ), column : Int } -> Int -> ( Int, Maybe Float )
+cumPct { cum, column } val =
+    cum
         |> (\( sum, pct ) ->
                 ( sum + val
                 , pct
-                    |> Maybe.map (\last -> last + ((toFloat val) / (toFloat table)))
+                    |> Maybe.map (\last -> last + ((toFloat val) / (toFloat column)))
                 )
            )
 
@@ -173,22 +196,97 @@ stateCustodyWOC state1 state2 =
         stateCustodySumsOf woc state1 state2
 
 
-yearCustodyOf : (Custody -> Int) -> List Custody -> Table Int Int String String
+yearCustodyOf : (Custody -> Int) -> List Custody -> Column Int Int String
 yearCustodyOf getter =
-    Crosstab.Table.table
+    Crosstab.Column.column
         (Crosstab.Calc.sum)
         (Crosstab.Calc.sumOf getter)
-        { row = .year >> toString
-        , col = always ""
-        }
+        (.year >> toString)
 
 
-yearCustodyOfAll : List Custody -> Table Int Int String String
+yearCustodyOfAll : List Custody -> Column Int Int String
 yearCustodyOfAll =
     yearCustodyOf (\r -> r.totalM + r.totalF)
 
 
-displayCrosstab :
+displayColumn :
+    { x
+        | label : comparable -> Html msg
+        , summaryLabel : Html msg
+        , unitsLabel : Html msg
+        , cell : a -> Html msg
+        , summary : b -> Html msg
+    }
+    -> Column a b comparable
+    -> Html msg
+displayColumn { label, summaryLabel, unitsLabel, cell, summary } column =
+    let
+
+        levels =
+            Crosstab.Column.levelList column
+
+        values =
+            Crosstab.Column.valueList column
+
+        summaryValue =
+            Crosstab.Column.summary column
+
+        alignCols =
+            ( "text-align", "right" )
+
+        widthCols =
+            ( "min-width", "100px" )
+
+        vertAlign =
+            ( "vertical-align", "bottom" )
+
+        styleCells =
+            style [ widthCols, vertAlign, alignCols ]
+
+        styleHeads =
+            style [ widthCols, vertAlign ]
+
+        styleSums =
+            style [ widthCols, vertAlign, alignCols ]
+
+        head =
+            [ tr []
+                [ th [ styleHeads ] [] 
+                , th [ styleSums ] [ unitsLabel ] 
+                ]
+            ]
+
+        foot =
+            [ tr []
+                [ td [ styleHeads ] [ summaryLabel ]
+                , td [ styleSums ] [ summary summaryValue ] 
+                ]
+            ]
+
+        body =
+            List.map2
+                bodyRow
+                levels
+                values
+
+        bodyRow clabel cvalue =
+            tr []
+                [ td [ styleHeads ] [ label clabel ] 
+                , td [ styleCells ] [ cell cvalue ]
+                ]
+
+    in
+        table []
+            [ thead [] head
+            , tbody [] body
+            , tfoot [] foot
+            ]
+
+
+
+
+
+displayTable :
     { x
         | rowLabel : comparable1 -> Html msg
         , colLabel : comparable2 -> Html msg
@@ -199,7 +297,7 @@ displayCrosstab :
     }
     -> Table a b comparable1 comparable2
     -> Html msg
-displayCrosstab { rowLabel, colLabel, rowTotalLabel, colTotalLabel, cell, summary } crosstab =
+displayTable { rowLabel, colLabel, rowTotalLabel, colTotalLabel, cell, summary } crosstab =
     let
         rowLevels =
             Crosstab.Table.rowLevelList crosstab
