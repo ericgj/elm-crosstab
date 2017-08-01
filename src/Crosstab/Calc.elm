@@ -1,6 +1,10 @@
 module Crosstab.Calc
     exposing
-        ( maybe
+        ( custom
+        , mapOf
+        , mapOf2
+        , map2
+        , maybe
         , maybeOf
         , list
         , listOf
@@ -10,6 +14,7 @@ module Crosstab.Calc
         , sum
         , sumOf
         , mean
+        , meanAccum
         , meanOf
         , firstNumber
         , firstNumberOf
@@ -22,7 +27,41 @@ module Crosstab.Calc
         )
 
 import Set exposing (Set)
-import Crosstab exposing (Calc, customCalc, mapCalcOf)
+import Crosstab.Internal exposing (Calc)
+
+
+-- CUSTOM 
+
+custom :
+    { x | map : b -> c, accum : a -> b -> b, init : b }
+    -> Calc a b c
+custom =
+    Crosstab.Internal.customCalc
+
+mapOf :
+    (a -> b)
+    -> Calc b c d
+    -> Calc a c d
+mapOf =
+    Crosstab.Internal.mapCalcOf
+
+mapOf2 :
+    (c -> e -> f)
+    -> Calc a b c
+    -> Calc a d e
+    -> Calc a ( b, d ) f
+mapOf2 =
+    Crosstab.Internal.mapCalcOf2
+
+
+map2 :
+    (c -> e -> f)
+    -> Calc b b c
+    -> Calc d d e
+    -> Calc ( b, d ) ( b, d ) f
+map2 =
+    Crosstab.Internal.mapCalc2
+
 
 
 -- BASE CALCS
@@ -33,7 +72,7 @@ maybe :
     -> (Maybe a -> b)
     -> Calc (Maybe a) (Maybe a) b
 maybe accum map =
-    customCalc
+    custom
         { map = map, accum = maybeAdd accum, init = Nothing }
 
 
@@ -43,14 +82,14 @@ maybeOf :
     -> (Maybe b -> c)
     -> Calc a (Maybe b) c
 maybeOf getter accum map =
-    mapCalcOf getter (maybe accum map)
+    mapOf getter (maybe accum map)
 
 
 list :
     (List a -> b)
     -> Calc (List a) (List a) b
 list map =
-    customCalc
+    custom
         { map = map, accum = (++), init = [] }
 
 
@@ -59,7 +98,7 @@ listOf :
     -> (List b -> c)
     -> Calc a (List b) c
 listOf getter map =
-    customCalc
+    custom
         { map = map, accum = getter >> (::), init = [] }
 
 
@@ -67,7 +106,7 @@ unique :
     (Set comparable -> b)
     -> Calc (Set comparable) (Set comparable) b
 unique map =
-    customCalc
+    custom
         { map = map, accum = Set.union, init = Set.empty }
 
 
@@ -76,7 +115,7 @@ uniqueOf :
     -> (Set comparable -> b)
     -> Calc a (Set comparable) b
 uniqueOf getter map =
-    customCalc
+    custom
         { map = map, accum = getter >> Set.insert, init = Set.empty }
 
 
@@ -84,7 +123,7 @@ float :
     (Float -> Float -> Float)
     -> Calc Float Float Float
 float accum =
-    customCalc
+    custom
         { map = identity, accum = accum, init = 0.0 }
 
 
@@ -93,14 +132,14 @@ floatOf :
     -> (Float -> Float -> Float)
     -> Calc a Float Float
 floatOf getter accum =
-    mapCalcOf getter (float accum)
+    mapOf getter (float accum)
 
 
 number :
     (number -> number -> number)
     -> Calc number number number
 number accum =
-    customCalc
+    custom
         { map = identity, accum = accum, init = 0 }
 
 
@@ -109,7 +148,7 @@ numberOf :
     -> (number -> number -> number)
     -> Calc a number number
 numberOf getter accum =
-    mapCalcOf getter (number accum)
+    mapOf getter (number accum)
 
 
 
@@ -118,7 +157,7 @@ numberOf getter accum =
 
 count : Calc x Int Int
 count =
-    customCalc
+    custom
         { accum = (\_ b -> b + 1)
         , init = 0
         , map = identity
@@ -135,9 +174,18 @@ sumOf getter =
     numberOf getter (+)
 
 
+meanAccum : Calc ( Float, Int ) ( Float, Int ) Float
+meanAccum =
+    custom
+        { accum = (\(s1,c1) (s2,c2) -> (s1 + s2, c1 + c2))
+        , init = ( 0.0, 0 )
+        , map = (\( s, c ) -> s / (toFloat c))
+        }
+
+
 mean : Calc Float ( Float, Int ) Float
 mean =
-    customCalc
+    custom
         { accum = (\v ( s, c ) -> ( s + v, c + 1 ))
         , init = ( 0.0, 0 )
         , map = (\( s, c ) -> s / (toFloat c))
@@ -146,12 +194,12 @@ mean =
 
 meanOf : (a -> Float) -> Calc a ( Float, Int ) Float
 meanOf getter =
-    mapCalcOf getter mean
+    mapOf getter mean
 
 
 firstNumber : Calc number number number
 firstNumber =
-    customCalc
+    custom
         { accum = (\n2 n1 -> n1)
         , init = 0
         , map = identity
@@ -160,12 +208,12 @@ firstNumber =
 
 firstNumberOf : (a -> number) -> Calc a number number
 firstNumberOf getter =
-    mapCalcOf getter firstNumber
+    mapOf getter firstNumber
 
 
 lastNumber : Calc number number number
 lastNumber =
-    customCalc
+    custom
         { accum = (\n2 n1 -> n2)
         , init = 0
         , map = identity
@@ -174,7 +222,7 @@ lastNumber =
 
 lastNumberOf : (a -> number) -> Calc a number number
 lastNumberOf getter =
-    mapCalcOf getter lastNumber
+    mapOf getter lastNumber
 
 
 first : Calc (Maybe a) (Maybe a) (Maybe a)
@@ -184,7 +232,7 @@ first =
 
 firstOf : (a -> Maybe a) -> Calc a (Maybe a) (Maybe a)
 firstOf getter =
-    mapCalcOf getter first
+    mapOf getter first
 
 
 last : Calc (Maybe a) (Maybe a) (Maybe a)
@@ -194,7 +242,7 @@ last =
 
 lastOf : (a -> Maybe a) -> Calc a (Maybe a) (Maybe a)
 lastOf getter =
-    mapCalcOf getter last
+    mapOf getter last
 
 
 maybeAdd :
