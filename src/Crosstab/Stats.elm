@@ -1,19 +1,47 @@
 module Crosstab.Stats
     exposing
-        ( Summary
+        ( NumericDescription
+        , Summary
+        , numericDescriptionOf
+        , numericDescription
+        , numericDescriptionAndValuesOf
+        , numericDescriptionAndValues
         , summaryOf
         , summary
         , summaryAndValuesOf
         , summaryAndValues
         , summaryAndUniquesOf
         , summaryAndUniques
-        , sd
+        , std
         , chisq
         )
 
+import Array exposing (Array)
 import Set exposing (Set)
-import Crosstab exposing (Calc, Compare, customCalc, mapCalcOf, mapCalc2, mapCalcOf2)
-import Crosstab.Calc exposing (listOf, list, uniqueOf, unique)
+import Quantiles
+
+import Crosstab.Calc exposing 
+    ( Calc 
+    , listOf, list, uniqueOf, unique
+    )
+
+type alias NumericDescription =
+    { min : Float
+    , max : Float
+    , count : Int
+    , sum : Float
+    , mean : Float
+    , std : Float
+    , p02 : Float
+    , p09 : Float
+    , p10 : Float
+    , p25 : Float
+    , p50 : Float
+    , p75 : Float
+    , p90 : Float
+    , p91 : Float
+    , p98 : Float
+    }
 
 
 type alias Summary =
@@ -25,7 +53,7 @@ type alias Summary =
     , runMean : Float
     , ss : Float
     , var : Maybe Float
-    , sd : Maybe Float
+    , std : Maybe Float
     }
 
 
@@ -39,13 +67,88 @@ emptySummary =
     , runMean = 0.0
     , ss = 0.0
     , var = Nothing
-    , sd = Nothing
+    , std = Nothing
     }
 
 
+-- DESCRIBE
+
+numericDescriptionOf : 
+    (a -> Float) 
+    -> Calc a (Summary, List Float) (Maybe NumericDescription)
+numericDescriptionOf getter =
+    summaryAndValuesOf getter describeNumeric
+
+numericDescriptionAndValuesOf :
+    (a -> Float) 
+    -> Calc a (Summary, List Float) (Maybe NumericDescription, List Float)
+numericDescriptionAndValuesOf getter =
+    summaryAndValuesOf getter (\sum data -> (describeNumeric sum data, data))
+
+
+numericDescription : 
+    Calc (Summary, List Float) (Summary, List Float) (Maybe NumericDescription)
+numericDescription =
+    summaryAndValues describeNumeric
+
+numericDescriptionAndValues : 
+    Calc (Summary, List Float) (Summary, List Float) (Maybe NumericDescription, List Float)
+numericDescriptionAndValues =
+    summaryAndValues (\sum data -> (describeNumeric sum data, data))
+
+
+describeNumeric : 
+    Summary
+    -> List Float
+    -> Maybe NumericDescription
+describeNumeric summary data =
+    let
+        quants data =
+            data
+                |> Quantiles.sort
+                |> ( Quantiles.quantiles 
+                       [ 0.02, 0.09, 0.1, 0.25, 0.5, 0.75, 0.9, 0.91, 0.98 ]
+                   )
+                |> Maybe.andThen toTuple
+
+        toTuple qs =
+            case qs of
+                (p02 :: p09 :: p10 :: p25 :: p50 :: p75 :: p90 :: p91 :: p98 :: []) ->
+                    Just (p02, p09, p10, p25, p50, p75, p90, p91, p98)
+                _ ->
+                    Nothing
+            
+        describe_ count sum min max mean std (p02, p09, p10, p25, p50, p75, p90, p91, p98) =
+            { count = count
+            , sum = sum
+            , min = min
+            , max = max
+            , mean = mean
+            , std = std
+            , p02 = p02
+            , p09 = p09
+            , p10 = p10
+            , p25 = p25
+            , p50 = p50
+            , p75 = p75
+            , p90 = p90
+            , p91 = p91
+            , p98 = p98
+            }
+    in
+        Maybe.map5 (describe_ summary.count summary.sum)
+            summary.min
+            summary.max
+            summary.mean
+            summary.std
+            (quants data)
+
+
+-- SUMMARY
+
 summaryOf : (a -> Float) -> (Summary -> b) -> Calc a Summary b
 summaryOf getter map_ =
-    customCalc
+    Crosstab.Calc.custom
         { map = map_
         , accum = getter >> accumSummary
         , init = emptySummary
@@ -57,7 +160,7 @@ summaryAndValuesOf :
     -> (Summary -> List Float -> b)
     -> Calc a ( Summary, List Float ) b
 summaryAndValuesOf getter map_ =
-    mapCalcOf2 map_ (summaryOf getter identity) (listOf getter identity)
+    Crosstab.Calc.mapOf2 map_ (summaryOf getter identity) (listOf getter identity)
 
 
 summaryAndUniquesOf :
@@ -65,12 +168,12 @@ summaryAndUniquesOf :
     -> (Summary -> Set Float -> b)
     -> Calc a ( Summary, Set Float ) b
 summaryAndUniquesOf getter map_ =
-    mapCalcOf2 map_ (summaryOf getter identity) (uniqueOf getter identity)
+    Crosstab.Calc.mapOf2 map_ (summaryOf getter identity) (uniqueOf getter identity)
 
 
 summary : (Summary -> b) -> Calc Summary Summary b
 summary map_ =
-    customCalc
+    Crosstab.Calc.custom
         { map = map_
         , accum = addSummary
         , init = emptySummary
@@ -81,14 +184,14 @@ summaryAndValues :
     (Summary -> List Float -> b)
     -> Calc ( Summary, List Float ) ( Summary, List Float ) b
 summaryAndValues map_ =
-    mapCalc2 map_ (summary identity) (list identity)
+    Crosstab.Calc.map2 map_ (summary identity) (list identity)
 
 
 summaryAndUniques :
     (Summary -> Set Float -> b)
     -> Calc ( Summary, Set Float ) ( Summary, Set Float ) b
 summaryAndUniques map_ =
-    mapCalc2 map_ (summary identity) (unique identity)
+    Crosstab.Calc.map2 map_ (summary identity) (unique identity)
 
 
 
@@ -142,7 +245,7 @@ accumSummary x sums =
             , runMean = newrunMean
             , ss = newss
             , var = newvar
-            , sd = newvar |> Maybe.map sqrt
+            , std = newvar |> Maybe.map sqrt
         }
 
 
@@ -190,7 +293,7 @@ addSummary new sums =
             , runMean = newrunMean
             , ss = newss
             , var = newvar
-            , sd = newvar |> Maybe.map sqrt
+            , std = newvar |> Maybe.map sqrt
         }
 
 
@@ -254,16 +357,16 @@ addMaybe add_ m1 m2 =
 values. Usually this will not be needed as the single-pass standard deviation
 is good enough in most cases.
 
-    fromList (summaryAndValues sd) (summaryAndValuesOf .floatField sd) levels data
+    fromList (summaryAndValues std) (summaryAndValuesOf .floatField std) levels data
 
 -}
-sd : Summary -> List Float -> Maybe Float
-sd { mean, count } values =
-    mean |> Maybe.map (\m -> sdHelp m count values)
+std : Summary -> List Float -> Maybe Float
+std { mean, count } values =
+    mean |> Maybe.map (\m -> stdHelp m count values)
 
 
-sdHelp : Float -> Int -> List Float -> Float
-sdHelp m c vs =
+stdHelp : Float -> Int -> List Float -> Float
+stdHelp m c vs =
     List.foldr (\v ss -> ss + ((v - m) ^ 2)) 0 vs
         |> (\ss -> sqrt (ss / (toFloat (c - 1))))
 
@@ -272,7 +375,7 @@ sdHelp m c vs =
 -- COMPARISONS
 
 
-chisq : Compare Float Float -> Float -> Float
+chisq : { x | row : Float, col : Float, table : Float } -> Float -> Float
 chisq { row, col, table } value =
     let
         exp =

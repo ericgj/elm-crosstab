@@ -1,6 +1,5 @@
 module Crosstab exposing
-    ( Calc
-    , freqTable
+    ( freqTable
     , sumTable
     , meanTable
     , table
@@ -11,12 +10,9 @@ module Crosstab exposing
     )
 
 import Crosstab.Internal
-import Crosstab.Calc
+import Crosstab.Calc exposing (Calc)
 import Crosstab.Table as Table exposing (Table, LevelMap)
 import Crosstab.Column as Column exposing (Column)
-
-type alias Calc a b c =
-    Crosstab.Internal.Calc a b c
 
 
 freqTable :

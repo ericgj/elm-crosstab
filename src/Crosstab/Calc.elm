@@ -1,6 +1,7 @@
 module Crosstab.Calc
     exposing
-        ( custom
+        ( Calc
+        , custom
         , mapOf
         , mapOf2
         , map2
@@ -28,6 +29,9 @@ module Crosstab.Calc
 
 import Set exposing (Set)
 import Crosstab.Internal exposing (Calc)
+
+type alias Calc a b c =
+    Crosstab.Internal.Calc a b c
 
 
 -- CUSTOM 
