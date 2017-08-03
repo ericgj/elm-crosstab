@@ -53,49 +53,8 @@ update msg model =
             { model | sortBy = sortBy }
 
 
-view : Model -> Html Msg
-view model =
-    div []
-        [ (case parsed of
-            Ok data ->
-                viewData data model
-
-            Err errs ->
-                viewErrs errs
-          )
-        ]
-
-
-viewErrs : Csv.Decode.Errors -> Html msg
-viewErrs errs =
-    let
-        parseErrors errs =
-            div []
-                [ h1 [] [ text "Errors occurred parsing CSV data" ]
-                , ul []
-                    (List.map (\e -> li [] [ text e ]) errs)
-                ]
-
-        decodeErrors errs =
-            div []
-                [ h1 [] [ text "Errors occurred decoding CSV data to records" ]
-                , ul []
-                    (List.map
-                        (\( i, e ) -> li [] [ text (e ++ " (line " ++ (toString i) ++ ")") ])
-                        errs
-                    )
-                ]
-    in
-        case errs of
-            CsvErrors errs ->
-                parseErrors errs
-
-            DecodeErrors errs ->
-                decodeErrors errs
-
-
-viewData : List Custody -> Model -> Html Msg
-viewData data { table, sortBy } =
+view : List Custody -> Model -> Html Msg
+view data { table, sortBy } =
     div []
         [ h1 [] [ text "Women of Color in US prisons by year, % change" ]
         , div []
@@ -104,6 +63,7 @@ viewData data { table, sortBy } =
                 , id "count"
                 , name "sortby"
                 , value "count"
+                , checked (sortBy == SortByCount)
                 , onClick (SetSortBy SortByCount)
                 ]
                 []
@@ -113,6 +73,7 @@ viewData data { table, sortBy } =
                 , id "pct"
                 , name "sortby"
                 , value "pct"
+                , checked (sortBy == SortByColPct)
                 , onClick (SetSortBy SortByColPct)
                 ]
                 []

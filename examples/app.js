@@ -13211,98 +13211,7 @@ var _user$project$Static$viewColPctTable = function (tab) {
 				{ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Maybe$Nothing},
 				tab)));
 };
-var _user$project$Static$viewErrs = function (errs) {
-	var decodeErrors = function (errs) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$h1,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('Errors occurred decoding CSV data to records'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$ul,
-						{ctor: '[]'},
-						A2(
-							_elm_lang$core$List$map,
-							function (_p23) {
-								var _p24 = _p23;
-								return A2(
-									_elm_lang$html$Html$li,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(
-											A2(
-												_elm_lang$core$Basics_ops['++'],
-												_p24._1,
-												A2(
-													_elm_lang$core$Basics_ops['++'],
-													' (line ',
-													A2(
-														_elm_lang$core$Basics_ops['++'],
-														_elm_lang$core$Basics$toString(_p24._0),
-														')')))),
-										_1: {ctor: '[]'}
-									});
-							},
-							errs)),
-					_1: {ctor: '[]'}
-				}
-			});
-	};
-	var parseErrors = function (errs) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$h1,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('Errors occurred parsing CSV data'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$ul,
-						{ctor: '[]'},
-						A2(
-							_elm_lang$core$List$map,
-							function (e) {
-								return A2(
-									_elm_lang$html$Html$li,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(e),
-										_1: {ctor: '[]'}
-									});
-							},
-							errs)),
-					_1: {ctor: '[]'}
-				}
-			});
-	};
-	var _p25 = errs;
-	if (_p25.ctor === 'CsvErrors') {
-		return parseErrors(_p25._0);
-	} else {
-		return decodeErrors(_p25._0);
-	}
-};
-var _user$project$Static$viewData = function (data) {
+var _user$project$Static$view = function (data) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{ctor: '[]'},
@@ -13340,77 +13249,13 @@ var _user$project$Static$viewData = function (data) {
 							ctor: '::',
 							_0: _user$project$Static$viewCumPctColumn(
 								_user$project$Static$yearCustodyOfAll(data)),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$p,
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$style(
-											{
-												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
-												_1: {ctor: '[]'}
-											}),
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$span,
-											{ctor: '[]'},
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html$text('Source (Public Domain): '),
-												_1: {ctor: '[]'}
-											}),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$span,
-												{ctor: '[]'},
-												{
-													ctor: '::',
-													_0: A2(
-														_elm_lang$html$Html$a,
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html_Attributes$href('http://doi.org/10.3886/ICPSR36657.v1'),
-															_1: {ctor: '[]'}
-														},
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
-															_1: {ctor: '[]'}
-														}),
-													_1: {ctor: '[]'}
-												}),
-											_1: {ctor: '[]'}
-										}
-									}),
-								_1: {ctor: '[]'}
-							}
+							_1: {ctor: '[]'}
 						}
 					}
 				}
 			}
 		});
 };
-var _user$project$Static$view = A2(
-	_elm_lang$html$Html$div,
-	{ctor: '[]'},
-	{
-		ctor: '::',
-		_0: function () {
-			var _p26 = _user$project$Data$parsed;
-			if (_p26.ctor === 'Ok') {
-				return _user$project$Static$viewData(_p26._0);
-			} else {
-				return _user$project$Static$viewErrs(_p26._0);
-			}
-		}(),
-		_1: {ctor: '[]'}
-	});
 
 var _user$project$SortableTable$tableSummaryCols = function (ctab) {
 	return {
@@ -13695,108 +13540,17 @@ var _user$project$SortableTable$htmlColPctSummary = function (count) {
 			_1: {ctor: '[]'}
 		});
 };
-var _user$project$SortableTable$viewErrs = function (errs) {
-	var decodeErrors = function (errs) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$h1,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('Errors occurred decoding CSV data to records'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$ul,
-						{ctor: '[]'},
-						A2(
-							_elm_lang$core$List$map,
-							function (_p18) {
-								var _p19 = _p18;
-								return A2(
-									_elm_lang$html$Html$li,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(
-											A2(
-												_elm_lang$core$Basics_ops['++'],
-												_p19._1,
-												A2(
-													_elm_lang$core$Basics_ops['++'],
-													' (line ',
-													A2(
-														_elm_lang$core$Basics_ops['++'],
-														_elm_lang$core$Basics$toString(_p19._0),
-														')')))),
-										_1: {ctor: '[]'}
-									});
-							},
-							errs)),
-					_1: {ctor: '[]'}
-				}
-			});
-	};
-	var parseErrors = function (errs) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$h1,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('Errors occurred parsing CSV data'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$ul,
-						{ctor: '[]'},
-						A2(
-							_elm_lang$core$List$map,
-							function (e) {
-								return A2(
-									_elm_lang$html$Html$li,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(e),
-										_1: {ctor: '[]'}
-									});
-							},
-							errs)),
-					_1: {ctor: '[]'}
-				}
-			});
-	};
-	var _p20 = errs;
-	if (_p20.ctor === 'CsvErrors') {
-		return parseErrors(_p20._0);
-	} else {
-		return decodeErrors(_p20._0);
-	}
-};
 var _user$project$SortableTable$update = F2(
 	function (msg, model) {
-		var _p21 = msg;
-		if (_p21.ctor === 'TableMsg') {
+		var _p18 = msg;
+		if (_p18.ctor === 'TableMsg') {
 			return _elm_lang$core$Native_Utils.update(
 				model,
-				{table: _p21._0});
+				{table: _p18._0});
 		} else {
 			return _elm_lang$core$Native_Utils.update(
 				model,
-				{sortBy: _p21._0});
+				{sortBy: _p18._0});
 		}
 	});
 var _user$project$SortableTable$Model = F2(
@@ -13845,8 +13599,8 @@ var _user$project$SortableTable$init = {
 	sortBy: _user$project$SortableTable$SortByCount
 };
 var _user$project$SortableTable$htmlColPctValue = F2(
-	function (sortBy, _p22) {
-		var _p23 = _p22;
+	function (sortBy, _p19) {
+		var _p20 = _p19;
 		var greaterStyle = {ctor: '[]'};
 		var lesserStyle = {
 			ctor: '::',
@@ -13897,7 +13651,7 @@ var _user$project$SortableTable$htmlColPctValue = F2(
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html$text(
-									_elm_lang$core$Basics$toString(_p23._0)),
+									_elm_lang$core$Basics$toString(_p20._0)),
 								_1: {ctor: '[]'}
 							}),
 						_1: {
@@ -13916,7 +13670,7 @@ var _user$project$SortableTable$htmlColPctValue = F2(
 										A2(
 											_elm_lang$core$Maybe$withDefault,
 											'-',
-											A2(_elm_lang$core$Maybe$map, formatPct, _p23._1))),
+											A2(_elm_lang$core$Maybe$map, formatPct, _p20._1))),
 									_1: {ctor: '[]'}
 								}),
 							_1: {ctor: '[]'}
@@ -13933,18 +13687,18 @@ var _user$project$SortableTable$colPctTableConfig = function (sortBy) {
 		value: _user$project$SortableTable$htmlColPctValue(sortBy),
 		summary: _user$project$SortableTable$htmlColPctSummary,
 		sortValue: function () {
-			var _p24 = sortBy;
-			if (_p24.ctor === 'SortByCount') {
-				return function (_p25) {
+			var _p21 = sortBy;
+			if (_p21.ctor === 'SortByCount') {
+				return function (_p22) {
 					return _elm_lang$core$Basics$toFloat(
-						_elm_lang$core$Tuple$first(_p25));
+						_elm_lang$core$Tuple$first(_p22));
 				};
 			} else {
-				return function (_p26) {
+				return function (_p23) {
 					return A2(
 						_elm_lang$core$Maybe$withDefault,
 						0.0,
-						_elm_lang$core$Tuple$second(_p26));
+						_elm_lang$core$Tuple$second(_p23));
 				};
 			}
 		}(),
@@ -13954,9 +13708,10 @@ var _user$project$SortableTable$colPctTableConfig = function (sortBy) {
 		colSummaryLabel: _elm_lang$core$Maybe$Just('Total')
 	};
 };
-var _user$project$SortableTable$viewData = F2(
-	function (data, _p27) {
-		var _p28 = _p27;
+var _user$project$SortableTable$view = F2(
+	function (data, _p24) {
+		var _p25 = _p24;
+		var _p26 = _p25.sortBy;
 		return A2(
 			_elm_lang$html$Html$div,
 			{ctor: '[]'},
@@ -13993,9 +13748,14 @@ var _user$project$SortableTable$viewData = F2(
 												_0: _elm_lang$html$Html_Attributes$value('count'),
 												_1: {
 													ctor: '::',
-													_0: _elm_lang$html$Html_Events$onClick(
-														_user$project$SortableTable$SetSortBy(_user$project$SortableTable$SortByCount)),
-													_1: {ctor: '[]'}
+													_0: _elm_lang$html$Html_Attributes$checked(
+														_elm_lang$core$Native_Utils.eq(_p26, _user$project$SortableTable$SortByCount)),
+													_1: {
+														ctor: '::',
+														_0: _elm_lang$html$Html_Events$onClick(
+															_user$project$SortableTable$SetSortBy(_user$project$SortableTable$SortByCount)),
+														_1: {ctor: '[]'}
+													}
 												}
 											}
 										}
@@ -14034,9 +13794,14 @@ var _user$project$SortableTable$viewData = F2(
 														_0: _elm_lang$html$Html_Attributes$value('pct'),
 														_1: {
 															ctor: '::',
-															_0: _elm_lang$html$Html_Events$onClick(
-																_user$project$SortableTable$SetSortBy(_user$project$SortableTable$SortByColPct)),
-															_1: {ctor: '[]'}
+															_0: _elm_lang$html$Html_Attributes$checked(
+																_elm_lang$core$Native_Utils.eq(_p26, _user$project$SortableTable$SortByColPct)),
+															_1: {
+																ctor: '::',
+																_0: _elm_lang$html$Html_Events$onClick(
+																	_user$project$SortableTable$SetSortBy(_user$project$SortableTable$SortByColPct)),
+																_1: {ctor: '[]'}
+															}
 														}
 													}
 												}
@@ -14067,8 +13832,8 @@ var _user$project$SortableTable$viewData = F2(
 						_0: function (tab) {
 							return A3(
 								_user$project$SortableTable$viewSortable,
-								_user$project$SortableTable$colPctTableConfig(_p28.sortBy),
-								_p28.table,
+								_user$project$SortableTable$colPctTableConfig(_p26),
+								_p25.table,
 								tab);
 						}(
 							_user$project$SortableTable$colPctTable(
@@ -14078,43 +13843,346 @@ var _user$project$SortableTable$viewData = F2(
 				}
 			});
 	});
-var _user$project$SortableTable$view = function (model) {
+
+var _user$project$Main$onClickCustom = function (msg) {
+	return A3(
+		_elm_lang$html$Html_Events$onWithOptions,
+		'click',
+		{preventDefault: true, stopPropagation: false},
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _user$project$Main$viewRef = A2(
+	_elm_lang$html$Html$p,
+	{
+		ctor: '::',
+		_0: _elm_lang$html$Html_Attributes$style(
+			{
+				ctor: '::',
+				_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.7em'},
+				_1: {ctor: '[]'}
+			}),
+		_1: {ctor: '[]'}
+	},
+	{
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$span,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text('Source (Public Domain): '),
+				_1: {ctor: '[]'}
+			}),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$span,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$a,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$href('http://doi.org/10.3886/ICPSR36657.v1'),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('National Prisoner Statistics, 1978-2015 (ICPSR 36657)'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {ctor: '[]'}
+		}
+	});
+var _user$project$Main$viewErrs = function (errs) {
+	var decodeErrors = function (errs) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$h1,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Errors occurred decoding CSV data to records'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$ul,
+						{ctor: '[]'},
+						A2(
+							_elm_lang$core$List$map,
+							function (_p0) {
+								var _p1 = _p0;
+								return A2(
+									_elm_lang$html$Html$li,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text(
+											A2(
+												_elm_lang$core$Basics_ops['++'],
+												_p1._1,
+												A2(
+													_elm_lang$core$Basics_ops['++'],
+													' (line ',
+													A2(
+														_elm_lang$core$Basics_ops['++'],
+														_elm_lang$core$Basics$toString(_p1._0),
+														')')))),
+										_1: {ctor: '[]'}
+									});
+							},
+							errs)),
+					_1: {ctor: '[]'}
+				}
+			});
+	};
+	var parseErrors = function (errs) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$h1,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Errors occurred parsing CSV data'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$ul,
+						{ctor: '[]'},
+						A2(
+							_elm_lang$core$List$map,
+							function (e) {
+								return A2(
+									_elm_lang$html$Html$li,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text(e),
+										_1: {ctor: '[]'}
+									});
+							},
+							errs)),
+					_1: {ctor: '[]'}
+				}
+			});
+	};
+	var _p2 = errs;
+	if (_p2.ctor === 'CsvErrors') {
+		return parseErrors(_p2._0);
+	} else {
+		return decodeErrors(_p2._0);
+	}
+};
+var _user$project$Main$isActiveSortableTable = function (model) {
+	var _p3 = model;
+	if (_p3.ctor === 'SortableTable') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _user$project$Main$isActiveStatic = function (model) {
+	var _p4 = model;
+	if (_p4.ctor === 'Static') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _user$project$Main$SortableTable = function (a) {
+	return {ctor: 'SortableTable', _0: a};
+};
+var _user$project$Main$Static = {ctor: 'Static'};
+var _user$project$Main$init = _user$project$Main$Static;
+var _user$project$Main$update = F2(
+	function (msg, model) {
+		var _p5 = {ctor: '_Tuple2', _0: msg, _1: model};
+		_v4_4:
+		do {
+			if (_p5.ctor === '_Tuple2') {
+				switch (_p5._0.ctor) {
+					case 'SortableTableMsg':
+						if (_p5._1.ctor === 'SortableTable') {
+							return _user$project$Main$SortableTable(
+								A2(_user$project$SortableTable$update, _p5._0._0, _p5._1._0));
+						} else {
+							break _v4_4;
+						}
+					case 'SetActiveStatic':
+						return _user$project$Main$Static;
+					case 'SetActiveSortableTable':
+						return _user$project$Main$SortableTable(_user$project$SortableTable$init);
+					default:
+						return model;
+				}
+			} else {
+				break _v4_4;
+			}
+		} while(false);
+		return model;
+	});
+var _user$project$Main$NoOp = {ctor: 'NoOp'};
+var _user$project$Main$SetActiveSortableTable = {ctor: 'SetActiveSortableTable'};
+var _user$project$Main$SetActiveStatic = {ctor: 'SetActiveStatic'};
+var _user$project$Main$viewTOC = function (model) {
 	return A2(
-		_elm_lang$html$Html$div,
+		_elm_lang$html$Html$ul,
 		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: function () {
-				var _p29 = _user$project$Data$parsed;
-				if (_p29.ctor === 'Ok') {
-					return A2(_user$project$SortableTable$viewData, _p29._0, model);
-				} else {
-					return _user$project$SortableTable$viewErrs(_p29._0);
-				}
-			}(),
-			_1: {ctor: '[]'}
+			_0: A2(
+				_elm_lang$html$Html$li,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$classList(
+						{
+							ctor: '::',
+							_0: {
+								ctor: '_Tuple2',
+								_0: 'active',
+								_1: _user$project$Main$isActiveStatic(model)
+							},
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$a,
+						{
+							ctor: '::',
+							_0: _user$project$Main$onClickCustom(_user$project$Main$SetActiveStatic),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Static'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$li,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$classList(
+							{
+								ctor: '::',
+								_0: {
+									ctor: '_Tuple2',
+									_0: 'active',
+									_1: _user$project$Main$isActiveSortableTable(model)
+								},
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$a,
+							{
+								ctor: '::',
+								_0: _user$project$Main$onClickCustom(_user$project$Main$SetActiveSortableTable),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Sortable Table'),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}
 		});
 };
-
-var _user$project$Main$SortableTableModel = function (a) {
-	return {ctor: 'SortableTableModel', _0: a};
-};
-var _user$project$Main$init = _user$project$Main$SortableTableModel(_user$project$SortableTable$init);
-var _user$project$Main$update = F2(
-	function (msg, model) {
-		var _p0 = {ctor: '_Tuple2', _0: msg, _1: model};
-		return _user$project$Main$SortableTableModel(
-			A2(_user$project$SortableTable$update, _p0._0._0, _p0._1._0));
-	});
 var _user$project$Main$SortableTableMsg = function (a) {
 	return {ctor: 'SortableTableMsg', _0: a};
 };
+var _user$project$Main$viewExample = F2(
+	function (data, model) {
+		var _p6 = model;
+		if (_p6.ctor === 'Static') {
+			return A2(
+				_elm_lang$html$Html$map,
+				_elm_lang$core$Basics$always(_user$project$Main$NoOp),
+				_user$project$Static$view(data));
+		} else {
+			return A2(
+				_elm_lang$html$Html$map,
+				_user$project$Main$SortableTableMsg,
+				A2(_user$project$SortableTable$view, data, _p6._0));
+		}
+	});
 var _user$project$Main$view = function (model) {
-	var _p1 = model;
 	return A2(
-		_elm_lang$html$Html$map,
-		_user$project$Main$SortableTableMsg,
-		_user$project$SortableTable$view(_p1._0));
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		function () {
+			var _p7 = _user$project$Data$parsed;
+			if (_p7.ctor === 'Ok') {
+				return {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$nav,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _user$project$Main$viewTOC(model),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$aside,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: _user$project$Main$viewRef,
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A3(
+								_elm_lang$html$Html$node,
+								'main',
+								{ctor: '[]'},
+								{
+									ctor: '::',
+									_0: A2(_user$project$Main$viewExample, _p7._0, model),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}
+				};
+			} else {
+				return {
+					ctor: '::',
+					_0: _user$project$Main$viewErrs(_p7._0),
+					_1: {ctor: '[]'}
+				};
+			}
+		}());
 };
 var _user$project$Main$main = _elm_lang$html$Html$beginnerProgram(
 	{model: _user$project$Main$init, update: _user$project$Main$update, view: _user$project$Main$view})();

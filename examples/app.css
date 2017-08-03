@@ -13,3 +13,29 @@ body {
   margin: 1rem;
 }
 
+aside {
+  margin-top: 1em;
+}
+nav ul {
+  padding: 0;
+}
+nav li {
+  list-style-type: none;
+  margin-right: 1em;
+  padding: 1em;
+  display: inline-block;
+  background-color: #ccc;
+  color: #000;
+}
+nav a {
+  cursor: pointer;
+  text-decoration: none;
+}
+nav li.active {
+  background-color: #000;
+  color: #ccc;
+}
+
+main {
+  margin-top: 2em;
+}

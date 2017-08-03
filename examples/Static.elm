@@ -2,73 +2,24 @@ module Static exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Csv.Decode exposing (Errors(..))
 import Round
 import Crosstab.Table exposing (Table)
 import Crosstab.Column exposing (Column)
 import Crosstab.Calc
 import Crosstab.Sort
-import Data exposing (parsed, Custody)
+import Data exposing (Custody)
 
 
-view : Html msg
-view =
-    div []
-        [ (case parsed of
-            Ok data ->
-                viewData data
-
-            Err errs ->
-                viewErrs errs
-          )
-        ]
-
-
-viewData : List Custody -> Html msg
-viewData data =
+view : List Custody -> Html msg
+view data =
     div []
         [ h1 [] [ text "Women of Color in US prisons by year, % change, sorted descending by total" ]
         , viewColPctTable (stateCustodyWOC "PA" "CA" data)
         , hr [] []
         , h2 [] [ text "Example cumulative percent column" ]
         , viewCumPctColumn (yearCustodyOfAll data)
-        , p [ style [ ( "font-size", "0.7em" ) ] ]
-            [ span [] [ text "Source (Public Domain): " ]
-            , span []
-                [ a
-                    [ href "http://doi.org/10.3886/ICPSR36657.v1" ]
-                    [ text "National Prisoner Statistics, 1978-2015 (ICPSR 36657)" ]
-                ]
-            ]
         ]
 
-
-viewErrs : Csv.Decode.Errors -> Html msg
-viewErrs errs =
-    let
-        parseErrors errs =
-            div []
-                [ h1 [] [ text "Errors occurred parsing CSV data" ]
-                , ul []
-                    (List.map (\e -> li [] [ text e ]) errs)
-                ]
-
-        decodeErrors errs =
-            div []
-                [ h1 [] [ text "Errors occurred decoding CSV data to records" ]
-                , ul []
-                    (List.map
-                        (\( i, e ) -> li [] [ text (e ++ " (line " ++ (toString i) ++ ")") ])
-                        errs
-                    )
-                ]
-    in
-        case errs of
-            CsvErrors errs ->
-                parseErrors errs
-
-            DecodeErrors errs ->
-                decodeErrors errs
 
 
 viewColPctTable : Table Int Int String String -> Html msg
