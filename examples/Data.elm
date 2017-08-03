@@ -1,6 +1,6 @@
 module Data
     exposing
-        ( Region
+        ( Region(..)
         , Custody
         , parsed
         , custody
@@ -32,6 +32,7 @@ type alias Custody =
     , unsentencedF : Int
     , totalM : Int
     , totalF : Int
+    , whiteF : Int
     , blackF : Int
     , hispF : Int
     , asianF : Int
@@ -60,6 +61,7 @@ custody =
             |> andMap (field "CUSUNSF" String.toInt)
             |> andMap (field "CUSTOTM" String.toInt)
             |> andMap (field "CUSTOTF" String.toInt)
+            |> andMap (field "WHITEF" String.toInt)
             |> andMap (field "BLACKF" String.toInt)
             |> andMap (field "HISPF" String.toInt)
             |> andMap (field "ASIANF" String.toInt)

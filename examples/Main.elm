@@ -10,6 +10,7 @@ import Csv.Decode exposing (Errors(..))
 import Data exposing (Custody)
 import Static
 import SortableTable
+import BoxPlot
 
 
 main : Program Never Model Msg
@@ -24,7 +25,7 @@ main =
 type Model
     = Static
     | SortableTable SortableTable.Model
-    
+    | BoxPlot
 
 init : Model
 init =
@@ -40,10 +41,16 @@ isActiveSortableTable model =
         SortableTable _ -> True
         _ -> False
 
+isActiveBoxPlot model =
+    case model of
+        BoxPlot -> True
+        _ -> False
+
 type Msg
     = SortableTableMsg SortableTable.Msg
     | SetActiveStatic
     | SetActiveSortableTable
+    | SetActiveBoxPlot
     | NoOp
 
 
@@ -59,6 +66,9 @@ update msg model =
 
         ( SetActiveSortableTable, _) ->
             SortableTable.init |> SortableTable
+
+        ( SetActiveBoxPlot, _) ->
+            BoxPlot
 
         ( NoOp, _) ->
             model
@@ -122,6 +132,9 @@ viewTOC model =
         , li [ classList [("active", isActiveSortableTable model)] ]
             [ a [ onClickCustom SetActiveSortableTable ] [ text "Sortable Table" ]
             ]
+        , li [ classList [("active", isActiveBoxPlot model)] ]
+            [ a [ onClickCustom SetActiveBoxPlot ] [ text "Box Plot" ]
+            ]
         ]
 
 viewRef : Html Msg
@@ -143,6 +156,9 @@ viewExample data model =
 
         SortableTable submodel ->
             SortableTable.view data submodel |> Html.map SortableTableMsg
+
+        BoxPlot ->
+            BoxPlot.view data |> Html.map (always NoOp)
 
 
 
