@@ -1,107 +1,68 @@
-module Crosstab exposing
-    ( freqTable
-    , sumTable
-    , meanTable
-    , table
-    , freqColumn
-    , sumColumn
-    , meanColumn
-    , column
+module Crosstab exposing (Crosstab, tabulate)
+
+import List.Extra as List
+import Dict exposing (Dict)
+
+import List.Extra exposing (combinationsFrom)
+
+import Crosstab.Spec exposing 
+    ( Spec
+    , rowLevels
+    , columnLevels
+    , values
+    , initAccums
     )
 
-import Crosstab.Internal
-import Crosstab.Calc exposing (Calc)
-import Crosstab.Table as Table exposing (Table, LevelMap)
-import Crosstab.Column as Column exposing (Column)
+import Crosstab.Accum exposing
+    ( Value
+    , Accum
+    , accumulate
+    )
 
 
-freqTable :
-    LevelMap a comparable1 comparable2
-    -> List a
-    -> Table Int Int comparable1 comparable2
-freqTable levelMap records =
-    Table.table
-        Crosstab.Calc.sum
-        Crosstab.Calc.count
-        levelMap
-        records
+type Crosstab 
+    = Crosstab 
+        { table : Dict Levels (List Accum) }
 
-sumTable :
-    (a -> number)
-    -> LevelMap a comparable1 comparable2
-    -> List a
-    -> Table number number comparable1 comparable2
-sumTable toNum levelMap records =
-    Table.table
-        Crosstab.Calc.sum
-        ( Crosstab.Calc.sumOf toNum )
-        levelMap
-        records
+type alias Levels = (List String, List String)
 
-meanTable :
-    (a -> Float)
-    -> LevelMap a comparable1 comparable2
-    -> List a
-    -> Table Float Float comparable1 comparable2
-meanTable toFloat levelMap records =
-    Table.table
-        Crosstab.Calc.meanAccum
-        ( Crosstab.Calc.meanOf toFloat )
-        levelMap
-        records
+init : Crosstab
+init =
+    Crosstab { table = Dict.empty }
 
-table :
-    Calc b d e
-    -> Calc a b c
-    -> LevelMap a comparable1 comparable2
-    -> List a
-    -> Table c e comparable1 comparable2
-table =
-    Table.table
+tabulate : Spec a -> List a -> Crosstab
+tabulate spec =
+    List.foldr 
+        (\a cur -> update spec a cur)
+        init
 
+update : Spec a -> a -> Crosstab -> Crosstab
+update spec a xtab =
+    let
+        rows = rowLevels spec a |> combinationsFrom 0
+        cols = columnLevels spec a |> combinationsFrom 0
+        combos = List.lift2 Tuple.pair rows cols
+        vals = values spec a
+        inits = initAccums spec
+    in
+        updateLevelPairs combos vals inits xtab
 
+updateLevelPairs : List Levels -> List Value -> List Accum -> Crosstab -> Crosstab
+updateLevelPairs levelPairs values inits xtab =
+    List.foldr 
+        (\levels cur -> updateLevelPair levels values inits cur) 
+        xtab
+        levelPairs 
 
-freqColumn :
-    (a -> comparable)
-    -> List a
-    -> Column Int Int comparable
-freqColumn levelMap records =
-    Column.column
-        Crosstab.Calc.sum
-        Crosstab.Calc.count
-        levelMap
-        records
+updateLevelPair : Levels -> List Value -> List Accum -> Crosstab -> Crosstab
+updateLevelPair levels values inits (Crosstab {table}) =
+    case Dict.get levels table of
+        Just accums ->
+            Crosstab 
+                { table = Dict.insert levels (accumulate values accums) table }
+                
+        Nothing ->
+            Crosstab 
+                { table = Dict.insert levels (accumulate values inits) table }
 
-sumColumn :
-    (a -> number)
-    -> (a -> comparable)
-    -> List a
-    -> Column number number comparable
-sumColumn toNum levelMap records =
-    Column.column
-        Crosstab.Calc.sum
-        ( Crosstab.Calc.sumOf toNum )
-        levelMap
-        records
-
-meanColumn :
-    (a -> Float)
-    -> (a -> comparable)
-    -> List a
-    -> Column Float Float comparable
-meanColumn toFloat levelMap records =
-    Column.column
-        Crosstab.Calc.meanAccum
-        ( Crosstab.Calc.meanOf toFloat )
-        levelMap
-        records
-
-column :
-    Calc b d e
-    -> Calc a b c
-    -> (a -> comparable)
-    -> List a
-    -> Column c e comparable
-column =
-    Column.column
 
