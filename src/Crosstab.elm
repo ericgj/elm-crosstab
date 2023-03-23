@@ -6,49 +6,37 @@ import List.Extra as List
 import DimTree exposing (DimTree)
 import Matrix exposing (Matrix)
 
-import Crosstab.Spec exposing 
-    ( Spec
-    , rowLevels
-    , columnLevels
-    , values
-    , initAccums
-    )
-import Crosstab.Accum exposing
-    ( Value
-    , Accum
-    , accumulate
-    )
+import Crosstab.Spec as Spec exposing (Spec)
+import Crosstab.Accum exposing (Accum)
 
-
-type Crosstab 
+type Crosstab a
     = Crosstab 
-        { table : Table
+        { table : Table a
         , rowDims : DimTree String
         , colDims : DimTree String
         }
 
-type alias Table = Dict Levels (List Accum)
+type alias Table a = Dict Levels a
 type alias Levels = (List String, List String)
 
 -- CONSTRUCTING
 
-init : Crosstab
+init : Crosstab a
 init =
     Crosstab { table = Dict.empty, rowDims = DimTree.empty, colDims = DimTree.empty }
 
-tabulate : Spec a -> List a -> Crosstab
+tabulate : Spec a b c -> List a -> Crosstab c
 tabulate spec =
     List.foldr 
         (\a cur -> update spec a cur)
         init
 
-update : Spec a -> a -> Crosstab -> Crosstab
+update : Spec a b c -> a -> Crosstab c -> Crosstab c
 update spec a (Crosstab {table,rowDims,colDims}) =
     let
-        rows = rowLevels spec a
-        cols = columnLevels spec a
-        vals = values spec a
-        inits = initAccums spec
+        rows = Spec.rowLevels spec a
+        cols = Spec.columnLevels spec a
+        (fn, initVal) = Spec.value spec a
         combos = 
             List.lift2 
                 Tuple.pair 
@@ -56,31 +44,31 @@ update spec a (Crosstab {table,rowDims,colDims}) =
                 (cols |> List.combinationsFrom 0)
     in
     Crosstab
-        { table = updateTable combos vals inits table
+        { table = updateTable combos fn initVal table
         , rowDims = DimTree.addBranches rows rowDims 
         , colDims = DimTree.addBranches cols colDims
         }
 
-updateTable : List Levels -> List Value -> List Accum -> Table -> Table
-updateTable levelPairs values inits tab =
+updateTable : List Levels -> (c -> c) -> c -> Table c -> Table c
+updateTable levelPairs fn initVal tab =
     List.foldr 
-        (\levels cur -> updateLevelPair levels values inits cur) 
+        (\levels cur -> updateCell levels fn initVal cur) 
         tab
         levelPairs 
 
-updateLevelPair : Levels -> List Value -> List Accum -> Table -> Table
-updateLevelPair levels values inits tab =
+updateCell : Levels -> (c -> c) -> c -> Table c -> Table c
+updateCell levels fn initVal tab =
     case Dict.get levels tab of
-        Just accums ->
-            Dict.insert levels (accumulate values accums) tab
+        Just c ->
+            tab |> Dict.insert levels (fn c)
                 
         Nothing ->
-            Dict.insert levels (accumulate values inits) tab
+            tab |> Dict.insert levels initVal
 
 
 -- QUERYING
 
-getTable : Int -> Int -> Crosstab -> Matrix (Maybe (List Accum))
+getTable : Int -> Int -> Crosstab a -> Matrix (Maybe a)
 getTable rowDim colDim (Crosstab {table,rowDims,colDims}) =
     let
         rowLevels = rowDims |> getLevels rowDim |> List.indexedMap Tuple.pair

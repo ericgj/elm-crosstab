@@ -1,113 +1,117 @@
 module Crosstab.Accum exposing 
-    ( Value(..), Accum(..), CategoricalAccum(..), NumericAccum(..)
-    , initCount, initDistinctCount, initFreq, initSum, initParametric
-    , accumulate
+    ( Accum(..), ParametricData(..)
+    , value, emptyParametricData
+    , count, countIf, sum, sumMaybe
+    , parametric, parametricMaybe, parametricFloat, parametricFloatMaybe 
     )
 
 import Dict exposing (Dict)
 import Set exposing (Set)
 
-type Value 
-    = CategoricalStringV String
-    | NumericV Float
+type Accum a b c 
+    = Accum
+        { init : c
+        , map : a -> b
+        , accum : b -> c -> c
+        }
 
-type Accum
-    = CategoricalStringA (CategoricalAccum String)
-    | NumericA NumericAccum
+value : Accum a b c -> a -> ((c -> c), c)
+value (Accum {init,map,accum}) a =
+    (map a |> accum, init)
 
-type CategoricalAccum comparable
-    = Count Int
-    | DistinctCount (Set comparable)
-    | Freq (Dict comparable Int)
+type ParametricData
+    = ParametricData
+        { count : Int
+        , sum : Float
+        , runMean: Float
+        , runSS: Float
+        }
 
-type NumericAccum
-    = Sum Float
-    | Parametric { count: Int, sum: Float, runMean: Float, runSS: Float }
+emptyParametricData : ParametricData
+emptyParametricData =
+    ParametricData { count = 0, sum = 0.0, runMean = 0.0, runSS = 0.0 }
+
+count : Accum a Bool Int
+count =
+    countIf (always True)
+
+countIf : (a -> Bool) -> Accum a Bool Int 
+countIf accessor =
+    Accum
+        { init = 0
+        , map = accessor
+        , accum = (\b c -> if b then (c + 1) else c)
+        }
+
+sum : (a -> Int) -> Accum a Int Int
+sum accessor =
+    Accum
+        { init = 0
+        , map = accessor
+        , accum = (+)
+        }
+
+sumMaybe : (a -> Maybe Int) -> Accum a (Maybe Int) Int
+sumMaybe accessor =
+    Accum
+        { init = 0
+        , map = accessor
+        , accum = (\b c -> b |> Maybe.map ((+) c) |> Maybe.withDefault c)
+        }
+
+-- TODO: add sumFloat, sumFloatMaybe; 
+-- also countDistinct, countDistinctMaybe, freq, freqMaybe
+
+parametric : (a -> Int) -> Accum a Float ParametricData
+parametric accessor =
+    parametricFloat (accessor >> toFloat)
+
+parametricMaybe : (a -> Maybe Int) -> Accum a (Maybe Float) ParametricData
+parametricMaybe accessor =
+    parametricFloatMaybe (accessor >> (Maybe.map toFloat))
 
 
-initCount : CategoricalAccum comparable
-initCount = 
-    Count 0
+parametricFloat : (a -> Float) -> Accum a Float ParametricData
+parametricFloat accessor =
+    Accum
+        { init = emptyParametricData
+        , map = accessor
+        , accum = calcParametric
+        }
 
-initDistinctCount : CategoricalAccum comparable
-initDistinctCount =
-    DistinctCount Set.empty
-
-initFreq : CategoricalAccum comparable
-initFreq =
-    Freq Dict.empty
-
-initSum : NumericAccum
-initSum = 
-    Sum 0.0
-
-initParametric : NumericAccum
-initParametric = 
-    Parametric { count = 0, sum = 0.0, runMean = 0.0, runSS = 0.0 }
-
+parametricFloatMaybe : (a -> Maybe Float) -> Accum a (Maybe Float) ParametricData
+parametricFloatMaybe accessor =
+    Accum
+        { init = emptyParametricData
+        , map = accessor
+        , accum = 
+            (\b c -> 
+                b |> Maybe.map (\n -> calcParametric n c) |> Maybe.withDefault c
+            )
+        }
 
 
-accumulate : List Value -> List Accum -> List Accum
-accumulate values accums =
-    List.map2 accumulateValue values accums
+calcParametric : Float -> ParametricData -> ParametricData
+calcParametric next (ParametricData prev) =
+    let
+        newsum = 
+            prev.sum + next
 
-accumulateValue : Value -> Accum -> Accum
-accumulateValue value accum =
-    case (value, accum) of
-        (CategoricalStringV s, CategoricalStringA a) ->
-            CategoricalStringA <| accumulateCategorical s a
+        newcount =
+            prev.count + 1
 
-        (NumericV n, NumericA a) ->
-            NumericA <| accumulateNumeric n a
+        newrunMean =
+            prev.runMean + ((next - prev.runMean) / (toFloat newcount))
 
-        _ ->
-            accum
-
-accumulateCategorical : comparable -> CategoricalAccum comparable -> CategoricalAccum comparable
-accumulateCategorical value accum =
-    case accum of 
-        Count prev ->
-            Count (prev + 1)
-        
-        DistinctCount prev ->
-            DistinctCount <| Set.insert value prev
-
-        Freq prev ->
+        newss =
             let
-                incr = Maybe.map (\p -> p + 1)
+                d1 =
+                    next - prev.runMean
+
+                d2 =
+                    next - newrunMean
             in
-                Freq <| Dict.update value incr prev
-
-
-accumulateNumeric : Float -> NumericAccum -> NumericAccum
-accumulateNumeric value accum =
-    case accum of
-        Sum prev ->
-            Sum (prev + value)
-
-        Parametric prev ->
-            let
-                newsum = 
-                    prev.sum + value
-
-                newcount =
-                    prev.count + 1
-
-                newrunMean =
-                    prev.runMean + ((value - prev.runMean) / (toFloat newcount))
-
-                newss =
-                    let
-                        d1 =
-                            value - prev.runMean
-
-                        d2 =
-                            value - newrunMean
-                    in
-                        (d1 * d2)
-            in
-                Parametric
-                    { sum = newsum, count = newcount, runMean = newrunMean, runSS = newss } 
-        
-
-
+                (d1 * d2)
+    in
+    ParametricData
+        { sum = newsum, count = newcount, runMean = newrunMean, runSS = newss } 
