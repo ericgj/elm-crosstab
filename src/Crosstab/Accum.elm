@@ -1,7 +1,7 @@
 module Crosstab.Accum exposing 
     ( Accum(..), ParametricData(..)
     , value, emptyParametricData
-    , count, countIf, sum, sumMaybe
+    , count, countMaybe, countIf, sum, sumMaybe
     , parametric, parametricMaybe, parametricFloat, parametricFloatMaybe 
     )
 
@@ -34,6 +34,10 @@ emptyParametricData =
 count : Accum a Bool Int
 count =
     countIf (always True)
+
+countMaybe : (a -> Maybe x) -> Accum a Bool Int
+countMaybe accessor =
+    countIf (accessor >> Maybe.map (always True) >> Maybe.withDefault False)
 
 countIf : (a -> Bool) -> Accum a Bool Int 
 countIf accessor =

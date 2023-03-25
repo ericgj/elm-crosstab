@@ -3,7 +3,6 @@ module Crosstab exposing (Crosstab, tabulate)
 import Dict exposing (Dict)
 
 import List.Extra as List
-import DimTree exposing (DimTree)
 import Matrix exposing (Matrix)
 
 import Crosstab.Spec as Spec exposing (Spec)
@@ -11,28 +10,45 @@ import Crosstab.Accum exposing (Accum)
 
 type Crosstab a
     = Crosstab 
-        { table : Table a
-        , rowDims : DimTree String
-        , colDims : DimTree String
+        { rowDimLabels : List String
+        , columnDimLabels : List String
+        , valueLabel : String
+        , table : Table a
         }
 
-type alias Table a = Dict Levels a
-type alias Levels = (List String, List String)
+type alias Table a = Dict LevelsPair a
+type alias LevelsPair = (Levels, Levels)
+type alias Levels = List String
 
 -- CONSTRUCTING
 
-init : Crosstab a
-init =
-    Crosstab { table = Dict.empty, rowDims = DimTree.empty, colDims = DimTree.empty }
+init : Spec a b c -> Crosstab c
+init spec =
+    Crosstab 
+        { rowDimLabels = Spec.rowLabels spec
+        , columnDimLabels = Spec.columnLabels spec
+        , valueLabel = Spec.valueLabel spec
+        , table = Dict.empty
+        }
+
+map : (a -> b) -> Crosstab a -> Crosstab b
+map fn (Crosstab c) =
+    Crosstab 
+        { rowDimLabels = c.rowDimLabels
+        , columnDimLabels = c.columnDimLabels
+        , valueLabel = c.valueLabel
+        , table = Dict.map (\k a -> fn a) c.table
+        }
+
 
 tabulate : Spec a b c -> List a -> Crosstab c
 tabulate spec =
     List.foldr 
-        (\a cur -> update spec a cur)
-        init
+        (\a cur -> updateCrosstabTable spec a cur)
+        (init spec)
 
-update : Spec a b c -> a -> Crosstab c -> Crosstab c
-update spec a (Crosstab {table,rowDims,colDims}) =
+updateCrosstabTable : Spec a b c -> a -> Crosstab c -> Crosstab c
+updateCrosstabTable spec a (Crosstab c) =
     let
         rows = Spec.rowLevels spec a
         cols = Spec.columnLevels spec a
@@ -44,61 +60,78 @@ update spec a (Crosstab {table,rowDims,colDims}) =
                 (cols |> List.combinationsFrom 0)
     in
     Crosstab
-        { table = updateTable combos fn initVal table
-        , rowDims = DimTree.addBranches rows rowDims 
-        , colDims = DimTree.addBranches cols colDims
-        }
+        { c | table = updateTable combos fn initVal c.table }
 
-updateTable : List Levels -> (c -> c) -> c -> Table c -> Table c
-updateTable levelPairs fn initVal tab =
+updateTable : List LevelsPair -> (c -> c) -> c -> Table c -> Table c
+updateTable combos fn initVal tab =
     List.foldr 
-        (\levels cur -> updateCell levels fn initVal cur) 
+        (\levelsPair cur -> updateCell levelsPair fn initVal cur) 
         tab
-        levelPairs 
+        combos 
 
-updateCell : Levels -> (c -> c) -> c -> Table c -> Table c
-updateCell levels fn initVal tab =
-    case Dict.get levels tab of
+updateCell : LevelsPair -> (c -> c) -> c -> Table c -> Table c
+updateCell levelsPair fn initVal tab =
+    case Dict.get levelsPair tab of
         Just c ->
-            tab |> Dict.insert levels (fn c)
+            tab |> Dict.insert levelsPair (fn c)
                 
         Nothing ->
-            tab |> Dict.insert levels initVal
+            tab |> Dict.insert levelsPair initVal
 
 
--- QUERYING
 
-getTable : Int -> Int -> Crosstab a -> Matrix (Maybe a)
-getTable rowDim colDim (Crosstab {table,rowDims,colDims}) =
+
+
+-- DISPLAY
+
+-- a somewhat loose type that could model both single-dim and multi-dim tables
+-- should be a target type used for display, not further calculation
+-- because it has flattened all dimensions
+
+type FlatTable a
+    = FlatTable
+        { rows : List (List (String, String))   
+        , columns : List (List (String, String))
+        , valueLabel : String
+        , table : Matrix a 
+        }
+
+toFlatTable : Crosstab a -> FlatTable (Maybe a)
+toFlatTable (Crosstab {rowDimLabels, columnDimLabels, valueLabel, table}) =
     let
-        rowLevels = rowDims |> getLevels rowDim |> List.indexedMap Tuple.pair
-        colLevels = colDims |> getLevels colDim |> List.indexedMap Tuple.pair
-        nrows = List.length rowLevels
-        ncols = List.length colLevels
-        levelCoords = 
+        (rowCoords, colCoords) = 
+            table
+                |> Dict.keys
+                |> List.foldr (\(r,c) (rs,cs) -> ((r::rs),(c::cs))) ([],[])
+                |> Tuple.mapBoth 
+                    (List.sortBy identity)
+                    (List.sortBy identity)
+        indexedCoords =
             List.lift2 
-                Tuple.pair 
-                rowLevels 
-                colLevels
-        matrix = Matrix.repeat nrows ncols Nothing
+                Tuple.pair
+                (rowCoords |> List.indexedMap Tuple.pair)
+                (colCoords |> List.indexedMap Tuple.pair)
+        matrix =
+            Matrix.repeat (List.length rowCoords) (List.length colCoords) Nothing
+        flatTable =
+            List.foldr 
+                (\((ri,rkey),(ci,ckey)) mx -> 
+                    table 
+                        |> Dict.get (rkey,ckey) 
+                        |> (\m -> Matrix.set ri ci m mx)
+                )
+                matrix
+                indexedCoords
     in
-    List.foldr 
-        (\((r,rkey),(c,ckey)) mx -> 
-            table 
-                |> Dict.get (rkey,ckey) 
-                |> (\m -> Matrix.set r c m mx)
-        )
-        matrix
-        levelCoords
+    FlatTable
+        { rows = rowCoords |> injectDimLabels rowDimLabels
+        , columns = colCoords |> injectDimLabels columnDimLabels
+        , valueLabel = valueLabel
+        , table = flatTable
+        }
 
-
-getLevels : Int -> DimTree String -> List (List String)
-getLevels dim =
-    filterLevels (List.length >> ((==) dim))
-
-filterLevels : (List String -> Bool) -> DimTree String -> List (List String)
-filterLevels fn tree = 
-    tree
-        |> DimTree.walkBreadth (\parents self -> parents ++ [self])
-        |> List.filter fn
+injectDimLabels : List String -> List Levels -> List (List (String, String))
+injectDimLabels labels combos =
+    combos
+        |> List.map (List.map2 Tuple.pair labels)
 
