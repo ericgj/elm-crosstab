@@ -3,6 +3,7 @@ module Crosstab.Accum exposing
     , value, emptyParametricData
     , count, countMaybe, countIf, sum, sumMaybe
     , parametric, parametricMaybe, parametricFloat, parametricFloatMaybe 
+    , mean, stdDev
     )
 
 import Dict exposing (Dict)
@@ -119,3 +120,23 @@ calcParametric next (ParametricData prev) =
     in
     ParametricData
         { sum = newsum, count = newcount, runMean = newrunMean, runSS = newss } 
+
+
+-- PREBUILT MAPPING FUNCTIONS
+
+mean : ParametricData -> Maybe Float
+mean (ParametricData d) =
+    if d.count == 0 then Nothing else Just (d.sum / (toFloat d.count))
+
+stdDev : ParametricData -> Maybe Float
+stdDev (ParametricData d) =
+    let
+        var =
+            if d.count < 2 then
+                Nothing
+            else
+                Just (d.runSS / (toFloat (d.count - 1)))
+    in
+    var |> Maybe.map sqrt
+
+
