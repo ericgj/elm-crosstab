@@ -39,17 +39,17 @@ toString (ValueLabel v) =
         (Nothing, []) ->
             v.value
         (Just a, []) ->
-            "(" ++ a ++ " " ++ v.value ++ ")"
+            a ++ " " ++ v.value
         (Nothing, _) ->
             v.transforms 
                 |> List.foldl 
-                    (\t s -> "(" ++ (transformToString t) ++ " " ++ s ++ ")")
+                    (\t s -> (transformToString t) ++ " " ++ "(" ++ s ++ ")")
                     v.value
         (Just a, _) ->
             v.transforms 
                 |> List.foldl 
-                    (\t s -> "(" ++ (transformToString t) ++ " " ++ s ++ ")")
-                    ("(" ++ a ++ " " ++ v.value ++ ")")
+                    (\t s -> (transformToString t) ++ " " ++ "(" ++ s ++ ")")
+                    (a ++ " " ++ v.value)
 
 
 transformToString : TransformLabel -> String
@@ -58,5 +58,4 @@ transformToString t =
         Map s ->
             s
         Merge s v ->
-            s ++ " " ++ (toString v)
-
+            s ++ " " ++ "(" ++ (toString v) ++ ")"
