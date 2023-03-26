@@ -1,10 +1,12 @@
-module List.Extra exposing (andThen, lift2, combinationsFrom)
+module List.Extra exposing (andThen, combinationsFrom, lift2)
 
 import List exposing (..)
 
+
 andThen : (a -> List b) -> List a -> List b
-andThen = 
+andThen =
     concatMap
+
 
 lift2 : (a -> b -> c) -> List a -> List b -> List c
 lift2 f la lb =
@@ -16,4 +18,3 @@ combinationsFrom start list =
     List.length list
         |> List.range start
         |> List.map (\n -> List.take n list)
-

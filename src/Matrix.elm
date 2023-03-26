@@ -1,24 +1,12 @@
-module Matrix
-    exposing
-        ( Matrix
-        , concatHorizontal
-        , concatVertical
-        , empty
-        , filter
-        , fromList
-        , get
-        , getColumn
-        , getRow
-        , height
-        , indexedMap
-        , map
-        , map2
-        , repeat
-        , set
-        , toIndexedArray
-        , update
-        , width
-        )
+module Matrix exposing
+    ( Matrix
+    , repeat, fromList, empty
+    , height, width
+    , get, set, update
+    , concatVertical, concatHorizontal
+    , getRow, getColumn
+    , filter, map, map2, indexedMap, toIndexedArray
+    )
 
 {-| A matrix implemention for Elm.
 Internally it uses a flat array for speed reasons.
@@ -135,6 +123,7 @@ fromList list =
     in
     if not allSame then
         Nothing
+
     else
         Just { size = ( w, h ), data = Array.fromList <| List.concat list }
 
@@ -150,6 +139,7 @@ get i j matrix =
     in
     if (i < width matrix && i > -1) && (j < height matrix && j > -1) then
         Array.get pos matrix.data
+
     else
         Nothing
 
@@ -167,6 +157,7 @@ getRow j matrix =
     in
     if end > (width matrix * height matrix) then
         Nothing
+
     else
         Just <| Array.slice start end matrix.data
 
@@ -187,6 +178,7 @@ getColumn i matrix =
     in
     if i >= w then
         Nothing
+
     else
         Just <|
             Array.fromList <|
@@ -218,6 +210,7 @@ concatHorizontal a b =
     in
     if Tuple.second a.size /= Tuple.second b.size then
         Nothing
+
     else
         Just <|
             { a
@@ -247,6 +240,7 @@ concatVertical : Matrix a -> Matrix a -> Maybe (Matrix a)
 concatVertical a b =
     if Tuple.first a.size /= Tuple.first b.size then
         Nothing
+
     else
         Just <| { a | size = ( Tuple.first a.size, Tuple.second a.size + Tuple.second b.size ), data = Array.append a.data b.data }
 
@@ -262,6 +256,7 @@ set i j v matrix =
     in
     if (i < width matrix && i > -1) && (j < height matrix && j > -1) then
         { matrix | data = Array.set pos v matrix.data }
+
     else
         matrix
 
@@ -284,7 +279,7 @@ update x y f matrix =
 map : (a -> b) -> Matrix a -> Matrix b
 map f matrix =
     { size = matrix.size
-    , data = Array.map f matrix.data 
+    , data = Array.map f matrix.data
     }
 
 
@@ -295,11 +290,11 @@ map2 f a b =
     if a.size == b.size then
         Just <|
             { size = a.size
-            , data = 
-                ( Array.fromList 
-                    <| List.map2 f (Array.toList a.data) (Array.toList b.data) 
-                )
+            , data =
+                Array.fromList <|
+                    List.map2 f (Array.toList a.data) (Array.toList b.data)
             }
+
     else
         Nothing
 
@@ -320,7 +315,7 @@ indexedMap f matrix =
             f x y v
     in
     { size = matrix.size
-    , data = Array.fromList <| List.indexedMap f_ <| Array.toList matrix.data 
+    , data = Array.fromList <| List.indexedMap f_ <| Array.toList matrix.data
     }
 
 
