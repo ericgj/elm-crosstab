@@ -8,7 +8,8 @@ module Crosstab.Spec exposing
     , value
     )
 
-import Crosstab.Accum as Accum exposing (Accum)
+import Crosstab.Accum as Accum exposing (Accum(..))
+import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 
 type Spec a b c
     = Spec (SpecData a b c)
@@ -22,6 +23,8 @@ type alias SpecData a b c =
 type alias Category a = a -> String
 
 
+-- GETTERS
+
 init : SpecData a b c -> Spec a b c
 init s =
     Spec { rows = s.rows, columns = s.columns, value = s.value }
@@ -34,9 +37,12 @@ columnLabels : Spec a b c -> List String
 columnLabels (Spec {columns}) =
     columns |> List.map (Tuple.first)
 
-valueLabel : Spec a b c -> String
+valueLabel : Spec a b c -> ValueLabel
 valueLabel (Spec s) =
-    s.value |> Tuple.first
+    let 
+        (l, Accum a) = s.value
+    in
+    ValueLabel.init l a.label
 
 rowLevels : Spec a b c -> a -> List String
 rowLevels (Spec {rows}) a =

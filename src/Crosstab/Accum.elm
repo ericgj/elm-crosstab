@@ -14,6 +14,7 @@ type Accum a b c
         { init : c
         , map : a -> b
         , accum : b -> c -> c
+        , label : Maybe String
         }
 
 value : Accum a b c -> a -> ((c -> c), c)
@@ -34,18 +35,23 @@ emptyParametricData =
 
 count : Accum a Bool Int
 count =
-    countIf (always True)
+    countImp "Count" (always True)
 
 countMaybe : (a -> Maybe x) -> Accum a Bool Int
 countMaybe accessor =
-    countIf (accessor >> Maybe.map (always True) >> Maybe.withDefault False)
+    countImp "Count" (accessor >> Maybe.map (always True) >> Maybe.withDefault False)
 
-countIf : (a -> Bool) -> Accum a Bool Int 
-countIf accessor =
+countIf : (a -> Bool) -> Accum a Bool Int
+countIf = 
+    countImp "CountIf"
+
+countImp : String -> (a -> Bool) -> Accum a Bool Int 
+countImp label accessor =
     Accum
         { init = 0
         , map = accessor
         , accum = (\b c -> if b then (c + 1) else c)
+        , label = Just label
         }
 
 sum : (a -> Int) -> Accum a Int Int
@@ -54,6 +60,7 @@ sum accessor =
         { init = 0
         , map = accessor
         , accum = (+)
+        , label = Just "Sum"
         }
 
 sumMaybe : (a -> Maybe Int) -> Accum a (Maybe Int) Int
@@ -62,6 +69,7 @@ sumMaybe accessor =
         { init = 0
         , map = accessor
         , accum = (\b c -> b |> Maybe.map ((+) c) |> Maybe.withDefault c)
+        , label = Just "Sum"
         }
 
 -- TODO: add sumFloat, sumFloatMaybe; 
@@ -82,6 +90,7 @@ parametricFloat accessor =
         { init = emptyParametricData
         , map = accessor
         , accum = calcParametric
+        , label = Nothing
         }
 
 parametricFloatMaybe : (a -> Maybe Float) -> Accum a (Maybe Float) ParametricData
@@ -93,6 +102,7 @@ parametricFloatMaybe accessor =
             (\b c -> 
                 b |> Maybe.map (\n -> calcParametric n c) |> Maybe.withDefault c
             )
+        , label = Nothing
         }
 
 
@@ -138,5 +148,4 @@ stdDev (ParametricData d) =
                 Just (d.runSS / (toFloat (d.count - 1)))
     in
     var |> Maybe.map sqrt
-
 

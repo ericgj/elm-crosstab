@@ -7,18 +7,20 @@ import Matrix exposing (Matrix)
 
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.Accum as Accum exposing (Accum, ParametricData)
+import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 
 type Crosstab a
     = Crosstab 
         { rowDimLabels : List String
         , columnDimLabels : List String
-        , valueLabel : String
+        , valueLabel : ValueLabel
         , table : Table a
         }
 
 type alias Table a = Dict LevelsPair a
 type alias LevelsPair = (Levels, Levels)
 type alias Levels = List String
+
 
 -- CONSTRUCTING
 
@@ -74,34 +76,35 @@ updateCell levelsPair fn initVal tab =
 
 type alias Mapping a b = (LevelsPair -> a -> b)
 
-{-| Map Crosstab values
+{-| Map Crosstab values, with a given label for the mapping.
 
 -}
-map : Mapping a b -> Crosstab a -> Crosstab b
-map fn (Crosstab c) =
+map : String -> Mapping a b -> Crosstab a -> Crosstab b
+map label fn (Crosstab c) =
     Crosstab 
         { rowDimLabels = c.rowDimLabels
         , columnDimLabels = c.columnDimLabels
-        , valueLabel = c.valueLabel
+        , valueLabel = c.valueLabel |> ValueLabel.addMap label
         , table = Dict.map fn c.table
         }
 
-{-| Merge values from a second Crosstab with a first Crosstab 
+{-| Merge values from a second Crosstab with a first Crosstab, with a given
+    label for the merge function.
 
     Note that the dimensions of the first Crosstab will *always* be maintained.
     Any pair of levels found in the second but not the first will be ignored.
     Any pair of levels found in the first but not the second will be dealt with
     by the provided merge function (the Nothing case of Maybe b). 
 
-    Typically, you would be merging two Crosstabs built from the same data,
-    so the dimensions will be the same.
+    Typically, you would be merging two Crosstabs built from the same data
+    (with different value variables), so the dimensions will be the same.
 -}
-merge : (LevelsPair -> a -> Maybe b -> c) -> Crosstab a -> Crosstab b -> Crosstab c
-merge fn (Crosstab ca) (Crosstab cb) =
+merge : String -> (LevelsPair -> a -> Maybe b -> c) -> Crosstab a -> Crosstab b -> Crosstab c
+merge label fn (Crosstab ca) (Crosstab cb) =
     Crosstab 
         { rowDimLabels = ca.rowDimLabels
         , columnDimLabels = ca.columnDimLabels
-        , valueLabel = ca.valueLabel
+        , valueLabel = ca.valueLabel |> ValueLabel.addMerge label cb.valueLabel 
         , table = 
             Dict.merge
                 (\k a t -> t |> Dict.insert k (fn k a Nothing))
@@ -130,7 +133,7 @@ calc2 fn map1 map2 =
 {-| Combine any number of calculations ona single crosstab into one mapping
     function.
 
-    For example (not the most efficient):
+    For example:
 
         let
             calcs = 
@@ -141,7 +144,9 @@ calc2 fn map1 map2 =
                     |> andCalc (columnPercentMaybe crosstab)
                     |> andCalc (tablePercentMaybe crosstab)
         in
-        crosstab |> Crosstab.map mean |> Crosstab.map calcs
+        crosstab 
+            |> Crosstab.map "Mean" Crosstab.mean 
+            |> Crosstab.map "%" calcs
 
 -}
 andCalc : Mapping a b -> Mapping b (b -> c) -> Mapping a c
@@ -149,7 +154,7 @@ andCalc =
     calc2 (|>)
 
 
--- BASIC MAPPINGS
+-- BASIC PREBUILT MAPPINGS
 
 currentValue : Mapping a a
 currentValue _ =
@@ -391,63 +396,4 @@ chiSqImp row col table value =
                 col * (row / table)
         in
         Just <| ((value - exp) ^ 2) / exp 
-
-
-
-
-
-
-
--- DISPLAY
-
--- a somewhat loose type that could model both single-dim and multi-dim tables
--- should be a target type used for display, not further calculation
--- because it has flattened all dimensions
-
-type FlatTable a
-    = FlatTable
-        { rows : List (List (String, String))   
-        , columns : List (List (String, String))
-        , valueLabel : String
-        , table : Matrix a 
-        }
-
-toFlatTable : Crosstab a -> FlatTable (Maybe a)
-toFlatTable (Crosstab {rowDimLabels, columnDimLabels, valueLabel, table}) =
-    let
-        (rowCoords, colCoords) = 
-            table
-                |> Dict.keys
-                |> List.foldr (\(r,c) (rs,cs) -> ((r::rs),(c::cs))) ([],[])
-                |> Tuple.mapBoth 
-                    (List.sortBy identity)
-                    (List.sortBy identity)
-        indexedCoords =
-            List.lift2 
-                Tuple.pair
-                (rowCoords |> List.indexedMap Tuple.pair)
-                (colCoords |> List.indexedMap Tuple.pair)
-        matrix =
-            Matrix.repeat (List.length rowCoords) (List.length colCoords) Nothing
-        flatTable =
-            List.foldr 
-                (\((ri,rkey),(ci,ckey)) mx -> 
-                    table 
-                        |> Dict.get (rkey,ckey) 
-                        |> (\m -> Matrix.set ri ci m mx)
-                )
-                matrix
-                indexedCoords
-    in
-    FlatTable
-        { rows = rowCoords |> injectDimLabels rowDimLabels
-        , columns = colCoords |> injectDimLabels columnDimLabels
-        , valueLabel = valueLabel
-        , table = flatTable
-        }
-
-injectDimLabels : List String -> List Levels -> List (List (String, String))
-injectDimLabels labels combos =
-    combos
-        |> List.map (List.map2 Tuple.pair labels)
 
