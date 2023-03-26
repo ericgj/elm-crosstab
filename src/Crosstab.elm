@@ -1,4 +1,36 @@
-module Crosstab exposing (Crosstab, tabulate)
+module Crosstab exposing 
+    ( Crosstab
+    , tabulate
+    , map
+    , merge
+    , calc2
+    , andCalc
+    , currentValue
+    , mean
+    , stdDev
+    , compareToRow
+    , compareToRowMaybe
+    , compareToColumn
+    , compareToColumnMaybe
+    , compareToTable
+    , compareToTableMaybe
+    , compareToRowColumnTable
+    , compareToRowColumnTableMaybe
+    , currentRow
+    , currentRowMaybe
+    , currentColumn
+    , currentColumnMaybe
+    , currentTable
+    , currentTableMaybe
+    , rowPercent
+    , rowPercentMaybe
+    , columnPercent
+    , columnPercentMaybe
+    , tablePercent
+    , tablePercentMaybe
+    , chiSq
+    , chiSqMaybe
+    )
 
 import Dict exposing (Dict)
 
