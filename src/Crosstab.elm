@@ -24,6 +24,7 @@ module Crosstab exposing
     , map
     , mean
     , merge
+    , queryRows
     , rowPercent
     , rowPercentMaybe
     , stdDev
@@ -38,6 +39,7 @@ import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
 import List.Extra as List
 import Matrix exposing (Matrix)
+import OrderedSet
 
 
 type Crosstab a
@@ -487,3 +489,243 @@ chiSqImp row col table value =
                 col * (row / table)
         in
         Just <| ((value - exp) ^ 2) / exp
+
+
+
+-- QUERY
+
+
+type Query a
+    = Query
+        { sortRows : CompareAxis a
+        , sortColumns : CompareAxis a
+        }
+
+
+type alias CompareAxis a =
+    Levels -> a -> Levels -> a -> Order
+
+
+type SortDir
+    = Asc
+    | Desc
+
+
+type FlatTable a
+    = FlatTable
+        { valueLabel : ValueLabel
+        , xDimLabels : List String
+        , yDimLabels : List String
+        , xLabels : List Levels
+        , yLabels : List Levels
+        , table : Matrix a
+        }
+
+
+queryRows : Query a -> Crosstab a -> Maybe (FlatTable a)
+queryRows qry (Crosstab c) =
+    Crosstab c
+        |> sortedRowColumnLevelsPairValues qry
+        |> axisLabelsAndTableFromLevelsPairValues
+        |> Maybe.map
+            (\( xs, ys, t ) ->
+                FlatTable
+                    { valueLabel = c.valueLabel
+                    , xDimLabels = c.rowDimLabels
+                    , yDimLabels = c.columnDimLabels
+                    , xLabels = xs
+                    , yLabels = ys
+                    , table = t
+                    }
+            )
+
+
+sortedRowColumnLevelsPairValues : Query a -> Crosstab a -> List ( LevelsPair, a )
+sortedRowColumnLevelsPairValues (Query q) (Crosstab c) =
+    c.table
+        |> Dict.toList
+        |> List.sortWith
+            (compareRowColumnLevelsPairValues q.sortRows q.sortColumns)
+
+
+compareRowColumnLevelsPairValues : CompareAxis a -> CompareAxis a -> ( LevelsPair, a ) -> ( LevelsPair, a ) -> Order
+compareRowColumnLevelsPairValues rcomp ccomp ( ( rs0, cs0 ), a0 ) ( ( rs1, cs1 ), a1 ) =
+    let
+        rorder =
+            rcomp rs0 a0 rs1 a1
+
+        corder =
+            ccomp cs0 a0 cs1 a1
+    in
+    case ( rorder, corder ) of
+        ( LT, LT ) ->
+            LT
+
+        ( LT, EQ ) ->
+            LT
+
+        ( LT, GT ) ->
+            LT
+
+        ( EQ, LT ) ->
+            LT
+
+        ( EQ, EQ ) ->
+            EQ
+
+        ( EQ, GT ) ->
+            GT
+
+        ( GT, LT ) ->
+            GT
+
+        ( GT, EQ ) ->
+            GT
+
+        ( GT, GT ) ->
+            GT
+
+
+axisLabelsAndTableFromLevelsPairValues : List ( LevelsPair, a ) -> Maybe ( List Levels, List Levels, Matrix a )
+axisLabelsAndTableFromLevelsPairValues pv =
+    let
+        ( xlabels, ylabels, data ) =
+            pv
+                |> List.foldr
+                    (\( ( x, y ), v ) ( xs, ys, vs ) ->
+                        ( OrderedSet.insert x xs
+                        , OrderedSet.insert y ys
+                        , vs ++ [ v ]
+                        )
+                    )
+                    ( OrderedSet.empty, OrderedSet.empty, [] )
+                |> (\( xs, ys, vs ) ->
+                        ( OrderedSet.toList xs
+                        , OrderedSet.toList ys
+                        , vs
+                        )
+                   )
+
+        mtable =
+            Matrix.fromFlatList
+                (List.length ylabels)
+                -- width
+                (List.length xlabels)
+                -- height
+                data
+    in
+    mtable |> Maybe.map (\table -> ( xlabels, ylabels, table ))
+
+
+
+-- SORTS
+
+
+{-| Sort axis by levels in the given direction
+-}
+sortByLevels : SortDir -> CompareAxis a
+sortByLevels dir ls0 _ ls1 _ =
+    compareWithSortDir dir ls0 ls1
+
+
+{-| Sort axis by values in the given direction
+-}
+sortByValue : SortDir -> CompareAxis comparable
+sortByValue dir ls0 a0 ls1 a1 =
+    compareWithSortDir dir a0 a1
+
+
+
+-- not sure how to do this maintaining the dim hierarchy
+
+
+{-| Sort axis by values in the given direction, with `Nothing` cases
+compared as either lower (LT) or higher (GT).
+-}
+sortByValueMaybe : Order -> SortDir -> CompareAxis (Maybe comparable)
+sortByValueMaybe default dir _ a0 _ a1 =
+    compareMaybeWithSortDir default dir a0 a1
+
+
+{-| Note that a typical rendering of a crosstab table has the summary
+row at the bottom and column on the right. Because of the representation
+of summary rows/cols as an empty list, by default they will appear instead
+at the top and left. So to reproduce the typical behavior, define your
+sorting using this helper function:
+
+        withSummaryAtBottom (sortByLevels Desc)
+
+-}
+withSummaryAtBottom : CompareAxis a -> CompareAxis a
+withSummaryAtBottom =
+    positionSummary GT
+
+
+positionSummary : Order -> CompareAxis a -> CompareAxis a
+positionSummary default sortfn ls0 a0 ls1 a1 =
+    case ( ls0, ls1 ) of
+        ( [], [] ) ->
+            EQ
+
+        ( [], _ ) ->
+            default
+
+        ( _, [] ) ->
+            reverseOrder default
+
+        _ ->
+            sortfn ls0 a0 ls1 a1
+
+
+compareWithSortDir : SortDir -> comparable -> comparable -> Order
+compareWithSortDir dir a b =
+    case dir of
+        Asc ->
+            compare a b
+
+        Desc ->
+            compare b a
+
+
+compareMaybeWithSortDir : Order -> SortDir -> Maybe comparable -> Maybe comparable -> Order
+compareMaybeWithSortDir default dir ma mb =
+    let
+        default_ =
+            case ( dir, default ) of
+                ( Asc, _ ) ->
+                    default
+
+                ( Desc, LT ) ->
+                    GT
+
+                ( Desc, EQ ) ->
+                    EQ
+
+                ( Desc, GT ) ->
+                    LT
+    in
+    case ( ma, mb ) of
+        ( Nothing, Nothing ) ->
+            default_
+
+        ( Just a, Nothing ) ->
+            default_
+
+        ( Nothing, Just b ) ->
+            default_
+
+        ( Just a, Just b ) ->
+            compareWithSortDir dir a b
+
+
+reverseOrder : Order -> Order
+reverseOrder order =
+    case order of
+        LT ->
+            GT
+
+        EQ ->
+            EQ
+
+        GT ->
+            LT

@@ -6,6 +6,7 @@ module Matrix exposing
     , concatVertical, concatHorizontal
     , getRow, getColumn
     , filter, map, map2, indexedMap, toIndexedArray
+    , fromFlatList
     )
 
 {-| A matrix implemention for Elm.
@@ -126,6 +127,22 @@ fromList list =
 
     else
         Just { size = ( w, h ), data = Array.fromList <| List.concat list }
+
+
+{-| Create a matrix of given dimensions (width, height) from a flat list.
+If the list size does not match the dimensions, return `Nothing`.
+-}
+fromFlatList : Int -> Int -> List a -> Maybe (Matrix a)
+fromFlatList w h list =
+    let
+        len =
+            List.length list
+    in
+    if len == (w * h) then
+        Just <| { size = ( w, h ), data = Array.fromList list }
+
+    else
+        Nothing
 
 
 {-| Get a value from a given `x y` and return `Just v` if it exists
