@@ -1,5 +1,7 @@
 module Crosstab exposing
     ( Crosstab
+    , Query(..)
+    , SortDir(..)
     , andCalc
     , calc2
     , chiSq
@@ -24,16 +26,22 @@ module Crosstab exposing
     , map
     , mean
     , merge
-    , queryRows
+    , query
     , rowPercent
     , rowPercentMaybe
+    , sort2
+    , sortByLevels
+    , sortByValue
+    , sortByValueMaybe
     , stdDev
     , tablePercent
     , tablePercentMaybe
     , tabulate
+    , withSummaryAtBottom
     )
 
 import Crosstab.Accum as Accum exposing (Accum, ParametricData)
+import Crosstab.Flat as Flat
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
@@ -189,16 +197,22 @@ calc2 fn map1 map2 =
     \pair a -> map1 pair a |> (\b -> map2 pair b |> (\c -> fn b c))
 
 
-{-| Combine any number of calculations ona single crosstab into one mapping
+{-| Combine any number of calculations on a single crosstab into one mapping
 function.
 
     For example:
 
+        type alias MeanPcts =
+            { mean: Maybe Float
+            , rowPct: Maybe Float
+            , colPct: Maybe Float
+            , tabPct: Maybe Float
+            }
+
         let
             calcs =
-                (\value row rowp colp tabp -> (value, row, rowp, colp, tabp))
+                MeanPcts
                     |> andCalc currentValueMaybe
-                    |> andCalc (currentRowMaybe crosstab)
                     |> andCalc (rowPercentMaybe crosstab)
                     |> andCalc (columnPercentMaybe crosstab)
                     |> andCalc (tablePercentMaybe crosstab)
@@ -214,7 +228,7 @@ andCalc =
 
 
 
--- BASIC PREBUILT MAPPINGS
+-- PREBUILT MAPPINGS
 
 
 currentValue : Mapping a a
@@ -234,6 +248,113 @@ stdDev _ =
 
 
 -- COMPARISON MAPPINGS
+
+
+currentRow : Crosstab Float -> Mapping Float (Maybe Float)
+currentRow crosstab =
+    crosstab
+        |> compareToRow (\mr _ -> mr)
+
+
+currentRowMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+currentRowMaybe crosstab =
+    crosstab
+        |> compareToRowMaybe (\mr _ -> mr)
+
+
+currentColumn : Crosstab Float -> Mapping Float (Maybe Float)
+currentColumn crosstab =
+    crosstab
+        |> compareToColumn (\mc _ -> mc)
+
+
+currentColumnMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+currentColumnMaybe crosstab =
+    crosstab
+        |> compareToColumnMaybe (\mc _ -> mc)
+
+
+currentTable : Crosstab Float -> Mapping Float (Maybe Float)
+currentTable crosstab =
+    crosstab
+        |> compareToTable (\mt _ -> mt)
+
+
+currentTableMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+currentTableMaybe crosstab =
+    crosstab
+        |> compareToTableMaybe (\mt _ -> mt)
+
+
+rowPercent : Crosstab Float -> Mapping Float (Maybe Float)
+rowPercent crosstab =
+    crosstab
+        |> compareToRow
+            (\mr v -> mr |> Maybe.andThen (\r -> percentImp r v))
+
+
+rowPercentMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+rowPercentMaybe crosstab =
+    crosstab
+        |> compareToRowMaybe
+            (\mr mv ->
+                Maybe.map2 (\r v -> percentImp r v) mr mv
+                    |> Maybe.andThen identity
+            )
+
+
+columnPercent : Crosstab Float -> Mapping Float (Maybe Float)
+columnPercent crosstab =
+    crosstab
+        |> compareToColumn
+            (\mc v -> mc |> Maybe.andThen (\c -> percentImp c v))
+
+
+columnPercentMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+columnPercentMaybe crosstab =
+    crosstab
+        |> compareToColumnMaybe
+            (\mc mv ->
+                Maybe.map2 (\c v -> percentImp c v) mc mv
+                    |> Maybe.andThen identity
+            )
+
+
+tablePercent : Crosstab Float -> Mapping Float (Maybe Float)
+tablePercent crosstab =
+    crosstab
+        |> compareToTable
+            (\mt v -> mt |> Maybe.andThen (\t -> percentImp t v))
+
+
+tablePercentMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+tablePercentMaybe crosstab =
+    crosstab
+        |> compareToTableMaybe
+            (\mt mv ->
+                Maybe.map2 (\t v -> percentImp t v) mt mv
+                    |> Maybe.andThen identity
+            )
+
+
+chiSq : Crosstab Float -> Mapping Float (Maybe Float)
+chiSq crosstab =
+    crosstab
+        |> compareToRowColumnTable
+            (\mr mc mt v ->
+                Maybe.map3 (\r c t -> chiSqImp r c t v) mr mc mt
+                    |> Maybe.andThen identity
+            )
+
+
+chiSqMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
+chiSqMaybe crosstab =
+    crosstab
+        |> compareToRowColumnTableMaybe
+            (\mr mc mt mv ->
+                Maybe.map4 (\r c t v -> chiSqImp r c t v) mr mc mt mv
+                    |> Maybe.andThen identity
+            )
 
 
 compareToRow : (Maybe a -> a -> b) -> Crosstab a -> Mapping a b
@@ -362,113 +483,6 @@ compareToRowColumnTableMaybe fn (Crosstab { table }) =
                     ma
 
 
-currentRow : Crosstab Float -> Mapping Float (Maybe Float)
-currentRow crosstab =
-    crosstab
-        |> compareToRow (\mr _ -> mr)
-
-
-currentRowMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-currentRowMaybe crosstab =
-    crosstab
-        |> compareToRowMaybe (\mr _ -> mr)
-
-
-currentColumn : Crosstab Float -> Mapping Float (Maybe Float)
-currentColumn crosstab =
-    crosstab
-        |> compareToColumn (\mc _ -> mc)
-
-
-currentColumnMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-currentColumnMaybe crosstab =
-    crosstab
-        |> compareToColumnMaybe (\mc _ -> mc)
-
-
-currentTable : Crosstab Float -> Mapping Float (Maybe Float)
-currentTable crosstab =
-    crosstab
-        |> compareToTable (\mt _ -> mt)
-
-
-currentTableMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-currentTableMaybe crosstab =
-    crosstab
-        |> compareToTableMaybe (\mt _ -> mt)
-
-
-rowPercent : Crosstab Float -> Mapping Float (Maybe Float)
-rowPercent crosstab =
-    crosstab
-        |> compareToRow
-            (\mr v -> mr |> Maybe.andThen (\r -> percentImp r v))
-
-
-rowPercentMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-rowPercentMaybe crosstab =
-    crosstab
-        |> compareToRowMaybe
-            (\mr mv ->
-                Maybe.map2 (\r v -> percentImp r v) mr mv
-                    |> Maybe.andThen identity
-            )
-
-
-columnPercent : Crosstab Float -> Mapping Float (Maybe Float)
-columnPercent crosstab =
-    crosstab
-        |> compareToColumn
-            (\mc v -> mc |> Maybe.andThen (\c -> percentImp c v))
-
-
-columnPercentMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-columnPercentMaybe crosstab =
-    crosstab
-        |> compareToColumnMaybe
-            (\mc mv ->
-                Maybe.map2 (\c v -> percentImp c v) mc mv
-                    |> Maybe.andThen identity
-            )
-
-
-tablePercent : Crosstab Float -> Mapping Float (Maybe Float)
-tablePercent crosstab =
-    crosstab
-        |> compareToTable
-            (\mt v -> mt |> Maybe.andThen (\t -> percentImp t v))
-
-
-tablePercentMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-tablePercentMaybe crosstab =
-    crosstab
-        |> compareToTableMaybe
-            (\mt mv ->
-                Maybe.map2 (\t v -> percentImp t v) mt mv
-                    |> Maybe.andThen identity
-            )
-
-
-chiSq : Crosstab Float -> Mapping Float (Maybe Float)
-chiSq crosstab =
-    crosstab
-        |> compareToRowColumnTable
-            (\mr mc mt v ->
-                Maybe.map3 (\r c t -> chiSqImp r c t v) mr mc mt
-                    |> Maybe.andThen identity
-            )
-
-
-chiSqMaybe : Crosstab (Maybe Float) -> Mapping (Maybe Float) (Maybe Float)
-chiSqMaybe crosstab =
-    crosstab
-        |> compareToRowColumnTableMaybe
-            (\mr mc mt mv ->
-                Maybe.map4 (\r c t v -> chiSqImp r c t v) mr mc mt mv
-                    |> Maybe.andThen identity
-            )
-
-
 percentImp : Float -> Float -> Maybe Float
 percentImp total value =
     if total == 0.0 then
@@ -499,11 +513,187 @@ type Query a
     = Query
         { sortRows : CompareAxis a
         , sortColumns : CompareAxis a
+        , rowDimensions : Maybe Int
+        , columnDimensions : Maybe Int
         }
 
 
 type alias CompareAxis a =
-    Levels -> a -> Levels -> a -> Order
+    Levels -> List a -> Levels -> List a -> Order
+
+
+query : Query a -> Crosstab a -> Maybe (Flat.Table a)
+query (Query q) (Crosstab c) =
+    c.table
+        |> Dict.toList
+        |> List.filter
+            (filterMaybeDimensions q.rowDimensions q.columnDimensions)
+        |> sortLevelsPairValuesWith q.sortRows q.sortColumns
+        |> axisLabelsAndTableFromLevelsPairValues
+        |> Maybe.map
+            (\( rows, cols, t ) ->
+                Flat.initTable
+                    { valueLabel = c.valueLabel
+                    , rowDimLabels = c.rowDimLabels
+                    , columnDimLabels = c.columnDimLabels
+                    , rowLabels = rows
+                    , columnLabels = cols
+                    , table = t
+                    }
+            )
+
+
+filterMaybeDimensions : Maybe Int -> Maybe Int -> ( LevelsPair, a ) -> Bool
+filterMaybeDimensions mrdim mcdim ( ( rs, cs ), _ ) =
+    case ( mrdim, mcdim ) of
+        ( Nothing, Nothing ) ->
+            True
+
+        ( Nothing, Just cdim ) ->
+            List.length cs <= cdim
+
+        ( Just rdim, Nothing ) ->
+            List.length rs <= rdim
+
+        ( Just rdim, Just cdim ) ->
+            (List.length cs <= cdim) && (List.length rs <= rdim)
+
+
+sortLevelsPairValuesWith :
+    CompareAxis a
+    -> CompareAxis a
+    -> List ( LevelsPair, a )
+    -> List ( LevelsPair, a )
+sortLevelsPairValuesWith rfn cfn list =
+    let
+        ( rtable, ctable ) =
+            dimensionTables list
+    in
+    list |> List.sortWith (sortLevelsPairValuesWithInner rtable ctable rfn cfn)
+
+
+axisLabelsAndTableFromLevelsPairValues : List ( LevelsPair, a ) -> Maybe ( List Levels, List Levels, Matrix a )
+axisLabelsAndTableFromLevelsPairValues pairs =
+    let
+        ( rlabels, clabels, data ) =
+            pairs
+                |> List.foldr
+                    (\( ( r, c ), v ) ( rs, cs, vs ) ->
+                        ( OrderedSet.insert r rs
+                        , OrderedSet.insert c cs
+                        , vs ++ [ v ]
+                        )
+                    )
+                    ( OrderedSet.empty, OrderedSet.empty, [] )
+                |> (\( rs, cs, vs ) ->
+                        ( OrderedSet.toList rs
+                        , OrderedSet.toList cs
+                        , vs
+                        )
+                   )
+
+        mtable =
+            Matrix.fromFlatList
+                (List.length clabels)
+                (List.length rlabels)
+                data
+    in
+    mtable |> Maybe.map (\table -> ( rlabels, clabels, table ))
+
+
+sortLevelsPairValuesWithInner :
+    Dict Levels (List a)
+    -> Dict Levels (List a)
+    -> CompareAxis a
+    -> CompareAxis a
+    -> ( LevelsPair, a )
+    -> ( LevelsPair, a )
+    -> Order
+sortLevelsPairValuesWithInner rtable ctable rfn cfn ( ( rs1, cs1 ), a1 ) ( ( rs2, cs2 ), a2 ) =
+    let
+        rvals1 =
+            rtable |> Dict.get rs1 |> Maybe.withDefault []
+
+        cvals1 =
+            ctable |> Dict.get cs1 |> Maybe.withDefault []
+
+        rvals2 =
+            rtable |> Dict.get rs2 |> Maybe.withDefault []
+
+        cvals2 =
+            ctable |> Dict.get cs2 |> Maybe.withDefault []
+
+        rord =
+            rfn rs1 rvals1 rs2 rvals2
+
+        cord =
+            cfn cs1 cvals1 cs2 cvals2
+    in
+    order2 rord cord
+
+
+dimensionTables :
+    List ( LevelsPair, a )
+    -> ( Dict Levels (List a), Dict Levels (List a) )
+dimensionTables list =
+    let
+        rtable =
+            list
+                |> List.filterMap
+                    (\( ( rs, cs ), a ) ->
+                        if cs |> List.isEmpty then
+                            Just ( rs, a )
+
+                        else
+                            Nothing
+                    )
+                |> dimensionTable
+
+        ctable =
+            list
+                |> List.filterMap
+                    (\( ( rs, cs ), a ) ->
+                        if rs |> List.isEmpty then
+                            Just ( cs, a )
+
+                        else
+                            Nothing
+                    )
+                |> dimensionTable
+    in
+    ( rtable, ctable )
+
+
+dimensionTable : List ( Levels, a ) -> Dict Levels (List a)
+dimensionTable pairs =
+    pairs
+        |> List.sortBy (\( keys, _ ) -> keys |> List.length)
+        |> List.foldl
+            dimensionTableInner
+            Dict.empty
+
+
+dimensionTableInner :
+    ( Levels, a )
+    -> Dict Levels (List a)
+    -> Dict Levels (List a)
+dimensionTableInner ( lvls, a ) dict =
+    let
+        plvls =
+            lvls |> List.take ((lvls |> List.length) - 1)
+
+        val =
+            dict
+                |> Dict.get plvls
+                |> Maybe.withDefault []
+                |> (\pval -> pval ++ [ a ])
+    in
+    dict
+        |> Dict.insert lvls val
+
+
+
+-- SORTING
 
 
 type SortDir
@@ -511,53 +701,136 @@ type SortDir
     | Desc
 
 
-type FlatTable a
-    = FlatTable
-        { valueLabel : ValueLabel
-        , xDimLabels : List String
-        , yDimLabels : List String
-        , xLabels : List Levels
-        , yLabels : List Levels
-        , table : Matrix a
-        }
+{-| Sort axis by levels in the given direction
+-}
+sortByLevels : SortDir -> CompareAxis a
+sortByLevels dir ls1 _ ls2 _ =
+    compareWithSortDir dir ls1 ls2
 
 
-queryRows : Query a -> Crosstab a -> Maybe (FlatTable a)
-queryRows qry (Crosstab c) =
-    Crosstab c
-        |> sortedRowColumnLevelsPairValues qry
-        |> axisLabelsAndTableFromLevelsPairValues
-        |> Maybe.map
-            (\( xs, ys, t ) ->
-                FlatTable
-                    { valueLabel = c.valueLabel
-                    , xDimLabels = c.rowDimLabels
-                    , yDimLabels = c.columnDimLabels
-                    , xLabels = xs
-                    , yLabels = ys
-                    , table = t
-                    }
-            )
+{-| Sort axis by values in the given direction
+-}
+sortByValue : SortDir -> CompareAxis comparable
+sortByValue dir ls1 vs1 ls2 vs2 =
+    order2
+        (compareWithSortDir dir vs1 vs2)
+        (compareWithSortDir dir ls1 ls2)
 
 
-sortedRowColumnLevelsPairValues : Query a -> Crosstab a -> List ( LevelsPair, a )
-sortedRowColumnLevelsPairValues (Query q) (Crosstab c) =
-    c.table
-        |> Dict.toList
-        |> List.sortWith
-            (compareRowColumnLevelsPairValues q.sortRows q.sortColumns)
+{-| Sort axis by values in the given direction, with `Nothing` cases
+compared as either lower (LT) or higher (GT) than any `Just` case.
+-}
+sortByValueMaybe : Order -> SortDir -> CompareAxis (Maybe comparable)
+sortByValueMaybe default dir ls1 vs1 ls2 vs2 =
+    order2
+        (compareListMaybeWithSortDir default dir vs1 vs2)
+        (compareWithSortDir dir ls1 ls2)
 
 
-compareRowColumnLevelsPairValues : CompareAxis a -> CompareAxis a -> ( LevelsPair, a ) -> ( LevelsPair, a ) -> Order
-compareRowColumnLevelsPairValues rcomp ccomp ( ( rs0, cs0 ), a0 ) ( ( rs1, cs1 ), a1 ) =
+{-| Combine sorts
+-}
+sort2 : CompareAxis a -> CompareAxis a -> CompareAxis a
+sort2 s1 s2 ls1 vs1 ls2 vs2 =
     let
-        rorder =
-            rcomp rs0 a0 rs1 a1
+        o1 =
+            s1 ls1 vs1 ls2 vs2
 
-        corder =
-            ccomp cs0 a0 cs1 a1
+        o2 =
+            s2 ls1 vs1 ls2 vs2
     in
-    case ( rorder, corder ) of
+    order2 o1 o2
+
+
+{-| Note that a typical rendering of a crosstab table has the summary
+row at the bottom and column on the right. Because of the representation
+of summary rows/cols as an empty list, by default they will appear instead
+at the top and left. So to reproduce the typical behavior, define your
+sorting using this helper function:
+
+        withSummaryAtBottom (sortByLevels Desc)
+
+-}
+withSummaryAtBottom : CompareAxis a -> CompareAxis a
+withSummaryAtBottom =
+    positionSummary GT
+
+
+positionSummary : Order -> CompareAxis a -> CompareAxis a
+positionSummary default s ls1 vs1 ls2 vs2 =
+    case ( ls1, ls2 ) of
+        ( [], [] ) ->
+            EQ
+
+        ( [], _ ) ->
+            default
+
+        ( _, [] ) ->
+            reverseOrder default
+
+        _ ->
+            s ls1 vs1 ls2 vs2
+
+
+compareWithSortDir : SortDir -> comparable -> comparable -> Order
+compareWithSortDir dir a b =
+    case dir of
+        Asc ->
+            compare a b
+
+        Desc ->
+            compare b a
+
+
+compareListMaybeWithSortDir : Order -> SortDir -> List (Maybe comparable) -> List (Maybe comparable) -> Order
+compareListMaybeWithSortDir default dir ms1 ms2 =
+    let
+        ord =
+            orderMany <| List.map2 (compareMaybeWithSortDir default dir) ms1 ms2
+
+        ordlength =
+            compare (ms1 |> List.length) (ms2 |> List.length)
+    in
+    order2 ord ordlength
+
+
+compareMaybeWithSortDir : Order -> SortDir -> Maybe comparable -> Maybe comparable -> Order
+compareMaybeWithSortDir default dir mv1 mv2 =
+    case ( mv1, mv2, dir ) of
+        ( Nothing, Nothing, _ ) ->
+            EQ
+
+        ( Just v1, Just v2, _ ) ->
+            compareWithSortDir dir v1 v2
+
+        ( Nothing, Just _, Asc ) ->
+            default
+
+        ( Nothing, Just _, Desc ) ->
+            reverseOrder default
+
+        ( Just _, Nothing, Asc ) ->
+            reverseOrder default
+
+        ( Just _, Nothing, Desc ) ->
+            default
+
+
+reverseOrder : Order -> Order
+reverseOrder o =
+    case o of
+        LT ->
+            GT
+
+        EQ ->
+            EQ
+
+        GT ->
+            LT
+
+
+order2 : Order -> Order -> Order
+order2 o1 o2 =
+    case ( o1, o2 ) of
         ( LT, LT ) ->
             LT
 
@@ -586,146 +859,6 @@ compareRowColumnLevelsPairValues rcomp ccomp ( ( rs0, cs0 ), a0 ) ( ( rs1, cs1 )
             GT
 
 
-axisLabelsAndTableFromLevelsPairValues : List ( LevelsPair, a ) -> Maybe ( List Levels, List Levels, Matrix a )
-axisLabelsAndTableFromLevelsPairValues pv =
-    let
-        ( xlabels, ylabels, data ) =
-            pv
-                |> List.foldr
-                    (\( ( x, y ), v ) ( xs, ys, vs ) ->
-                        ( OrderedSet.insert x xs
-                        , OrderedSet.insert y ys
-                        , vs ++ [ v ]
-                        )
-                    )
-                    ( OrderedSet.empty, OrderedSet.empty, [] )
-                |> (\( xs, ys, vs ) ->
-                        ( OrderedSet.toList xs
-                        , OrderedSet.toList ys
-                        , vs
-                        )
-                   )
-
-        mtable =
-            Matrix.fromFlatList
-                (List.length ylabels)
-                -- width
-                (List.length xlabels)
-                -- height
-                data
-    in
-    mtable |> Maybe.map (\table -> ( xlabels, ylabels, table ))
-
-
-
--- SORTS
-
-
-{-| Sort axis by levels in the given direction
--}
-sortByLevels : SortDir -> CompareAxis a
-sortByLevels dir ls0 _ ls1 _ =
-    compareWithSortDir dir ls0 ls1
-
-
-{-| Sort axis by values in the given direction
--}
-sortByValue : SortDir -> CompareAxis comparable
-sortByValue dir ls0 a0 ls1 a1 =
-    compareWithSortDir dir a0 a1
-
-
-
--- not sure how to do this maintaining the dim hierarchy
-
-
-{-| Sort axis by values in the given direction, with `Nothing` cases
-compared as either lower (LT) or higher (GT).
--}
-sortByValueMaybe : Order -> SortDir -> CompareAxis (Maybe comparable)
-sortByValueMaybe default dir _ a0 _ a1 =
-    compareMaybeWithSortDir default dir a0 a1
-
-
-{-| Note that a typical rendering of a crosstab table has the summary
-row at the bottom and column on the right. Because of the representation
-of summary rows/cols as an empty list, by default they will appear instead
-at the top and left. So to reproduce the typical behavior, define your
-sorting using this helper function:
-
-        withSummaryAtBottom (sortByLevels Desc)
-
--}
-withSummaryAtBottom : CompareAxis a -> CompareAxis a
-withSummaryAtBottom =
-    positionSummary GT
-
-
-positionSummary : Order -> CompareAxis a -> CompareAxis a
-positionSummary default sortfn ls0 a0 ls1 a1 =
-    case ( ls0, ls1 ) of
-        ( [], [] ) ->
-            EQ
-
-        ( [], _ ) ->
-            default
-
-        ( _, [] ) ->
-            reverseOrder default
-
-        _ ->
-            sortfn ls0 a0 ls1 a1
-
-
-compareWithSortDir : SortDir -> comparable -> comparable -> Order
-compareWithSortDir dir a b =
-    case dir of
-        Asc ->
-            compare a b
-
-        Desc ->
-            compare b a
-
-
-compareMaybeWithSortDir : Order -> SortDir -> Maybe comparable -> Maybe comparable -> Order
-compareMaybeWithSortDir default dir ma mb =
-    let
-        default_ =
-            case ( dir, default ) of
-                ( Asc, _ ) ->
-                    default
-
-                ( Desc, LT ) ->
-                    GT
-
-                ( Desc, EQ ) ->
-                    EQ
-
-                ( Desc, GT ) ->
-                    LT
-    in
-    case ( ma, mb ) of
-        ( Nothing, Nothing ) ->
-            default_
-
-        ( Just a, Nothing ) ->
-            default_
-
-        ( Nothing, Just b ) ->
-            default_
-
-        ( Just a, Just b ) ->
-            compareWithSortDir dir a b
-
-
-reverseOrder : Order -> Order
-reverseOrder order =
-    case order of
-        LT ->
-            GT
-
-        EQ ->
-            EQ
-
-        GT ->
-            LT
+orderMany : List Order -> Order
+orderMany =
+    List.foldr order2 EQ
