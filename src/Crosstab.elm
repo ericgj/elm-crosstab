@@ -1,5 +1,5 @@
 module Crosstab exposing
-    ( Crosstab
+    ( Crosstab(..)
     , Query(..)
     , SortDir(..)
     , andCalc
@@ -23,6 +23,7 @@ module Crosstab exposing
     , currentTable
     , currentTableMaybe
     , currentValue
+    , init
     , map
     , mean
     , merge
@@ -33,6 +34,7 @@ module Crosstab exposing
     , sortByLevels
     , sortByValue
     , sortByValueMaybe
+    , sortingBy
     , stdDev
     , tablePercent
     , tablePercentMaybe
@@ -129,7 +131,7 @@ updateCell levelsPair fn initVal tab =
             tab |> Dict.insert levelsPair (fn c)
 
         Nothing ->
-            tab |> Dict.insert levelsPair initVal
+            tab |> Dict.insert levelsPair (fn initVal)
 
 
 
@@ -520,6 +522,16 @@ type Query a
 
 type alias CompareAxis a =
     Levels -> List a -> Levels -> List a -> Order
+
+
+sortingBy : CompareAxis a -> CompareAxis a -> Query a
+sortingBy sortRows sortColumns =
+    Query
+        { sortRows = sortRows
+        , sortColumns = sortColumns
+        , rowDimensions = Nothing
+        , columnDimensions = Nothing
+        }
 
 
 query : Query a -> Crosstab a -> Maybe (Flat.Table a)

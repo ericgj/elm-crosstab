@@ -2,6 +2,7 @@ module Crosstab.Spec exposing
     ( Spec
     , columnLabels
     , columnLevels
+    , init
     , rowLabels
     , rowLevels
     , value

@@ -1,4 +1,4 @@
-module Crosstab.Flat exposing (Table, initTable)
+module Crosstab.Flat exposing (Table(..), initTable)
 
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Matrix exposing (Matrix)
