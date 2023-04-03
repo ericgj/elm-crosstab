@@ -1,12 +1,14 @@
 module TestCrosstab exposing (suite)
 
-import Crosstab exposing (Crosstab(..))
+import Array
+import Crosstab exposing (Crosstab(..), Query)
 import Crosstab.Accum as Accum exposing (Accum)
 import Crosstab.Flat as Flat exposing (Table(..))
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
+import Matrix exposing (Matrix)
 import Test exposing (..)
 
 
@@ -51,7 +53,7 @@ suite =
             ]
         , describe "query"
             [ describe "1x1"
-                [ test "sort levels desc" <|
+                [ test "sort rows and columns levels desc" <|
                     \_ ->
                         let
                             rowSort =
@@ -61,22 +63,77 @@ suite =
                                 rowSort
 
                             ( expRowLabels, expColLabels, expValues ) =
-                                expected1x1sortLevelsDesc
-
-                            expects =
-                                Expect.all
-                                    [ expectFlatTableRowLabels expRowLabels
-                                    ]
+                                expected1x1sortLevelsDesc expected1x1sums
                         in
-                        spec1x1 "value" Accum.count
-                            |> (\s -> Crosstab.tabulate s sample1x1)
-                            |> Crosstab.query (Crosstab.sortingBy rowSort colSort)
-                            |> Maybe.map expects
-                            |> Maybe.withDefault
-                                (Expect.fail "Failed to construct Flat Table")
+                        expectQuery1x1
+                            (Accum.sum .val)
+                            (Crosstab.sortingBy rowSort colSort)
+                            expRowLabels
+                            expColLabels
+                            expValues
+                , test "sort rows value desc, columns levels asc" <|
+                    \_ ->
+                        let
+                            rowSort =
+                                Crosstab.sortByValue Crosstab.Desc
+
+                            colSort =
+                                Crosstab.sortByLevels Crosstab.Asc
+
+                            ( expRowLabels, expColLabels, expValues ) =
+                                expected1x1sortRowValueDescColLevelsAscSums False
+                        in
+                        expectQuery1x1
+                            (Accum.sum .val)
+                            (Crosstab.sortingBy rowSort colSort)
+                            expRowLabels
+                            expColLabels
+                            expValues
+                , test "sort rows value desc, columns levels asc, with summary at end" <|
+                    \_ ->
+                        let
+                            rowSort =
+                                Crosstab.withSummaryAtEnd <| Crosstab.sortByValue Crosstab.Desc
+
+                            colSort =
+                                Crosstab.withSummaryAtEnd <| Crosstab.sortByLevels Crosstab.Asc
+
+                            ( expRowLabels, expColLabels, expValues ) =
+                                expected1x1sortRowValueDescColLevelsAscSums True
+                        in
+                        expectQuery1x1
+                            (Accum.sum .val)
+                            (Crosstab.sortingBy rowSort colSort)
+                            expRowLabels
+                            expColLabels
+                            expValues
                 ]
             ]
         ]
+
+
+expectQuery1x1 :
+    Accum Datum1x1 b comparable
+    -> Query comparable
+    -> List (List String)
+    -> List (List String)
+    -> List (List (Maybe comparable))
+    -> Expectation
+expectQuery1x1 accum q expRowLabels expColLabels expValues =
+    let
+        expects =
+            Expect.all
+                [ expectFlatTableColLabels expColLabels
+                , expectFlatTableRowLabels expRowLabels
+                , expectFlatTableValuesMaybe expValues
+                ]
+    in
+    spec1x1 "value" accum
+        |> (\s -> Crosstab.tabulate s sample1x1)
+        |> Crosstab.query q
+        |> Maybe.map expects
+        |> Maybe.withDefault
+            (Expect.fail "Failed to construct Flat Table")
 
 
 expectRowDimLabels : List String -> Crosstab a -> Expectation
@@ -166,6 +223,71 @@ expectFlatTableRowLabels expected (Table f) =
             )
 
 
+expectFlatTableColLabels : List (List String) -> Flat.Table a -> Expectation
+expectFlatTableColLabels expected (Table f) =
+    Expect.equal expected f.columnLabels
+        |> Expect.onFail
+            ("Expected column labels "
+                ++ Debug.toString expected
+                ++ " , were "
+                ++ Debug.toString f.columnLabels
+            )
+
+
+expectFlatTableValuesMaybe : List (List (Maybe comparable)) -> Flat.Table (Maybe comparable) -> Expectation
+expectFlatTableValuesMaybe expected (Table f) =
+    let
+        h =
+            expected |> List.length
+
+        w =
+            expected
+                |> List.map List.length
+                |> List.maximum
+                |> Maybe.withDefault 0
+    in
+    f.table
+        |> Expect.all
+            [ expectFlatTableValuesHeightWidth h w
+            , expectFlatTableValuesMaybeContents expected
+            ]
+
+
+expectFlatTableValuesHeightWidth : Int -> Int -> Matrix a -> Expectation
+expectFlatTableValuesHeightWidth h w m =
+    let
+        msg =
+            "Matrix: " ++ Debug.toString m
+    in
+    m
+        |> Expect.all
+            [ Matrix.height
+                >> Expect.equal h
+                >> Expect.onFail ("Expected height " ++ Debug.toString h ++ "\n" ++ msg)
+            , Matrix.width
+                >> Expect.equal w
+                >> Expect.onFail ("Expected width " ++ Debug.toString w ++ "\n" ++ msg)
+            ]
+
+
+expectFlatTableValuesMaybeContents : List (List (Maybe comparable)) -> Matrix (Maybe comparable) -> Expectation
+expectFlatTableValuesMaybeContents expected m =
+    let
+        expectedFlat =
+            expected |> List.concatMap identity
+
+        actual =
+            m.data |> Array.toList
+    in
+    Expect.equalLists
+        expectedFlat
+        actual
+
+
+
+-- TEST DATA AND EXPECTED RESULTS
+
+
 spec1x1 : String -> Accum Datum1x1 b c -> Spec Datum1x1 b c
 spec1x1 label accum =
     Spec.init
@@ -242,28 +364,70 @@ expected1x1means =
         expected1x1counts
 
 
-expected1x1sortLevelsDesc : ( List (List String), List (List String), List (Maybe Int) )
-expected1x1sortLevelsDesc =
+expected1x1sortLevelsDesc :
+    List ( ( List String, List String ), a )
+    -> ( List (List String), List (List String), List (List (Maybe a)) )
+expected1x1sortLevelsDesc expected =
     let
-        lookup =
-            Dict.fromList expected1x1sums
-
         rdims =
-            [ [], [ "C" ], [ "B" ], [ "A" ] ]
+            [ [ "C" ], [ "B" ], [ "A" ], [] ]
 
         cdims =
-            [ [], [ "4" ], [ "3" ], [ "2" ], [ "1" ] ]
+            [ [ "4" ], [ "3" ], [ "2" ], [ "1" ], [] ]
+    in
+    expected1x1sort rdims cdims expected
+
+
+expected1x1sortRowValueDescColLevelsAscSums :
+    Bool
+    -> ( List (List String), List (List String), List (List (Maybe Int)) )
+expected1x1sortRowValueDescColLevelsAscSums summaryAtEnd =
+    let
+        rdims =
+            if summaryAtEnd then
+                [ [ "B" ], [ "A" ], [ "C" ], [] ]
+
+            else
+                [ [ "B" ], [ "A" ], [ "C" ], [] ]
+
+        cdims =
+            if summaryAtEnd then
+                [ [ "1" ], [ "2" ], [ "3" ], [ "4" ], [] ]
+
+            else
+                [ [], [ "1" ], [ "2" ], [ "3" ], [ "4" ] ]
+    in
+    expected1x1sort rdims cdims expected1x1sums
+
+
+
+-- Note: don't call directly unless you know what you're doing
+
+
+expected1x1sort :
+    List (List String)
+    -> List (List String)
+    -> List ( ( List String, List String ), a )
+    -> ( List (List String), List (List String), List (List (Maybe a)) )
+expected1x1sort rdims cdims expected =
+    let
+        lookup =
+            Dict.fromList expected
     in
     ( rdims
     , cdims
     , rdims
-        |> List.concatMap
+        |> List.map
             (\rs ->
                 cdims
                     |> List.map
                         (\cs -> lookup |> Dict.get ( rs, cs ))
             )
     )
+
+
+
+-- GENERIC EXPECTATIONS
 
 
 dictValueEquals : comparable2 -> comparable -> Dict comparable comparable2 -> Expectation

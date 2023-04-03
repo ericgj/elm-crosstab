@@ -39,7 +39,7 @@ module Crosstab exposing
     , tablePercent
     , tablePercentMaybe
     , tabulate
-    , withSummaryAtBottom
+    , withSummaryAtEnd
     )
 
 import Crosstab.Accum as Accum exposing (Accum, ParametricData)
@@ -47,6 +47,7 @@ import Crosstab.Flat as Flat
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
+import Dict.Extra as Dict
 import List.Extra as List
 import Matrix exposing (Matrix)
 import OrderedSet
@@ -534,25 +535,14 @@ sortingBy sortRows sortColumns =
         }
 
 
-query : Query a -> Crosstab a -> Maybe (Flat.Table a)
+query : Query a -> Crosstab a -> Maybe (Flat.Table (Maybe a))
 query (Query q) (Crosstab c) =
     c.table
         |> Dict.toList
         |> List.filter
             (filterMaybeDimensions q.rowDimensions q.columnDimensions)
         |> sortLevelsPairValuesWith q.sortRows q.sortColumns
-        |> axisLabelsAndTableFromLevelsPairValues
-        |> Maybe.map
-            (\( rows, cols, t ) ->
-                Flat.initTable
-                    { valueLabel = c.valueLabel
-                    , rowDimLabels = c.rowDimLabels
-                    , columnDimLabels = c.columnDimLabels
-                    , rowLabels = rows
-                    , columnLabels = cols
-                    , table = t
-                    }
-            )
+        |> cartesianToFlatTable c.valueLabel c.rowDimLabels c.columnDimLabels
 
 
 filterMaybeDimensions : Maybe Int -> Maybe Int -> ( LevelsPair, a ) -> Bool
@@ -575,73 +565,77 @@ sortLevelsPairValuesWith :
     CompareAxis a
     -> CompareAxis a
     -> List ( LevelsPair, a )
-    -> List ( LevelsPair, a )
+    -> List ( LevelsPair, Maybe a )
 sortLevelsPairValuesWith rfn cfn list =
     let
-        ( rtable, ctable ) =
-            dimensionTables list
+        sorts =
+            list
+                |> dimensionTables
+                |> (\( rtable, ctable ) ->
+                        Dict.cartesianJoin Tuple.pair Tuple.pair rtable ctable
+                   )
+
+        outer =
+            Dict.leftOuterJoin
+                Tuple.pair
+                sorts
+                (list |> Dict.fromList)
     in
-    list |> List.sortWith (sortLevelsPairValuesWithInner rtable ctable rfn cfn)
+    outer
+        |> Dict.toList
+        |> List.sortWith
+            (\( ( rs1, cs1 ), ( ( rsortv1, csortv1 ), _ ) ) ( ( rs2, cs2 ), ( ( rsortv2, csortv2 ), _ ) ) ->
+                order2
+                    (rfn rs1 rsortv1 rs2 rsortv2)
+                    (cfn cs1 csortv1 cs2 csortv2)
+            )
+        |> List.map
+            (\( ( rs, cs ), ( _, mv ) ) -> ( ( rs, cs ), mv ))
 
 
-axisLabelsAndTableFromLevelsPairValues : List ( LevelsPair, a ) -> Maybe ( List Levels, List Levels, Matrix a )
-axisLabelsAndTableFromLevelsPairValues pairs =
+cartesianToFlatTable :
+    ValueLabel
+    -> List String
+    -> List String
+    -> List ( LevelsPair, Maybe a )
+    -> Maybe (Flat.Table (Maybe a))
+cartesianToFlatTable vlabel rdims cdims data =
     let
-        ( rlabels, clabels, data ) =
-            pairs
-                |> List.foldr
-                    (\( ( r, c ), v ) ( rs, cs, vs ) ->
+        ( rlabels, clabels, values ) =
+            data
+                |> List.foldl
+                    (\( ( r, c ), mv ) ( rs, cs, mvs ) ->
                         ( OrderedSet.insert r rs
                         , OrderedSet.insert c cs
-                        , vs ++ [ v ]
+                        , mvs ++ [ mv ]
                         )
                     )
                     ( OrderedSet.empty, OrderedSet.empty, [] )
-                |> (\( rs, cs, vs ) ->
+                |> (\( rs, cs, mvs ) ->
                         ( OrderedSet.toList rs
                         , OrderedSet.toList cs
-                        , vs
+                        , mvs
                         )
                    )
 
         mtable =
             Matrix.fromFlatList
-                (List.length clabels)
-                (List.length rlabels)
-                data
+                (clabels |> List.length)
+                (rlabels |> List.length)
+                values
     in
-    mtable |> Maybe.map (\table -> ( rlabels, clabels, table ))
-
-
-sortLevelsPairValuesWithInner :
-    Dict Levels (List a)
-    -> Dict Levels (List a)
-    -> CompareAxis a
-    -> CompareAxis a
-    -> ( LevelsPair, a )
-    -> ( LevelsPair, a )
-    -> Order
-sortLevelsPairValuesWithInner rtable ctable rfn cfn ( ( rs1, cs1 ), a1 ) ( ( rs2, cs2 ), a2 ) =
-    let
-        rvals1 =
-            rtable |> Dict.get rs1 |> Maybe.withDefault []
-
-        cvals1 =
-            ctable |> Dict.get cs1 |> Maybe.withDefault []
-
-        rvals2 =
-            rtable |> Dict.get rs2 |> Maybe.withDefault []
-
-        cvals2 =
-            ctable |> Dict.get cs2 |> Maybe.withDefault []
-
-        rord =
-            rfn rs1 rvals1 rs2 rvals2
-
-        cord =
-            cfn cs1 cvals1 cs2 cvals2
-    in
-    order2 rord cord
+    mtable
+        |> Maybe.map
+            (\t ->
+                Flat.initTable
+                    { valueLabel = vlabel
+                    , rowDimLabels = rdims
+                    , columnDimLabels = cdims
+                    , rowLabels = rlabels
+                    , columnLabels = clabels
+                    , table = t
+                    }
+            )
 
 
 dimensionTables :
@@ -721,12 +715,13 @@ sortByLevels dir ls1 _ ls2 _ =
 
 
 {-| Sort axis by values in the given direction
+(and by levels ascending in case of equal values)
 -}
 sortByValue : SortDir -> CompareAxis comparable
 sortByValue dir ls1 vs1 ls2 vs2 =
     order2
         (compareWithSortDir dir vs1 vs2)
-        (compareWithSortDir dir ls1 ls2)
+        (compareWithSortDir Asc ls1 ls2)
 
 
 {-| Sort axis by values in the given direction, with `Nothing` cases
@@ -759,11 +754,11 @@ of summary rows/cols as an empty list, by default they will appear instead
 at the top and left. So to reproduce the typical behavior, define your
 sorting using this helper function:
 
-        withSummaryAtBottom (sortByLevels Desc)
+        withSummaryAtEnd (sortByLevels Desc)
 
 -}
-withSummaryAtBottom : CompareAxis a -> CompareAxis a
-withSummaryAtBottom =
+withSummaryAtEnd : CompareAxis a -> CompareAxis a
+withSummaryAtEnd =
     positionSummary GT
 
 
