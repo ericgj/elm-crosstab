@@ -6,6 +6,8 @@ module Crosstab exposing
     , calc2
     , chiSq
     , chiSqMaybe
+    , columnDimensionLabels
+    , columnDimensionSize
     , columnPercent
     , columnPercentMaybe
     , compareToColumn
@@ -23,11 +25,14 @@ module Crosstab exposing
     , currentTable
     , currentTableMaybe
     , currentValue
+    , dimensionSize
     , init
     , map
     , mean
     , merge
     , query
+    , rowDimensionLabels
+    , rowDimensionSize
     , rowPercent
     , rowPercentMaybe
     , sort2
@@ -39,27 +44,30 @@ module Crosstab exposing
     , tablePercent
     , tablePercentMaybe
     , tabulate
+    , valueLabel
     , withSummaryAtEnd
     )
 
 import Crosstab.Accum as Accum exposing (Accum, ParametricData)
-import Crosstab.Flat as Flat
+import Crosstab.Display as Display
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import List.Extra as List
-import Matrix exposing (Matrix)
 import OrderedSet
 
 
 type Crosstab a
-    = Crosstab
-        { rowDimLabels : List String
-        , columnDimLabels : List String
-        , valueLabel : ValueLabel
-        , table : Table a
-        }
+    = Crosstab (CrosstabData a)
+
+
+type alias CrosstabData a =
+    { rowDimLabels : List String
+    , columnDimLabels : List String
+    , valueLabel : ValueLabel
+    , table : Table a
+    }
 
 
 type alias Table a =
@@ -72,6 +80,51 @@ type alias LevelsPair =
 
 type alias Levels =
     List String
+
+
+
+-- GETTERS
+
+
+rowDimensionLabels : Crosstab a -> List String
+rowDimensionLabels =
+    getData >> .rowDimLabels
+
+
+columnDimensionLabels : Crosstab a -> List String
+columnDimensionLabels =
+    getData >> .columnDimLabels
+
+
+valueLabel : Crosstab a -> ValueLabel
+valueLabel =
+    getData >> .valueLabel
+
+
+rowDimensionSize : Crosstab a -> Int
+rowDimensionSize =
+    dimensionSize >> Tuple.first
+
+
+columnDimensionSize : Crosstab a -> Int
+columnDimensionSize =
+    dimensionSize >> Tuple.second
+
+
+dimensionSize : Crosstab a -> ( Int, Int )
+dimensionSize xtab =
+    let
+        d =
+            getData xtab
+    in
+    ( d.rowDimLabels |> List.length
+    , d.columnDimLabels |> List.length
+    )
+
+
+getData : Crosstab a -> CrosstabData a
+getData (Crosstab c) =
+    c
 
 
 
@@ -535,14 +588,14 @@ sortingBy sortRows sortColumns =
         }
 
 
-query : Query a -> Crosstab a -> Maybe (Flat.Table (Maybe a))
+query : Query a -> Crosstab a -> Maybe (Display.Table a)
 query (Query q) (Crosstab c) =
     c.table
         |> Dict.toList
         |> List.filter
             (filterMaybeDimensions q.rowDimensions q.columnDimensions)
         |> sortLevelsPairValuesWith q.sortRows q.sortColumns
-        |> cartesianToFlatTable c.valueLabel c.rowDimLabels c.columnDimLabels
+        |> cartesianToDisplayTable c.valueLabel c.rowDimLabels c.columnDimLabels
 
 
 filterMaybeDimensions : Maybe Int -> Maybe Int -> ( LevelsPair, a ) -> Bool
@@ -593,13 +646,13 @@ sortLevelsPairValuesWith rfn cfn list =
             (\( ( rs, cs ), ( _, mv ) ) -> ( ( rs, cs ), mv ))
 
 
-cartesianToFlatTable :
+cartesianToDisplayTable :
     ValueLabel
     -> List String
     -> List String
     -> List ( LevelsPair, Maybe a )
-    -> Maybe (Flat.Table (Maybe a))
-cartesianToFlatTable vlabel rdims cdims data =
+    -> Maybe (Display.Table a)
+cartesianToDisplayTable vlabel rdims cdims data =
     let
         ( rlabels, clabels, values ) =
             data
@@ -617,25 +670,16 @@ cartesianToFlatTable vlabel rdims cdims data =
                         , mvs
                         )
                    )
-
-        mtable =
-            Matrix.fromFlatList
-                (clabels |> List.length)
-                (rlabels |> List.length)
-                values
     in
-    mtable
-        |> Maybe.map
-            (\t ->
-                Flat.initTable
-                    { valueLabel = vlabel
-                    , rowDimLabels = rdims
-                    , columnDimLabels = cdims
-                    , rowLabels = rlabels
-                    , columnLabels = clabels
-                    , table = t
-                    }
-            )
+    Display.fromValues
+        { valueLabel = vlabel
+        , rowDimLabels = rdims
+        , columnDimLabels = cdims
+        }
+        { rowLabels = rlabels
+        , columnLabels = clabels
+        }
+        values
 
 
 dimensionTables :

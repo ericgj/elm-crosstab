@@ -3,12 +3,11 @@ module TestCrosstab exposing (suite)
 import Array
 import Crosstab exposing (Crosstab(..), Query)
 import Crosstab.Accum as Accum exposing (Accum)
-import Crosstab.Flat as Flat exposing (Table(..))
+import Crosstab.Display as Display
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
-import Matrix exposing (Matrix)
 import Test exposing (..)
 
 
@@ -123,9 +122,9 @@ expectQuery1x1 accum q expRowLabels expColLabels expValues =
     let
         expects =
             Expect.all
-                [ expectFlatTableColLabels expColLabels
-                , expectFlatTableRowLabels expRowLabels
-                , expectFlatTableValuesMaybe expValues
+                [ expectDisplayTableColLabels expColLabels
+                , expectDisplayTableRowLabels expRowLabels
+                , expectDisplayTableValues expValues
                 ]
     in
     spec1x1 "value" accum
@@ -133,7 +132,7 @@ expectQuery1x1 accum q expRowLabels expColLabels expValues =
         |> Crosstab.query q
         |> Maybe.map expects
         |> Maybe.withDefault
-            (Expect.fail "Failed to construct Flat Table")
+            (Expect.fail "Failed to construct Display Table")
 
 
 expectRowDimLabels : List String -> Crosstab a -> Expectation
@@ -212,76 +211,41 @@ expectTableContainsMaybeFloat pairs (Crosstab c) =
             )
 
 
-expectFlatTableRowLabels : List (List String) -> Flat.Table a -> Expectation
-expectFlatTableRowLabels expected (Table f) =
-    Expect.equal expected f.rowLabels
+expectDisplayTableRowLabels : List (List String) -> Display.Table a -> Expectation
+expectDisplayTableRowLabels expected tab =
+    let
+        actual =
+            Display.rowLabels tab
+    in
+    Expect.equal expected actual
         |> Expect.onFail
             ("Expected row labels "
                 ++ Debug.toString expected
                 ++ " , were "
-                ++ Debug.toString f.rowLabels
+                ++ Debug.toString actual
             )
 
 
-expectFlatTableColLabels : List (List String) -> Flat.Table a -> Expectation
-expectFlatTableColLabels expected (Table f) =
-    Expect.equal expected f.columnLabels
+expectDisplayTableColLabels : List (List String) -> Display.Table a -> Expectation
+expectDisplayTableColLabels expected tab =
+    let
+        actual =
+            Display.columnLabels tab
+    in
+    Expect.equal expected actual
         |> Expect.onFail
             ("Expected column labels "
                 ++ Debug.toString expected
                 ++ " , were "
-                ++ Debug.toString f.columnLabels
+                ++ Debug.toString actual
             )
 
 
-expectFlatTableValuesMaybe : List (List (Maybe comparable)) -> Flat.Table (Maybe comparable) -> Expectation
-expectFlatTableValuesMaybe expected (Table f) =
-    let
-        h =
-            expected |> List.length
-
-        w =
-            expected
-                |> List.map List.length
-                |> List.maximum
-                |> Maybe.withDefault 0
-    in
-    f.table
-        |> Expect.all
-            [ expectFlatTableValuesHeightWidth h w
-            , expectFlatTableValuesMaybeContents expected
-            ]
-
-
-expectFlatTableValuesHeightWidth : Int -> Int -> Matrix a -> Expectation
-expectFlatTableValuesHeightWidth h w m =
-    let
-        msg =
-            "Matrix: " ++ Debug.toString m
-    in
-    m
-        |> Expect.all
-            [ Matrix.height
-                >> Expect.equal h
-                >> Expect.onFail ("Expected height " ++ Debug.toString h ++ "\n" ++ msg)
-            , Matrix.width
-                >> Expect.equal w
-                >> Expect.onFail ("Expected width " ++ Debug.toString w ++ "\n" ++ msg)
-            ]
-
-
-expectFlatTableValuesMaybeContents : List (List (Maybe comparable)) -> Matrix (Maybe comparable) -> Expectation
-expectFlatTableValuesMaybeContents expected m =
-    let
-        expectedFlat =
-            expected |> List.concatMap identity
-
-        actual =
-            m.data |> Array.toList
-    in
-    Expect.equalLists
-        expectedFlat
-        actual
+expectDisplayTableValues : List (List (Maybe comparable)) -> Display.Table comparable -> Expectation
+expectDisplayTableValues expected tab =
+    tab
+        |> Display.rows
+        |> Expect.equalLists expected
 
 
 
