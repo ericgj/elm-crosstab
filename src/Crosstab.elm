@@ -56,6 +56,7 @@ import Dict exposing (Dict)
 import Dict.Extra as Dict
 import List.Extra as List
 import OrderedSet
+import Window exposing (Window)
 
 
 type Crosstab a
@@ -595,7 +596,10 @@ query (Query q) (Crosstab c) =
         |> List.filter
             (filterMaybeDimensions q.rowDimensions q.columnDimensions)
         |> sortLevelsPairValuesWith q.sortRows q.sortColumns
-        |> cartesianToDisplayTable c.valueLabel c.rowDimLabels c.columnDimLabels
+        |> cartesianToDisplayTable
+            c.valueLabel
+            (c.rowDimLabels |> Window.initMaybeOpen q.rowDimensions)
+            (c.columnDimLabels |> Window.initMaybeOpen q.columnDimensions)
 
 
 filterMaybeDimensions : Maybe Int -> Maybe Int -> ( LevelsPair, a ) -> Bool
@@ -648,8 +652,8 @@ sortLevelsPairValuesWith rfn cfn list =
 
 cartesianToDisplayTable :
     ValueLabel
-    -> List String
-    -> List String
+    -> Window String
+    -> Window String
     -> List ( LevelsPair, Maybe a )
     -> Maybe (Display.Table a)
 cartesianToDisplayTable vlabel rdims cdims data =

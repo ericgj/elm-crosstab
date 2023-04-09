@@ -1,5 +1,6 @@
 module Crosstab.Display exposing
-    ( Header
+    ( ColumnHeader(..)
+    , Header
     , LabelledRow
     , LabelledValue
     , Row
@@ -8,22 +9,29 @@ module Crosstab.Display exposing
     , TableHeader
     , columnDimLabel
     , columnDimLabels
+    , columnHeaders
     , columnLabel
     , columnLabels
     , fromValues
     , labelledRows
+    , mapValues
+    , maxColumnDims
+    , maxColumns
     , rowDimLabel
     , rowDimLabels
     , rowLabel
     , rowLabels
     , rows
     , tableHeader
+    , title
     , value
     , valueLabel
+    , values
     )
 
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import List.Extra as List
+import Window exposing (Window)
 
 
 type Table a
@@ -41,8 +49,8 @@ type Header
 
 type alias TableHeaderData =
     { valueLabel : ValueLabel
-    , rowDimLabels : List String
-    , columnDimLabels : List String
+    , rowDimLabels : Window String
+    , columnDimLabels : Window String
     }
 
 
@@ -105,19 +113,28 @@ tableHeader tab =
             th
 
 
-valueLabel : Table a -> ValueLabel
-valueLabel =
-    getTableHeaderData >> .valueLabel
+title : TableHeader -> String
+title (TableHeader th) =
+    (th.valueLabel |> ValueLabel.toString)
+        ++ " by "
+        ++ (th.rowDimLabels |> Window.getOpen |> String.join "-")
+        ++ " and "
+        ++ (th.columnDimLabels |> Window.getOpen |> String.join "-")
 
 
-rowDimLabels : Table a -> List String
-rowDimLabels =
-    getTableHeaderData >> .rowDimLabels
+valueLabel : TableHeader -> ValueLabel
+valueLabel (TableHeader th) =
+    th.valueLabel
 
 
-columnDimLabels : Table a -> List String
-columnDimLabels =
-    getTableHeaderData >> .columnDimLabels
+rowDimLabels : TableHeader -> Window String
+rowDimLabels (TableHeader th) =
+    th.rowDimLabels
+
+
+columnDimLabels : TableHeader -> Window String
+columnDimLabels (TableHeader th) =
+    th.columnDimLabels
 
 
 columnLabels : Table a -> List (List String)
@@ -150,11 +167,6 @@ rows tab =
             first :: rest
 
 
-getTableHeaderData : Table a -> TableHeaderData
-getTableHeaderData tab =
-    tab |> tableHeader |> (\(TableHeader d) -> d)
-
-
 
 -- DISPLAY TYPES
 
@@ -177,6 +189,7 @@ type alias LabelledRowData a =
 type alias LabelledValueData a =
     { columnDimLabel : List String
     , columnLabel : List String
+    , valueLabel : String
     , value : Maybe a
     }
 
@@ -189,6 +202,11 @@ rowLabel (LabelledRow r) =
 rowDimLabel : LabelledRow a -> List String
 rowDimLabel (LabelledRow r) =
     r.rowDimLabel
+
+
+values : LabelledRow a -> List (LabelledValue a)
+values (LabelledRow r) =
+    r.values
 
 
 columnLabel : LabelledValue a -> List String
@@ -206,6 +224,19 @@ value (LabelledValue v) =
     v.value
 
 
+maxColumns : LabelledRow a -> Int
+maxColumns (LabelledRow r) =
+    r.values |> List.length
+
+
+maxColumnDims : LabelledRow a -> Int
+maxColumnDims (LabelledRow r) =
+    r.values
+        |> List.map (\(LabelledValue d) -> d.columnDimLabel |> List.length)
+        |> List.maximum
+        |> Maybe.withDefault 0
+
+
 labelledRows : Table a -> List (LabelledRow a)
 labelledRows tab =
     case tab of
@@ -216,25 +247,62 @@ labelledRows tab =
             injectLabelsIntoRows th h (first :: rest)
 
 
+mapValues : List ( String, a -> b ) -> List (LabelledRow a) -> List (LabelledRow b)
+mapValues vcols rs =
+    rs
+        |> List.map (mapValuesRow vcols)
+
+
+mapValuesRow : List ( String, a -> b ) -> LabelledRow a -> LabelledRow b
+mapValuesRow vcols (LabelledRow d) =
+    let
+        construct_ vs =
+            LabelledRow
+                { rowDimLabel = d.rowDimLabel
+                , rowLabel = d.rowLabel
+                , values = vs
+                }
+    in
+    d.values
+        |> List.concatMap (mapValuesRowValue vcols)
+        |> construct_
+
+
+mapValuesRowValue : List ( String, a -> b ) -> LabelledValue a -> List (LabelledValue b)
+mapValuesRowValue vcols (LabelledValue d) =
+    let
+        map_ ( vlabel, fn ) =
+            LabelledValue
+                { columnDimLabel = d.columnDimLabel
+                , columnLabel = d.columnLabel
+                , valueLabel = vlabel
+                , value = d.value |> Maybe.map fn
+                }
+    in
+    vcols
+        |> List.map map_
+
+
 injectLabelsIntoRows : TableHeaderData -> HeaderData -> List (Row a) -> List (LabelledRow a)
 injectLabelsIntoRows th h rs =
     let
-        takeFrom list n =
-            List.take n list
+        dimLabel l w =
+            l |> List.length |> (\n -> w |> Window.getOpen |> List.take n)
     in
     rs
         |> List.map2
             (\rl r ->
                 LabelledRow
-                    { rowDimLabel = rl |> List.length |> takeFrom th.rowDimLabels
+                    { rowDimLabel = dimLabel rl th.rowDimLabels
                     , rowLabel = rl
                     , values =
                         r
                             |> List.map2
                                 (\cl mv ->
                                     LabelledValue
-                                        { columnDimLabel = cl |> List.length |> takeFrom th.columnDimLabels
+                                        { columnDimLabel = dimLabel cl th.columnDimLabels
                                         , columnLabel = cl
+                                        , valueLabel = ValueLabel.toString th.valueLabel
                                         , value = mv
                                         }
                                 )
@@ -242,3 +310,118 @@ injectLabelsIntoRows th h rs =
                     }
             )
             h.rowLabels
+
+
+
+-- COLUMN HEADERS
+
+
+type ColumnHeader
+    = ColumnHeader (Maybe String)
+    | SummaryColumnHeader Float (Maybe String)
+    | ValueColumnHeader String
+    | SummaryValueColumnHeader Float String
+
+
+columnHeaders : LabelledRow a -> ( List (List ColumnHeader), List ColumnHeader )
+columnHeaders r =
+    let
+        max =
+            r |> maxColumnDims
+
+        accum_ v ( mlast, vhdr, chdrs ) =
+            ( Just <| v
+            , vhdr ++ [ valueHeaderFromLabelledValue max v ]
+            , chdrs
+                |> List.map2
+                    (\new chdr -> chdr ++ [ new ])
+                    (columnHeadersFromLabelledValue max mlast v)
+            )
+    in
+    r
+        |> values
+        |> List.foldl accum_ ( Nothing, [], [] |> List.repeat max )
+        |> (\( _, vh, chdrs ) -> ( chdrs, vh ))
+
+
+valueHeaderFromLabelledValue : Int -> LabelledValue a -> ColumnHeader
+valueHeaderFromLabelledValue max (LabelledValue v) =
+    let
+        len =
+            v.columnLabel |> List.length
+
+        p =
+            columnSummaryLevel max len
+    in
+    if p == 0.0 then
+        ValueColumnHeader v.valueLabel
+
+    else
+        SummaryValueColumnHeader p v.valueLabel
+
+
+columnHeadersFromLabelledValue : Int -> Maybe (LabelledValue a) -> LabelledValue a -> List ColumnHeader
+columnHeadersFromLabelledValue max mlast (LabelledValue v) =
+    case mlast of
+        Nothing ->
+            columnHeadersFromLabel max v.columnLabel
+
+        Just (LabelledValue v_) ->
+            if v.columnLabel == v_.columnLabel then
+                columnHeadersFromLabel max []
+
+            else
+                columnHeadersFromLabel max v.columnLabel
+
+
+columnSummaryLevel : Int -> Int -> Float
+columnSummaryLevel max len =
+    1.0 - ((len |> toFloat) / (max |> toFloat))
+
+
+columnHeadersFromLabel : Int -> List String -> List ColumnHeader
+columnHeadersFromLabel max label =
+    let
+        len =
+            label |> List.length
+
+        p =
+            columnSummaryLevel max len
+    in
+    label
+        |> listPadr max
+        |> List.indexedMap
+            (\i m ->
+                if i == (len - 1) then
+                    m
+
+                else
+                    Nothing
+            )
+        |> List.map
+            (\m ->
+                if p == 0.0 then
+                    ColumnHeader m
+
+                else
+                    SummaryColumnHeader p m
+            )
+
+
+listPadr : Int -> List a -> List (Maybe a)
+listPadr size list =
+    let
+        len =
+            list |> List.length
+    in
+    case compare len size of
+        EQ ->
+            list |> List.map Just
+
+        LT ->
+            (list |> List.map Just)
+                ++ List.repeat (size - len) Nothing
+
+        GT ->
+            List.range 1 size
+                |> List.map2 (\a _ -> Just a) list
