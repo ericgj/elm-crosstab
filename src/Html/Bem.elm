@@ -1,73 +1,116 @@
 module Html.Bem exposing
-    ( block
-    , blockElem
-    , blockElemMod
-    , blockElemModWithAttr
-    , blockElemWithAttr
+    ( Block
+    , Element
+    , block
+    , blockList
     , blockMod
-    , blockModWithAttr
-    , blockWithAttr
+    , blockOf
+    , element
+    , elementList
+    , elementMod
+    , elementOf
+    , init
     )
 
-import Html exposing (Attribute, Html)
-import Html.Attributes exposing (class)
+import Html exposing (Attribute)
+import Html.Attributes exposing (class, classList)
 
 
-block t =
-    blockWithAttr t []
+type alias Block =
+    { name : String
+    , element : String -> Element
+    }
 
 
-blockMod t =
-    blockModWithAttr t []
+type alias Element =
+    { block : String
+    , name : String
+    }
 
 
-blockElem t =
-    blockElemWithAttr t []
+init : String -> Block
+init b =
+    { name = b
+    , element = Element b
+    }
 
 
-blockElemMod t =
-    blockElemModWithAttr t []
+block : Block -> Attribute a
+block b =
+    class b.name
 
 
-blockWithAttr :
-    (List (Attribute a) -> List (Html a) -> Html a)
-    -> List (Attribute a)
-    -> String
-    -> List (Html a)
-    -> Html a
-blockWithAttr t a b =
-    t (a ++ [ class b ])
+blockOf : String -> String -> Block -> Attribute a
+blockOf k v b =
+    classList
+        [ ( b.name, True )
+        , ( joinBlockOf b.name k v, True )
+        ]
 
 
-blockModWithAttr :
-    (List (Attribute a) -> List (Html a) -> Html a)
-    -> List (Attribute a)
-    -> String
-    -> ( String, String )
-    -> List (Html a)
-    -> Html a
-blockModWithAttr t a b ( mk, mv ) =
-    t (a ++ [ class b, class (b ++ "--" ++ mk ++ "-" ++ mv) ])
+blockMod : String -> Block -> Attribute a
+blockMod m b =
+    classList
+        [ ( b.name, True )
+        , ( joinBlockMod b.name m, True )
+        ]
 
 
-blockElemWithAttr :
-    (List (Attribute a) -> List (Html a) -> Html a)
-    -> List (Attribute a)
-    -> String
-    -> String
-    -> List (Html a)
-    -> Html a
-blockElemWithAttr t a b e =
-    t (a ++ [ class (b ++ "__" ++ e) ])
+blockList : List ( String, Bool ) -> Block -> Attribute a
+blockList list b =
+    classList <|
+        ( b.name, True )
+            :: (list |> List.map (\( m, incl ) -> ( joinBlockMod b.name m, incl )))
 
 
-blockElemModWithAttr :
-    (List (Attribute a) -> List (Html a) -> Html a)
-    -> List (Attribute a)
-    -> String
-    -> String
-    -> ( String, String )
-    -> List (Html a)
-    -> Html a
-blockElemModWithAttr t a b e ( mk, mv ) =
-    t (a ++ [ class (b ++ "__" ++ e), class (b ++ "__" ++ e ++ "--" ++ mk ++ "-" ++ mv) ])
+element : Element -> Attribute a
+element e =
+    class <| joinElement e.block e.name
+
+
+elementOf : String -> String -> Element -> Attribute a
+elementOf k v e =
+    classList
+        [ ( joinElement e.block e.name, True )
+        , ( joinElementOf e.block e.name k v, True )
+        ]
+
+
+elementMod : String -> Element -> Attribute a
+elementMod m e =
+    classList
+        [ ( joinElement e.block e.name, True )
+        , ( joinElementMod e.block e.name m, True )
+        ]
+
+
+elementList : List ( String, Bool ) -> Element -> Attribute a
+elementList list e =
+    classList <|
+        ( joinElement e.block e.name, True )
+            :: (list |> List.map (\( m, incl ) -> ( joinElementMod e.block e.name m, incl )))
+
+
+joinBlockOf : String -> String -> String -> String
+joinBlockOf b k v =
+    b ++ "--" ++ k ++ "-" ++ v
+
+
+joinBlockMod : String -> String -> String
+joinBlockMod b m =
+    b ++ "--" ++ m
+
+
+joinElement : String -> String -> String
+joinElement b e =
+    b ++ "__" ++ e
+
+
+joinElementOf : String -> String -> String -> String -> String
+joinElementOf b e k v =
+    b ++ "__" ++ e ++ "--" ++ k ++ "-" ++ v
+
+
+joinElementMod : String -> String -> String -> String
+joinElementMod b e m =
+    b ++ "__" ++ e ++ "--" ++ m

@@ -15,6 +15,7 @@ module Window exposing
     , isOpen
     , openBy
     , openTo
+    , toList
     , toPair
     )
 
@@ -81,6 +82,11 @@ isClosed (Window l _) =
 toPair : Window a -> ( List a, List a )
 toPair (Window l r) =
     ( l, r )
+
+
+toList : Window a -> List a
+toList (Window l r) =
+    l ++ r
 
 
 getOpen : Window a -> List a

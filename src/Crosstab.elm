@@ -1,7 +1,5 @@
 module Crosstab exposing
     ( Crosstab(..)
-    , Query(..)
-    , SortDir(..)
     , andCalc
     , calc2
     , chiSq
@@ -35,26 +33,22 @@ module Crosstab exposing
     , rowDimensionSize
     , rowPercent
     , rowPercentMaybe
-    , sort2
-    , sortByLevels
-    , sortByValue
-    , sortByValueMaybe
-    , sortingBy
     , stdDev
     , tablePercent
     , tablePercentMaybe
     , tabulate
     , valueLabel
-    , withSummaryAtEnd
     )
 
 import Crosstab.Accum as Accum exposing (Accum, ParametricData)
 import Crosstab.Display as Display
+import Crosstab.Query as Query exposing (CompareAxis, Query)
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import List.Extra as List
+import Order exposing (order2)
 import OrderedSet
 import Window exposing (Window)
 
@@ -566,40 +560,30 @@ chiSqImp row col table value =
 -- QUERY
 
 
-type Query a
-    = Query
-        { sortRows : CompareAxis a
-        , sortColumns : CompareAxis a
-        , rowDimensions : Maybe Int
-        , columnDimensions : Maybe Int
-        }
-
-
-type alias CompareAxis a =
-    Levels -> List a -> Levels -> List a -> Order
-
-
-sortingBy : CompareAxis a -> CompareAxis a -> Query a
-sortingBy sortRows sortColumns =
-    Query
-        { sortRows = sortRows
-        , sortColumns = sortColumns
-        , rowDimensions = Nothing
-        , columnDimensions = Nothing
-        }
-
-
 query : Query a -> Crosstab a -> Maybe (Display.Table a)
-query (Query q) (Crosstab c) =
+query q (Crosstab c) =
+    let
+        rowDims =
+            q |> Query.rowDimensions
+
+        columnDims =
+            q |> Query.columnDimensions
+
+        sortRows =
+            q |> Query.sortRows
+
+        sortColumns =
+            q |> Query.sortColumns
+    in
     c.table
         |> Dict.toList
         |> List.filter
-            (filterMaybeDimensions q.rowDimensions q.columnDimensions)
-        |> sortLevelsPairValuesWith q.sortRows q.sortColumns
+            (filterMaybeDimensions rowDims columnDims)
+        |> sortLevelsPairValuesWith sortRows sortColumns
         |> cartesianToDisplayTable
             c.valueLabel
-            (c.rowDimLabels |> Window.initMaybeOpen q.rowDimensions)
-            (c.columnDimLabels |> Window.initMaybeOpen q.columnDimensions)
+            (c.rowDimLabels |> Window.initMaybeOpen rowDims)
+            (c.columnDimLabels |> Window.initMaybeOpen columnDims)
 
 
 filterMaybeDimensions : Maybe Int -> Maybe Int -> ( LevelsPair, a ) -> Bool
@@ -744,176 +728,3 @@ dimensionTableInner ( lvls, a ) dict =
     in
     dict
         |> Dict.insert lvls val
-
-
-
--- SORTING
-
-
-type SortDir
-    = Asc
-    | Desc
-
-
-{-| Sort axis by levels in the given direction
--}
-sortByLevels : SortDir -> CompareAxis a
-sortByLevels dir ls1 _ ls2 _ =
-    compareWithSortDir dir ls1 ls2
-
-
-{-| Sort axis by values in the given direction
-(and by levels ascending in case of equal values)
--}
-sortByValue : SortDir -> CompareAxis comparable
-sortByValue dir ls1 vs1 ls2 vs2 =
-    order2
-        (compareWithSortDir dir vs1 vs2)
-        (compareWithSortDir Asc ls1 ls2)
-
-
-{-| Sort axis by values in the given direction, with `Nothing` cases
-compared as either lower (LT) or higher (GT) than any `Just` case.
--}
-sortByValueMaybe : Order -> SortDir -> CompareAxis (Maybe comparable)
-sortByValueMaybe default dir ls1 vs1 ls2 vs2 =
-    order2
-        (compareListMaybeWithSortDir default dir vs1 vs2)
-        (compareWithSortDir dir ls1 ls2)
-
-
-{-| Combine sorts
--}
-sort2 : CompareAxis a -> CompareAxis a -> CompareAxis a
-sort2 s1 s2 ls1 vs1 ls2 vs2 =
-    let
-        o1 =
-            s1 ls1 vs1 ls2 vs2
-
-        o2 =
-            s2 ls1 vs1 ls2 vs2
-    in
-    order2 o1 o2
-
-
-{-| Note that a typical rendering of a crosstab table has the summary
-row at the bottom and column on the right. Because of the representation
-of summary rows/cols as an empty list, by default they will appear instead
-at the top and left. So to reproduce the typical behavior, define your
-sorting using this helper function:
-
-        withSummaryAtEnd (sortByLevels Desc)
-
--}
-withSummaryAtEnd : CompareAxis a -> CompareAxis a
-withSummaryAtEnd =
-    positionSummary GT
-
-
-positionSummary : Order -> CompareAxis a -> CompareAxis a
-positionSummary default s ls1 vs1 ls2 vs2 =
-    case ( ls1, ls2 ) of
-        ( [], [] ) ->
-            EQ
-
-        ( [], _ ) ->
-            default
-
-        ( _, [] ) ->
-            reverseOrder default
-
-        _ ->
-            s ls1 vs1 ls2 vs2
-
-
-compareWithSortDir : SortDir -> comparable -> comparable -> Order
-compareWithSortDir dir a b =
-    case dir of
-        Asc ->
-            compare a b
-
-        Desc ->
-            compare b a
-
-
-compareListMaybeWithSortDir : Order -> SortDir -> List (Maybe comparable) -> List (Maybe comparable) -> Order
-compareListMaybeWithSortDir default dir ms1 ms2 =
-    let
-        ord =
-            orderMany <| List.map2 (compareMaybeWithSortDir default dir) ms1 ms2
-
-        ordlength =
-            compare (ms1 |> List.length) (ms2 |> List.length)
-    in
-    order2 ord ordlength
-
-
-compareMaybeWithSortDir : Order -> SortDir -> Maybe comparable -> Maybe comparable -> Order
-compareMaybeWithSortDir default dir mv1 mv2 =
-    case ( mv1, mv2, dir ) of
-        ( Nothing, Nothing, _ ) ->
-            EQ
-
-        ( Just v1, Just v2, _ ) ->
-            compareWithSortDir dir v1 v2
-
-        ( Nothing, Just _, Asc ) ->
-            default
-
-        ( Nothing, Just _, Desc ) ->
-            reverseOrder default
-
-        ( Just _, Nothing, Asc ) ->
-            reverseOrder default
-
-        ( Just _, Nothing, Desc ) ->
-            default
-
-
-reverseOrder : Order -> Order
-reverseOrder o =
-    case o of
-        LT ->
-            GT
-
-        EQ ->
-            EQ
-
-        GT ->
-            LT
-
-
-order2 : Order -> Order -> Order
-order2 o1 o2 =
-    case ( o1, o2 ) of
-        ( LT, LT ) ->
-            LT
-
-        ( LT, EQ ) ->
-            LT
-
-        ( LT, GT ) ->
-            LT
-
-        ( EQ, LT ) ->
-            LT
-
-        ( EQ, EQ ) ->
-            EQ
-
-        ( EQ, GT ) ->
-            GT
-
-        ( GT, LT ) ->
-            GT
-
-        ( GT, EQ ) ->
-            GT
-
-        ( GT, GT ) ->
-            GT
-
-
-orderMany : List Order -> Order
-orderMany =
-    List.foldr order2 EQ

@@ -1,9 +1,10 @@
 module TestCrosstab exposing (suite)
 
 import Array
-import Crosstab exposing (Crosstab(..), Query)
+import Crosstab exposing (Crosstab(..))
 import Crosstab.Accum as Accum exposing (Accum)
 import Crosstab.Display as Display
+import Crosstab.Query as Query exposing (Query)
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel
 import Dict exposing (Dict)
@@ -56,7 +57,7 @@ suite =
                     \_ ->
                         let
                             rowSort =
-                                Crosstab.sortByLevels Crosstab.Desc
+                                Query.sortByLevels Query.Desc
 
                             colSort =
                                 rowSort
@@ -66,7 +67,7 @@ suite =
                         in
                         expectQuery1x1
                             (Accum.sum .val)
-                            (Crosstab.sortingBy rowSort colSort)
+                            (Query.sortingBy rowSort colSort)
                             expRowLabels
                             expColLabels
                             expValues
@@ -74,17 +75,17 @@ suite =
                     \_ ->
                         let
                             rowSort =
-                                Crosstab.sortByValue Crosstab.Desc
+                                Query.sortByValue Query.Desc
 
                             colSort =
-                                Crosstab.sortByLevels Crosstab.Asc
+                                Query.sortByLevels Query.Asc
 
                             ( expRowLabels, expColLabels, expValues ) =
                                 expected1x1sortRowValueDescColLevelsAscSums False
                         in
                         expectQuery1x1
                             (Accum.sum .val)
-                            (Crosstab.sortingBy rowSort colSort)
+                            (Query.sortingBy rowSort colSort)
                             expRowLabels
                             expColLabels
                             expValues
@@ -92,17 +93,17 @@ suite =
                     \_ ->
                         let
                             rowSort =
-                                Crosstab.withSummaryAtEnd <| Crosstab.sortByValue Crosstab.Desc
+                                Query.withSummaryAtEnd <| Query.sortByValue Query.Desc
 
                             colSort =
-                                Crosstab.withSummaryAtEnd <| Crosstab.sortByLevels Crosstab.Asc
+                                Query.withSummaryAtEnd <| Query.sortByLevels Query.Asc
 
                             ( expRowLabels, expColLabels, expValues ) =
                                 expected1x1sortRowValueDescColLevelsAscSums True
                         in
                         expectQuery1x1
                             (Accum.sum .val)
-                            (Crosstab.sortingBy rowSort colSort)
+                            (Query.sortingBy rowSort colSort)
                             expRowLabels
                             expColLabels
                             expValues
@@ -215,7 +216,7 @@ expectDisplayTableRowLabels : List (List String) -> Display.Table a -> Expectati
 expectDisplayTableRowLabels expected tab =
     let
         actual =
-            Display.rowLabels tab
+            Display.tableRowLabels tab
     in
     Expect.equal expected actual
         |> Expect.onFail
@@ -230,7 +231,7 @@ expectDisplayTableColLabels : List (List String) -> Display.Table a -> Expectati
 expectDisplayTableColLabels expected tab =
     let
         actual =
-            Display.columnLabels tab
+            Display.tableColumnLabels tab
     in
     Expect.equal expected actual
         |> Expect.onFail
@@ -244,7 +245,7 @@ expectDisplayTableColLabels expected tab =
 expectDisplayTableValues : List (List (Maybe comparable)) -> Display.Table comparable -> Expectation
 expectDisplayTableValues expected tab =
     tab
-        |> Display.rows
+        |> Display.tableRows
         |> Expect.equalLists expected
 
 
