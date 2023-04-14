@@ -123,9 +123,11 @@ openTo n (Window l r) =
         |> init n
 
 
+increase : Window a -> Window a
 increase =
     openBy 1
 
 
+decrease : Window a -> Window a
 decrease =
     closeBy 1

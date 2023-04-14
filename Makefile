@@ -1,17 +1,21 @@
 SOURCES = $(shell find src/ -type f -name '*.elm')
 EXAMPLE_SOURCES = $(shell find examples/ -type f -name '*.elm')
+TEST_SOURCES = $(shell find tests/ -type f -name '*.elm')
 
-build: $(SOURCES)
+build: 
 	elm make
 
-build-examples: $(EXAMPLE_SOURCES)
+build-examples: 
 	cd examples && elm make Main.elm --output=elm.js
 
-format: $(SOURCES)
-	elm-format $< --yes
+format: 
+	elm-format src/ examples/ tests/ --yes
 
-format-examples: $(EXAMPLE_SOURCES)
-	elm-format $< --yes
+review:
+	./node_modules/elm-review/bin/elm-review
 
-.PHONY: build build-examples format format-examples
+test:
+	./node_modules/elm-test/bin/elm-test
+
+.PHONY: build build-examples format review test
 

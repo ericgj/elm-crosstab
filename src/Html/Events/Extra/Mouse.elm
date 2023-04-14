@@ -389,26 +389,6 @@ buttonFromId id =
 -- INTERNAL DECODE (inlined from source)
 
 
-dynamicListOf : Decoder a -> Decoder (List a)
-dynamicListOf itemDecoder =
-    let
-        decodeN n =
-            List.range 0 (n - 1)
-                |> List.map decodeOne
-                |> all
-
-        decodeOne n =
-            Decode.field (String.fromInt n) itemDecoder
-    in
-    Decode.field "length" Decode.int
-        |> Decode.andThen decodeN
-
-
-all : List (Decoder a) -> Decoder (List a)
-all =
-    List.foldr (Decode.map2 (::)) (Decode.succeed [])
-
-
 keys : Decoder Keys
 keys =
     Decode.map3 Keys

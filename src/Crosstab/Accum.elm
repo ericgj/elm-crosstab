@@ -19,9 +19,6 @@ module Crosstab.Accum exposing
     , variance
     )
 
-import Dict exposing (Dict)
-import Set exposing (Set)
-
 
 type Accum a b c
     = Accum

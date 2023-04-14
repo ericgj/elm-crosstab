@@ -1,6 +1,5 @@
 module TestCrosstab exposing (suite)
 
-import Array
 import Crosstab exposing (Crosstab(..))
 import Crosstab.Accum as Accum exposing (Accum)
 import Crosstab.Display as Display
@@ -136,26 +135,31 @@ expectQuery1x1 accum q expRowLabels expColLabels expValues =
             (Expect.fail "Failed to construct Display Table")
 
 
-expectRowDimLabels : List String -> Crosstab a -> Expectation
-expectRowDimLabels expected (Crosstab c) =
-    Expect.equal expected c.rowDimLabels
-        |> Expect.onFail
-            ("Expected rowDimLabels "
-                ++ Debug.toString expected
-                ++ " , was "
-                ++ Debug.toString c.rowDimLabels
-            )
+
+{- No longer used
+
+   expectRowDimLabels : List String -> Crosstab a -> Expectation
+   expectRowDimLabels expected (Crosstab c) =
+       Expect.equal expected c.rowDimLabels
+           |> Expect.onFail
+               ("Expected rowDimLabels "
+                   ++ Debug.toString expected
+                   ++ " , was "
+                   ++ Debug.toString c.rowDimLabels
+               )
 
 
-expectColDimLabels : List String -> Crosstab a -> Expectation
-expectColDimLabels expected (Crosstab c) =
-    Expect.equal expected c.columnDimLabels
-        |> Expect.onFail
-            ("Expected columnDimLabels "
-                ++ Debug.toString expected
-                ++ " , was "
-                ++ Debug.toString c.columnDimLabels
-            )
+   expectColDimLabels : List String -> Crosstab a -> Expectation
+   expectColDimLabels expected (Crosstab c) =
+       Expect.equal expected c.columnDimLabels
+           |> Expect.onFail
+               ("Expected columnDimLabels "
+                   ++ Debug.toString expected
+                   ++ " , was "
+                   ++ Debug.toString c.columnDimLabels
+               )
+
+-}
 
 
 expectValueLabelString : String -> Crosstab a -> Expectation
@@ -182,19 +186,23 @@ expectTableContains pairs (Crosstab c) =
             (pairs |> List.map (\( ( rs, cs ), a ) -> dictValueEquals a ( rs, cs )))
 
 
-expectTableContainsMaybe :
-    List ( ( List String, List String ), Maybe comparable )
-    -> Crosstab (Maybe comparable)
-    -> Expectation
-expectTableContainsMaybe pairs (Crosstab c) =
-    c.table
-        |> Expect.all
-            (pairs
-                |> List.map
-                    (\( ( rs, cs ), ma ) ->
-                        dictValueEqualsMaybe ma ( rs, cs )
-                    )
-            )
+
+{- Not used yet
+
+   expectTableContainsMaybe :
+       List ( ( List String, List String ), Maybe comparable )
+       -> Crosstab (Maybe comparable)
+       -> Expectation
+   expectTableContainsMaybe pairs (Crosstab c) =
+       c.table
+           |> Expect.all
+               (pairs
+                   |> List.map
+                       (\( ( rs, cs ), ma ) ->
+                           dictValueEqualsMaybe ma ( rs, cs )
+                       )
+               )
+-}
 
 
 expectTableContainsMaybeFloat :
@@ -316,7 +324,7 @@ expected1x1counts =
 expected1x1means : List ( ( List String, List String ), Maybe Float )
 expected1x1means =
     List.map2
-        (\( ( sumrs, sumcs ), suma ) ( ( _, _ ), cnta ) ->
+        (\( ( sumrs, sumcs ), suma ) ( _, cnta ) ->
             ( ( sumrs, sumcs )
             , if cnta == 0 then
                 Nothing
@@ -349,11 +357,8 @@ expected1x1sortRowValueDescColLevelsAscSums :
 expected1x1sortRowValueDescColLevelsAscSums summaryAtEnd =
     let
         rdims =
-            if summaryAtEnd then
-                [ [ "B" ], [ "A" ], [ "C" ], [] ]
-
-            else
-                [ [ "B" ], [ "A" ], [ "C" ], [] ]
+            -- summary at end in any case when Desc
+            [ [ "B" ], [ "A" ], [ "C" ], [] ]
 
         cdims =
             if summaryAtEnd then
@@ -421,55 +426,59 @@ dictValueEquals expected k dict =
                     )
 
 
-dictValueEqualsMaybe :
-    Maybe comparable2
-    -> comparable
-    -> Dict comparable (Maybe comparable2)
-    -> Expectation
-dictValueEqualsMaybe expected k dict =
-    let
-        actual =
-            dict |> Dict.get k |> Maybe.andThen identity
-    in
-    case ( expected, actual ) of
-        ( Nothing, Nothing ) ->
-            Expect.pass
 
-        ( Nothing, Just a ) ->
-            Expect.fail <|
-                "Expected no value at "
-                    ++ Debug.toString k
-                    ++ " , was "
-                    ++ Debug.toString a
-                    ++ "\n"
-                    ++ "Dict: "
-                    ++ Debug.toString dict
+{- Not used yet
 
-        ( Just e, Nothing ) ->
-            Expect.fail <|
-                "Expected "
-                    ++ Debug.toString e
-                    ++ " at "
-                    ++ Debug.toString k
-                    ++ " , but was no value"
-                    ++ "\n"
-                    ++ "Dict: "
-                    ++ Debug.toString dict
+   dictValueEqualsMaybe :
+       Maybe comparable2
+       -> comparable
+       -> Dict comparable (Maybe comparable2)
+       -> Expectation
+   dictValueEqualsMaybe expected k dict =
+       let
+           actual =
+               dict |> Dict.get k |> Maybe.andThen identity
+       in
+       case ( expected, actual ) of
+           ( Nothing, Nothing ) ->
+               Expect.pass
 
-        ( Just e, Just a ) ->
-            a
-                |> Expect.equal e
-                |> Expect.onFail
-                    ("Expected "
-                        ++ Debug.toString e
-                        ++ " at key "
-                        ++ Debug.toString k
-                        ++ " , was "
-                        ++ Debug.toString a
-                        ++ "\n"
-                        ++ "Dict: "
-                        ++ Debug.toString dict
-                    )
+           ( Nothing, Just a ) ->
+               Expect.fail <|
+                   "Expected no value at "
+                       ++ Debug.toString k
+                       ++ " , was "
+                       ++ Debug.toString a
+                       ++ "\n"
+                       ++ "Dict: "
+                       ++ Debug.toString dict
+
+           ( Just e, Nothing ) ->
+               Expect.fail <|
+                   "Expected "
+                       ++ Debug.toString e
+                       ++ " at "
+                       ++ Debug.toString k
+                       ++ " , but was no value"
+                       ++ "\n"
+                       ++ "Dict: "
+                       ++ Debug.toString dict
+
+           ( Just e, Just a ) ->
+               a
+                   |> Expect.equal e
+                   |> Expect.onFail
+                       ("Expected "
+                           ++ Debug.toString e
+                           ++ " at key "
+                           ++ Debug.toString k
+                           ++ " , was "
+                           ++ Debug.toString a
+                           ++ "\n"
+                           ++ "Dict: "
+                           ++ Debug.toString dict
+                       )
+-}
 
 
 dictValueEqualsMaybeFloat :

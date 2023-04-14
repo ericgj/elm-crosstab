@@ -3,11 +3,13 @@ module Crosstab.View.Selectable exposing
     , CssConfig
     , Msg(..)
     , State
+    , columnSummary
     , defaultColumnSummary
     , defaultCssConfig
     , defaultEmptyCell
     , defaultRowSummary
     , empty
+    , emptyCell
     , floatValueConfig
     , intValueConfig
     , isEmpty
@@ -25,7 +27,7 @@ import Crosstab.Display as Display exposing (Table)
 import Crosstab.Query as Query exposing (CompareAxis)
 import Html exposing (..)
 import Html.Attributes exposing (colspan)
-import Html.Bem as Bem exposing (block, blockList, element, elementList, elementOf)
+import Html.Bem as Bem exposing (blockList, elementList, elementOf)
 import Html.Events.Extra.Mouse as Mouse
 import Set exposing (Set)
 import Window exposing (Window)
@@ -348,12 +350,11 @@ viewHeader b c rdims cdims cols st =
             viewHeaderRows b rdimHdr (rowSummary c) cols scols
     in
     thead []
-        ([ tr []
+        (tr []
             [ th [] []
             , cdimHdr
             ]
-         ]
-            ++ colHdrs
+            :: colHdrs
         )
 
 
@@ -736,7 +737,7 @@ padRightNonRepeat i list1 list2 =
                     ( Nothing, Just x2 ) ->
                         Just x2
 
-                    ( Just x1, Nothing ) ->
+                    ( Just _, Nothing ) ->
                         Nothing
 
                     ( Just x1, Just x2 ) ->

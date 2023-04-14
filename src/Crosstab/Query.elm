@@ -323,10 +323,10 @@ compareUsingGivenOrder ord sortlist a b =
         ( Nothing, Nothing ) ->
             compare a b
 
-        ( Just na, Nothing ) ->
+        ( Just _, Nothing ) ->
             reverseOrder ord
 
-        ( Nothing, Just nb ) ->
+        ( Nothing, Just _ ) ->
             ord
 
         ( Just na, Just nb ) ->

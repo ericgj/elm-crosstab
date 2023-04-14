@@ -42,7 +42,7 @@ module Crosstab exposing
     , variance
     )
 
-import Crosstab.Accum as Accum exposing (Accum, ParametricData, ParametricStats)
+import Crosstab.Accum as Accum exposing (ParametricData, ParametricStats)
 import Crosstab.Display as Display
 import Crosstab.Query as Query exposing (CompareAxis, Query)
 import Crosstab.Spec as Spec exposing (Spec)
@@ -227,7 +227,7 @@ merge label fn (Crosstab ca) (Crosstab cb) =
             Dict.merge
                 (\k a t -> t |> Dict.insert k (fn k a Nothing))
                 (\k a b t -> t |> Dict.insert k (fn k a (Just b)))
-                (\k b t -> t)
+                (\_ _ t -> t)
                 ca.table
                 cb.table
                 Dict.empty
