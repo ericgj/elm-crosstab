@@ -9,6 +9,7 @@ module Html.Bem exposing
     , elementList
     , elementMod
     , elementOf
+    , elementOfList
     , init
     )
 
@@ -89,6 +90,13 @@ elementList list e =
     classList <|
         ( joinElement e.block e.name, True )
             :: (list |> List.map (\( m, incl ) -> ( joinElementMod e.block e.name m, incl )))
+
+
+elementOfList : List ( String, String ) -> Element -> Attribute a
+elementOfList list e =
+    classList <|
+        ( joinElement e.block e.name, True )
+            :: (list |> List.map (\( k, v ) -> ( joinElementOf e.block e.name k v, True )))
 
 
 joinBlockOf : String -> String -> String -> String

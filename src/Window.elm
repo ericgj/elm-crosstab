@@ -13,6 +13,7 @@ module Window exposing
     , isClosed
     , isEmpty
     , isOpen
+    , length
     , openBy
     , openTo
     , toList
@@ -77,6 +78,11 @@ isClosed (Window l _) =
 
         _ ->
             False
+
+
+length : Window a -> ( Int, Int )
+length (Window l r) =
+    ( l |> List.length, r |> List.length )
 
 
 toPair : Window a -> ( List a, List a )

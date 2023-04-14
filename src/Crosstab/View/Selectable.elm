@@ -3,13 +3,12 @@ module Crosstab.View.Selectable exposing
     , CssConfig
     , Msg(..)
     , State
-    , columnSummary
     , defaultColumnSummary
     , defaultCssConfig
+    , defaultDimensionSummary
     , defaultEmptyCell
     , defaultRowSummary
     , empty
-    , emptyCell
     , floatValueConfig
     , intValueConfig
     , isEmpty
@@ -17,9 +16,12 @@ module Crosstab.View.Selectable exposing
     , update
     , valueConfig
     , view
+    , withColumnDimensionSummaryLabel
     , withColumnSummaryLabel
     , withCssBlock
+    , withDimensionSummaryLabel
     , withEmptyCell
+    , withRowDimensionSummaryLabel
     , withRowSummaryLabel
     )
 
@@ -27,8 +29,11 @@ import Crosstab.Display as Display exposing (Table)
 import Crosstab.Query as Query exposing (CompareAxis)
 import Html exposing (..)
 import Html.Attributes exposing (colspan)
-import Html.Bem as Bem exposing (blockList, elementList, elementOf)
+import Html.Bem as Bem exposing (blockList, element, elementList, elementOf, elementOfList)
+import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
+import Json.Encode
+import Maybe.Extra as Maybe
 import Set exposing (Set)
 import Window exposing (Window)
 
@@ -86,6 +91,8 @@ type Config a comparable
         , emptyCell : Html Never
         , columnSummary : String
         , rowSummary : String
+        , columnDimensionSummary : String
+        , rowDimensionSummary : String
         , css : CssConfig
         }
 
@@ -118,6 +125,8 @@ valueConfig sortfn valfns =
         , emptyCell = defaultEmptyCell
         , columnSummary = defaultColumnSummary
         , rowSummary = defaultRowSummary
+        , columnDimensionSummary = defaultDimensionSummary
+        , rowDimensionSummary = defaultDimensionSummary
         , css = defaultCssConfig
         }
 
@@ -135,6 +144,11 @@ defaultColumnSummary =
 defaultRowSummary : String
 defaultRowSummary =
     "Summary"
+
+
+defaultDimensionSummary : String
+defaultDimensionSummary =
+    "All"
 
 
 defaultCssConfig : CssConfig
@@ -158,6 +172,21 @@ withColumnSummaryLabel s (Config c) =
     Config { c | columnSummary = s }
 
 
+withRowDimensionSummaryLabel : String -> Config a comparable -> Config a comparable
+withRowDimensionSummaryLabel s (Config c) =
+    Config { c | rowDimensionSummary = s }
+
+
+withColumnDimensionSummaryLabel : String -> Config a comparable -> Config a comparable
+withColumnDimensionSummaryLabel s (Config c) =
+    Config { c | columnDimensionSummary = s }
+
+
+withDimensionSummaryLabel : String -> Config a comparable -> Config a comparable
+withDimensionSummaryLabel s (Config c) =
+    Config { c | rowDimensionSummary = s, columnDimensionSummary = s }
+
+
 withCssBlock : String -> Config a comparable -> Config a comparable
 withCssBlock s (Config c) =
     let
@@ -174,6 +203,7 @@ withCss css (Config c) =
 
 
 -- CONFIG GETTERS
+-- Note these are not exposed, only for convenience within view functions
 
 
 cssConfig : Config a comparable -> CssConfig
@@ -186,19 +216,19 @@ valueColumns (Config c) =
     c.valueColumns
 
 
-emptyCell : Config a comparable -> Html Never
-emptyCell (Config c) =
-    c.emptyCell
-
-
 rowSummary : Config a comparable -> String
 rowSummary (Config c) =
     c.rowSummary
 
 
-columnSummary : Config a comparable -> String
-columnSummary (Config c) =
-    c.columnSummary
+rowDimensionSummary : Config a comparable -> String
+rowDimensionSummary (Config c) =
+    c.rowDimensionSummary
+
+
+columnDimensionSummary : Config a comparable -> String
+columnDimensionSummary (Config c) =
+    c.columnDimensionSummary
 
 
 
@@ -333,39 +363,122 @@ viewHeader b c rdims cdims cols st =
                 _ ->
                     Set.empty
 
-        e =
-            b.element "dimensions"
+        cdimsum =
+            columnDimensionSummary c
 
-        cdimHdr =
+        rdimsum =
+            rowDimensionSummary c
+
+        cdimhdr =
             th [ colspan <| List.length cols ]
-                [ viewDimHeader e "column" Query.SetColumnDimensions cdims
+                [ viewDimHeader b "column" cdimsum "◄" "►" Query.SetColumnDimensions cdims
+                    |> Html.map UpdateQuery
                 ]
 
-        rdimHdr =
+        rdimhdr =
             th []
-                [ viewDimHeader e "row" Query.SetRowDimensions rdims
+                [ viewDimHeader b "row" rdimsum "▲" "▼" Query.SetRowDimensions rdims
+                    |> Html.map UpdateQuery
                 ]
 
-        colHdrs =
-            viewHeaderRows b rdimHdr (rowSummary c) cols scols
+        colhdrs =
+            viewHeaderRows b rdimhdr (rowSummary c) cols scols
     in
     thead []
         (tr []
             [ th [] []
-            , cdimHdr
+            , cdimhdr
             ]
-            :: colHdrs
+            :: colhdrs
         )
 
 
 viewDimHeader :
-    Bem.Element
+    Bem.Block
+    -> String
+    -> String
+    -> String
     -> String
     -> (Maybe Int -> Query.Msg a)
     -> Window String
-    -> Html (Msg a)
-viewDimHeader e etype qmsg dims =
-    text ""
+    -> Html (Query.Msg a)
+viewDimHeader b dtype sumlbl chdecr chincr qmsg dims =
+    let
+        ed =
+            b.element "dimensions"
+
+        ec =
+            b.element "dimensions-control"
+
+        el =
+            b.element "dimensions-label"
+
+        lbl =
+            dims
+                |> Window.getOpen
+                |> List.reverse
+                |> List.head
+                |> Maybe.withDefault sumlbl
+
+        wposIncr =
+            Window.length >> Tuple.first >> (\n -> n + 1)
+
+        wposDecr =
+            Window.length >> Tuple.first >> (\n -> n - 1)
+
+        ( mdecr, mincr ) =
+            case ( dims |> Window.isOpen, dims |> Window.isClosed ) of
+                ( True, True ) ->
+                    ( Nothing, Nothing )
+
+                ( True, False ) ->
+                    ( dims |> wposDecr |> Just, Nothing )
+
+                ( False, True ) ->
+                    ( Nothing, dims |> wposIncr |> Just )
+
+                ( False, False ) ->
+                    ( dims |> wposDecr |> Just
+                    , dims |> wposIncr |> Just
+                    )
+    in
+    th
+        [ ed |> elementOf "type" dtype
+        , ed
+            |> elementList
+                [ ( "min", mdecr |> Maybe.unwrap True (always False) )
+                , ( "max", mincr |> Maybe.unwrap True (always False) )
+                ]
+        ]
+        [ span
+            [ ec
+                |> elementOfList
+                    [ ( "type", "decr" )
+                    , ( "state"
+                      , mdecr |> Maybe.unwrap "disabled" (always "enabled")
+                      )
+                    ]
+            , mdecr |> Maybe.unwrap emptyAttribute (Just >> qmsg >> onClick)
+            ]
+            [ mdecr |> Maybe.unwrap (text "") (always (text chdecr)) ]
+        , span
+            [ ec
+                |> elementOfList
+                    [ ( "type", "incr" )
+                    , ( "state"
+                      , mincr |> Maybe.unwrap "disabled" (always "enabled")
+                      )
+                    ]
+            , mincr |> Maybe.unwrap emptyAttribute (Just >> qmsg >> onClick)
+            ]
+            [ mincr |> Maybe.unwrap (text "") (always (text chincr)) ]
+        , span [ el |> element ] [ text lbl ]
+        ]
+
+
+emptyAttribute : Attribute x
+emptyAttribute =
+    Html.Attributes.property "" Json.Encode.null
 
 
 
