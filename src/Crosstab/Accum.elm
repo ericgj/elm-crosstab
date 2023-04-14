@@ -1,6 +1,7 @@
 module Crosstab.Accum exposing
     ( Accum(..)
     , ParametricData(..)
+    , ParametricStats
     , count
     , countIf
     , countMaybe
@@ -10,10 +11,12 @@ module Crosstab.Accum exposing
     , parametricFloat
     , parametricFloatMaybe
     , parametricMaybe
+    , parametricStats
     , stdDev
     , sum
     , sumMaybe
     , value
+    , variance
     )
 
 import Dict exposing (Dict)
@@ -166,6 +169,29 @@ calcParametric next (ParametricData prev) =
 -- PREBUILT MAPPING FUNCTIONS
 
 
+type alias ParametricStats =
+    { count : Int
+    , sum : Float
+    , mean : Maybe Float
+    , variance : Maybe Float
+    , stdDev : Maybe Float
+    }
+
+
+parametricStats : ParametricData -> ParametricStats
+parametricStats (ParametricData d) =
+    let
+        var =
+            variance (ParametricData d)
+    in
+    { count = d.count
+    , sum = d.sum
+    , mean = mean (ParametricData d)
+    , variance = var
+    , stdDev = var |> Maybe.map sqrt
+    }
+
+
 mean : ParametricData -> Maybe Float
 mean (ParametricData d) =
     if d.count == 0 then
@@ -175,14 +201,15 @@ mean (ParametricData d) =
         Just (d.sum / toFloat d.count)
 
 
-stdDev : ParametricData -> Maybe Float
-stdDev (ParametricData d) =
-    let
-        var =
-            if d.count < 2 then
-                Nothing
+variance : ParametricData -> Maybe Float
+variance (ParametricData d) =
+    if d.count < 2 then
+        Nothing
 
-            else
-                Just (d.runSS / toFloat (d.count - 1))
-    in
-    var |> Maybe.map sqrt
+    else
+        Just (d.runSS / toFloat (d.count - 1))
+
+
+stdDev : ParametricData -> Maybe Float
+stdDev pd =
+    variance pd |> Maybe.map sqrt

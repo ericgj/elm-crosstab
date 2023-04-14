@@ -1,26 +1,28 @@
 {
-    "type": "application",
+    "type": "package",
+    "name": "ericgj/elm-crosstab",
+    "summary": "Generic crosstab with selectable table view",
+    "license": "MIT",
+    "version": "1.0.0",
+    "exposed-modules": [
+        "Crosstab",
+        "Crosstab.Accum",
+        "Crosstab.Display",
+        "Crosstab.Query",
+        "Crosstab.Spec",
+        "Crosstab.ValueLabel",
+        "Crosstab.View.Selectable"
+    ],
     "source-directories": [
         "src"
     ],
-    "elm-version": "0.19.1",
+    "elm-version": "0.19.1 <= v < 0.20.0",
     "dependencies": {
-        "direct": {
-            "elm/core": "1.0.5",
-            "elm/html": "1.0.0",
-            "elm/json": "1.1.3"
-        },
-        "indirect": {}
+        "elm/core": "1.0.5 <= v < 2.0.0",
+        "elm/html": "1.0.0 <= v < 2.0.0",
+        "elm/json": "1.1.3 <= v < 2.0.0"
     },
     "test-dependencies": {
-        "direct": {
-            "elm-explorations/test": "2.1.1"
-        },
-        "indirect": {
-            "elm/bytes": "1.0.8",
-            "elm/random": "1.0.0",
-            "elm/time": "1.0.0",
-            "elm/virtual-dom": "1.0.3"
-        }
+        "elm-explorations/test": "2.1.1 <= v < 3.0.0"
     }
 }

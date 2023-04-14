@@ -22,10 +22,10 @@ module Crosstab.View.Selectable exposing
     )
 
 import Crosstab.Display as Display exposing (Table)
-import Crosstab.Query as Query
+import Crosstab.Query as Query exposing (CompareAxis)
 import Html exposing (..)
 import Html.Attributes exposing (colspan)
-import Html.Bem as Bem exposing (..)
+import Html.Bem as Bem exposing (block, blockList, element, elementList, elementOf)
 import Html.Events.Extra.Mouse as Mouse
 import Set exposing (Set)
 import Window exposing (Window)
@@ -56,6 +56,8 @@ empty =
 -- STATE GETTERS
 
 
+{-| True if no rows, columns or cells are selected
+-}
 isEmpty : State -> Bool
 isEmpty st =
     case st of
@@ -77,7 +79,7 @@ isEmpty st =
 
 type Config a comparable
     = Config
-        { sortValuesAs : a -> comparable
+        { sortValues : CompareAxis a
         , valueColumns : List ( String, a -> Html Never )
         , emptyCell : Html Never
         , columnSummary : String
@@ -91,25 +93,25 @@ type alias CssConfig =
     }
 
 
-intValueConfig : String -> Config Int Int
-intValueConfig s =
-    valueConfig identity [ ( s, String.fromInt >> text ) ]
+intValueConfig : String -> Query.SortDir -> Config Int Int
+intValueConfig s dir =
+    valueConfig (Query.sortByValue dir) [ ( s, String.fromInt >> text ) ]
 
 
-floatValueConfig : String -> Config Float Float
-floatValueConfig s =
-    valueConfig identity [ ( s, String.fromFloat >> text ) ]
+floatValueConfig : String -> Query.SortDir -> Config Float Float
+floatValueConfig s dir =
+    valueConfig (Query.sortByValue dir) [ ( s, String.fromFloat >> text ) ]
 
 
-singleValueConfig : (a -> comparable) -> String -> (a -> Html Never) -> Config a comparable
+singleValueConfig : CompareAxis a -> String -> (a -> Html Never) -> Config a comparable
 singleValueConfig sortfn s valfn =
     valueConfig sortfn [ ( s, valfn ) ]
 
 
-valueConfig : (a -> comparable) -> List ( String, a -> Html Never ) -> Config a comparable
+valueConfig : CompareAxis a -> List ( String, a -> Html Never ) -> Config a comparable
 valueConfig sortfn valfns =
     Config
-        { sortValuesAs = sortfn
+        { sortValues = sortfn
         , valueColumns = valfns
         , emptyCell = defaultEmptyCell
         , columnSummary = defaultColumnSummary
@@ -203,18 +205,18 @@ columnSummary (Config c) =
 -- -----------------------------------------------------------------------------
 
 
-type Msg a comparable
+type Msg a
     = ToggleSelectOnlyRow Level
     | ToggleSelectOnlyColumn Level
     | ToggleSelectOnlyCell ( Level, Level )
     | ToggleSelectAddRow Level
     | ToggleSelectAddColumn Level
     | ToggleSelectAddCell ( Level, Level )
-    | UpdateQuery (Query.Msg a comparable)
+    | UpdateQuery (Query.Msg a)
     | NoOp
 
 
-update : Msg a comparable -> State -> State
+update : Msg a -> State -> State
 update msg state =
     case ( msg, state ) of
         ( NoOp, _ ) ->
@@ -284,7 +286,7 @@ toggleAdd cur new =
 -- -----------------------------------------------------------------------------
 
 
-view : Config a comparable -> Table a -> State -> Html (Msg a comparable)
+view : Config a comparable -> Table a -> State -> Html (Msg a)
 view c tab st =
     let
         b =
@@ -318,7 +320,7 @@ viewHeader :
     -> Window String
     -> List Display.ColumnLabel
     -> State
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
 viewHeader b c rdims cdims cols st =
     let
         scols =
@@ -358,9 +360,9 @@ viewHeader b c rdims cdims cols st =
 viewDimHeader :
     Bem.Element
     -> String
-    -> (Maybe Int -> Query.Msg a comparable)
+    -> (Maybe Int -> Query.Msg a)
     -> Window String
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
 viewDimHeader e etype qmsg dims =
     text ""
 
@@ -371,11 +373,11 @@ viewDimHeader e etype qmsg dims =
 
 viewHeaderRows :
     Bem.Block
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
     -> String
     -> List Display.ColumnLabel
     -> Set Level
-    -> List (Html (Msg a comparable))
+    -> List (Html (Msg a))
 viewHeaderRows b rdimHdr rsum cols lvls =
     let
         maxdims =
@@ -388,7 +390,7 @@ viewHeaderRows b rdimHdr rsum cols lvls =
             b.element "header-row"
     in
     cols
-        |> List.foldr
+        |> List.foldl
             (updateHeaderValueAndColRows b maxdims rsum lvls)
             ( Nothing, [], List.repeat maxdims [] )
         |> (\( _, vh, chs ) ->
@@ -400,9 +402,9 @@ viewHeaderRows b rdimHdr rsum cols lvls =
 viewHeaderRow :
     Bem.Element
     -> String
-    -> Html (Msg a comparable)
-    -> List (Html (Msg a comparable))
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
+    -> List (Html (Msg a))
+    -> Html (Msg a)
 viewHeaderRow e rtype prefix cols =
     tr
         [ e |> elementOf "type" rtype ]
@@ -415,8 +417,8 @@ updateHeaderValueAndColRows :
     -> String
     -> Set Level
     -> Display.ColumnLabel
-    -> ( Maybe Display.ColumnLabel, List (Html (Msg a comparable)), List (List (Html (Msg a comparable))) )
-    -> ( Maybe Display.ColumnLabel, List (Html (Msg a comparable)), List (List (Html (Msg a comparable))) )
+    -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
+    -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
 updateHeaderValueAndColRows b maxdims rsum lvls next ( mprev, vrow, crows ) =
     let
         e =
@@ -426,7 +428,7 @@ updateHeaderValueAndColRows b maxdims rsum lvls next ( mprev, vrow, crows ) =
             mprev |> Maybe.map .level
     in
     ( Just <| next
-    , viewHeaderCell e "value" maxdims lvls next.level (Just next.value) :: vrow
+    , vrow ++ [ viewHeaderCell e "value" maxdims lvls next.level (Just next.value) ]
     , next.level
         |> headerLabelOrSummaryNonRepeat rsum maxdims mprevl
         |> List.map2
@@ -441,10 +443,10 @@ updateHeaderColRow :
     -> Set Level
     -> Level
     -> Maybe String
-    -> List (Html (Msg a comparable))
-    -> List (Html (Msg a comparable))
+    -> List (Html (Msg a))
+    -> List (Html (Msg a))
 updateHeaderColRow e maxdims lvls lvl mlabel crow =
-    viewHeaderCell e "column" maxdims lvls lvl mlabel :: crow
+    crow ++ [ viewHeaderCell e "column" maxdims lvls lvl mlabel ]
 
 
 viewHeaderCell :
@@ -454,7 +456,7 @@ viewHeaderCell :
     -> Set Level
     -> Level
     -> Maybe String
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
 viewHeaderCell e etype maxdims lvls lvl mlabel =
     th
         [ e
@@ -476,14 +478,24 @@ headerLabelOrSummaryNonRepeat :
     -> Level
     -> List (Maybe String)
 headerLabelOrSummaryNonRepeat rsum maxdims mprev next =
-    case next of
+    let
+        next_ =
+            next |> labelOrSummary rsum
+    in
+    mprev
+        |> Maybe.map (labelOrSummary rsum)
+        |> Maybe.map (\prev -> padRightNonRepeat maxdims prev next_)
+        |> Maybe.withDefault (padRight maxdims next_)
+
+
+labelOrSummary : String -> Level -> Level
+labelOrSummary rsum lvl =
+    case lvl of
         [] ->
-            padRight maxdims [ rsum ]
+            [ rsum ]
 
         _ ->
-            mprev
-                |> Maybe.map (\prev -> padRightNonRepeat maxdims prev next)
-                |> Maybe.withDefault (padRight maxdims next)
+            lvl
 
 
 
@@ -497,7 +509,7 @@ viewBody :
     -> Config a comparable
     -> List (Display.LabelledRow (Html Never))
     -> State
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
 viewBody b c rows st =
     tbody [] <|
         viewBodyRows b c rows st
@@ -508,7 +520,7 @@ viewBodyRows :
     -> Config a comparable
     -> List (Display.LabelledRow (Html Never))
     -> State
-    -> List (Html (Msg a comparable))
+    -> List (Html (Msg a))
 viewBodyRows b c rows st =
     let
         rmaxdims =
@@ -529,7 +541,7 @@ viewBodyRow :
     -> Level
     -> List (Display.LabelledValue (Html Never))
     -> State
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
 viewBodyRow b (Config c) rmaxdims lvl vals st =
     let
         er =
@@ -562,7 +574,7 @@ viewBodyRow b (Config c) rmaxdims lvl vals st =
         )
 
 
-viewRowHeader : Bem.Element -> String -> Int -> Level -> Html (Msg a comparable)
+viewRowHeader : Bem.Element -> String -> Int -> Level -> Html (Msg a)
 viewRowHeader e csum rmaxdims lvl =
     let
         ndim =
@@ -583,7 +595,7 @@ viewBodyRowCells :
     -> Set Level
     -> Set Level
     -> Set ( Level, Level )
-    -> List (Html (Msg a comparable))
+    -> List (Html (Msg a))
 viewBodyRowCells b defcell rmaxdims vals rlvls clvls dlvls =
     let
         e =
@@ -608,7 +620,7 @@ viewBodyRowCell :
     -> Set Level
     -> Set Level
     -> Set ( Level, Level )
-    -> Html (Msg a comparable)
+    -> Html (Msg a)
 viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) val rlvls clvls dlvls =
     let
         rlvl =
@@ -649,27 +661,27 @@ viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) val rlvls clvls dlvls =
 -- -----------------------------------------------------------------------------
 
 
-toggleSelectColumn : Level -> Mouse.Event -> Msg a comparable
+toggleSelectColumn : Level -> Mouse.Event -> Msg a
 toggleSelectColumn lvl { keys } =
-    if keys.shift then
+    if keys.ctrl then
         ToggleSelectAddColumn lvl
 
     else
         ToggleSelectOnlyColumn lvl
 
 
-toggleSelectRow : Level -> Mouse.Event -> Msg a comparable
+toggleSelectRow : Level -> Mouse.Event -> Msg a
 toggleSelectRow lvl { keys } =
-    if keys.shift then
+    if keys.ctrl then
         ToggleSelectAddRow lvl
 
     else
         ToggleSelectOnlyRow lvl
 
 
-toggleSelectCell : ( Level, Level ) -> Mouse.Event -> Msg a comparable
+toggleSelectCell : ( Level, Level ) -> Mouse.Event -> Msg a
 toggleSelectCell rcpair { keys } =
-    if keys.shift then
+    if keys.ctrl then
         ToggleSelectAddCell rcpair
 
     else

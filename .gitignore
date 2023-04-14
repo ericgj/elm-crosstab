@@ -1,5 +1,7 @@
 scratch
 elm-stuff
-examples/data
 node_modules
 package-lock.json
+/examples/sourcedata
+/examples/*.html
+/examples/*.js

@@ -28,6 +28,7 @@ module Crosstab exposing
     , map
     , mean
     , merge
+    , parametricStats
     , query
     , rowDimensionLabels
     , rowDimensionSize
@@ -38,9 +39,10 @@ module Crosstab exposing
     , tablePercentMaybe
     , tabulate
     , valueLabel
+    , variance
     )
 
-import Crosstab.Accum as Accum exposing (Accum, ParametricData)
+import Crosstab.Accum as Accum exposing (Accum, ParametricData, ParametricStats)
 import Crosstab.Display as Display
 import Crosstab.Query as Query exposing (CompareAxis, Query)
 import Crosstab.Spec as Spec exposing (Spec)
@@ -287,9 +289,19 @@ currentValue _ =
     identity
 
 
+parametricStats : Mapping ParametricData ParametricStats
+parametricStats _ =
+    Accum.parametricStats
+
+
 mean : Mapping ParametricData (Maybe Float)
 mean _ =
     Accum.mean
+
+
+variance : Mapping ParametricData (Maybe Float)
+variance _ =
+    Accum.variance
 
 
 stdDev : Mapping ParametricData (Maybe Float)
