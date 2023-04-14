@@ -1,16 +1,17 @@
-SOURCES = $(wildcard src/*.elm) $(wildcard src/*/*.elm) 
-TARGET = /dev/null
-MAIN = src/Crosstab.elm
+SOURCES = $(shell find src/ -type f -name '*.elm')
+EXAMPLE_SOURCES = $(shell find examples/ -type f -name '*.elm')
 
-build: $(TARGET)
+build: $(SOURCES)
+	elm make
 
-format:
-	elm format src --yes
-	elm format src/Crosstab/ --yes
-	elm format src/Matrix/ --yes
+build-examples: $(EXAMPLE_SOURCES)
+	cd examples && elm make Main.elm --output=elm.js
 
-$(TARGET): $(SOURCES)
-	elm make $(MAIN) --output $@
+format: $(SOURCES)
+	elm-format $< --yes
 
-.PHONY: build format
+format-examples: $(EXAMPLE_SOURCES)
+	elm-format $< --yes
+
+.PHONY: build build-examples format format-examples
 
