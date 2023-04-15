@@ -155,18 +155,19 @@ view m =
     let
         mtab =
             m |> toTable
-
-        conf =
-            m |> tableConfig
-
-        sel =
-            m |> selected
     in
     case mtab of
         Nothing ->
             viewEmptyTable
 
         Just tab ->
+            let
+                conf =
+                    m |> tableConfig
+
+                sel =
+                    m |> selected
+            in
             Selectable.view conf tab sel |> Html.map UpdateSelected
 
 
