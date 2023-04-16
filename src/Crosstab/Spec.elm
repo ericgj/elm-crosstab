@@ -10,6 +10,7 @@ module Crosstab.Spec exposing
     )
 
 import Crosstab.Accum as Accum exposing (Accum(..))
+import Crosstab.Levels exposing (Levels)
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 
 
@@ -56,12 +57,12 @@ valueLabel (Spec s) =
     ValueLabel.init l a.label
 
 
-rowLevels : Spec a b c -> a -> List String
+rowLevels : Spec a b c -> a -> Levels
 rowLevels (Spec { rows }) a =
     rows |> List.map (Tuple.second >> (\accessor -> accessor a))
 
 
-columnLevels : Spec a b c -> a -> List String
+columnLevels : Spec a b c -> a -> Levels
 columnLevels (Spec { columns }) a =
     columns |> List.map (Tuple.second >> (\accessor -> accessor a))
 

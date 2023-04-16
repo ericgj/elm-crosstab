@@ -1,0 +1,31 @@
+.simple-crosstab__header {
+  font-family: 'SourceCodePro-Bold', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;    
+  font-weight: bold;
+}
+
+.simple-crosstab__row--summary-row-grand {
+  background-color: lightyellow;
+}
+
+.simple-crosstab__header--summary-column-grand, 
+.simple-crosstab__cell--summary-column-grand {
+  background-color: lightyellow;
+}
+
+
+.simple-crosstab__header--selected, 
+.simple-crosstab__row--selected, 
+.simple-crosstab__cell--selected {
+    background-color: black;
+    color: white;
+}
+.simple-crosstab__header--selected-indirect, 
+.simple-crosstab__row--selected-indirect, 
+.simple-crosstab__cell--selected-indirect {
+    background-color: darkgray;
+    color: white;
+}
+
+.simple-crosstab__dimensions-control--state-enabled {
+  padding-right: 0.25rem;
+}

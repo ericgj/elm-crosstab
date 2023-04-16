@@ -120,6 +120,7 @@ tableConfig (Model m) =
                 >> Maybe.withDefault Selectable.defaultEmptyCell
           )
         ]
+        |> Selectable.withCssBlock "simple-crosstab"
 
 
 

@@ -3,6 +3,7 @@ module Crosstab.View.Selectable exposing
     , CssConfig
     , Msg(..)
     , State
+    , crossFilter
     , defaultColumnSummary
     , defaultCssConfig
     , defaultDimensionSummary
@@ -16,23 +17,28 @@ module Crosstab.View.Selectable exposing
     , update
     , valueConfig
     , view
+    , withColumnDimensionIcons
     , withColumnDimensionSummaryLabel
     , withColumnSummaryLabel
     , withCssBlock
     , withDimensionSummaryLabel
     , withEmptyCell
+    , withRowDimensionIcons
     , withRowDimensionSummaryLabel
     , withRowSummaryLabel
     )
 
 import Crosstab.Display as Display exposing (Table)
+import Crosstab.Levels exposing (Levels, LevelsPair)
 import Crosstab.Query as Query exposing (CompareAxis)
+import Crosstab.Spec as Spec exposing (Spec)
 import Html exposing (..)
-import Html.Attributes exposing (colspan)
+import Html.Attributes exposing (class, colspan)
 import Html.Bem as Bem exposing (blockList, element, elementList, elementOf, elementOfList)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
 import Json.Encode
+import List.Extra as List
 import Maybe.Extra as Maybe
 import Set exposing (Set)
 import Window exposing (Window)
@@ -44,14 +50,10 @@ import Window exposing (Window)
 -- -----------------------------------------------------------------------------
 
 
-type alias Level =
-    List String
-
-
 type State
-    = SelectedRows (Set Level)
-    | SelectedColumns (Set Level)
-    | SelectedCells (Set ( Level, Level ))
+    = SelectedRows (Set Levels)
+    | SelectedColumns (Set Levels)
+    | SelectedCells (Set LevelsPair)
 
 
 empty : State
@@ -78,6 +80,165 @@ isEmpty st =
             Set.isEmpty s
 
 
+isRowSelected :
+    List String
+    -> State
+    -> Bool
+isRowSelected rl st =
+    case st of
+        SelectedRows sel ->
+            sel |> Set.member rl
+
+        _ ->
+            False
+
+
+isAncestorRowSelected :
+    List String
+    -> State
+    -> Bool
+isAncestorRowSelected rl st =
+    case st of
+        SelectedRows sel ->
+            sel |> anyInSet (ancestorInits rl)
+
+        _ ->
+            False
+
+
+isColumnSelected :
+    List String
+    -> State
+    -> Bool
+isColumnSelected cl st =
+    case st of
+        SelectedColumns sel ->
+            sel |> Set.member cl
+
+        _ ->
+            False
+
+
+isAncestorColumnSelected :
+    List String
+    -> State
+    -> Bool
+isAncestorColumnSelected cl st =
+    case st of
+        SelectedColumns sel ->
+            sel |> anyInSet (ancestorInits cl)
+
+        _ ->
+            False
+
+
+isSelected :
+    List String
+    -> List String
+    -> State
+    -> Bool
+isSelected rl cl st =
+    case st of
+        SelectedRows sel ->
+            sel |> Set.member rl
+
+        SelectedColumns sel ->
+            sel |> Set.member cl
+
+        SelectedCells sel ->
+            sel |> Set.member ( rl, cl )
+
+
+isAncestorSelected :
+    List String
+    -> List String
+    -> State
+    -> Bool
+isAncestorSelected rl cl st =
+    case st of
+        SelectedRows sel ->
+            sel |> anyInSet (ancestorInits rl)
+
+        SelectedColumns sel ->
+            sel |> anyInSet (ancestorInits cl)
+
+        SelectedCells sel ->
+            let
+                s1 =
+                    List.lift2 Tuple.pair (ancestorInits rl) (List.inits cl) |> Set.fromList
+
+                s2 =
+                    List.lift2 Tuple.pair (List.inits rl) (ancestorInits cl) |> Set.fromList
+            in
+            Set.union s1 s2
+                |> Set.intersect sel
+                |> Set.isEmpty
+                |> not
+
+
+
+-- CROSSFILTERING
+
+
+crossFilter : Spec a b c -> State -> List a -> List a
+crossFilter spec st list =
+    let
+        r =
+            spec |> Spec.rowLevels
+
+        c =
+            spec |> Spec.columnLevels
+    in
+    list |> filterSelected r c st
+
+
+filterSelected :
+    (a -> List String)
+    -> (a -> List String)
+    -> State
+    -> List a
+    -> List a
+filterSelected r c st list =
+    list
+        |> List.filter (filterSelectedHelp r c st)
+
+
+filterSelectedHelp :
+    (a -> List String)
+    -> (a -> List String)
+    -> State
+    -> a
+    -> Bool
+filterSelectedHelp r c st a =
+    let
+        rl =
+            r a
+
+        cl =
+            c a
+    in
+    isSelected rl cl st || isAncestorSelected rl cl st
+
+
+anyInSet : List comparable -> Set comparable -> Bool
+anyInSet list set =
+    list
+        |> Set.fromList
+        |> Set.intersect set
+        |> Set.isEmpty
+        |> not
+
+
+ancestorInits : List a -> List (List a)
+ancestorInits list =
+    case list of
+        [] ->
+            []
+
+        _ ->
+            list |> List.take (List.length list - 1) |> List.inits
+
+
 
 -- -----------------------------------------------------------------------------
 -- CONFIG
@@ -99,6 +260,10 @@ type Config a comparable
 
 type alias CssConfig =
     { block : String
+    , iconIncreaseRowDimension : Maybe String
+    , iconDecreaseRowDimension : Maybe String
+    , iconIncreaseColumnDimension : Maybe String
+    , iconDecreaseColumnDimension : Maybe String
     }
 
 
@@ -154,6 +319,10 @@ defaultDimensionSummary =
 defaultCssConfig : CssConfig
 defaultCssConfig =
     { block = "crosstab"
+    , iconIncreaseRowDimension = Just "fa-solid fa-caret-down"
+    , iconDecreaseRowDimension = Just "fa-solid fa-caret-up"
+    , iconIncreaseColumnDimension = Just "fa-solid fa-caret-right"
+    , iconDecreaseColumnDimension = Just "fa-solid fa-caret-left"
     }
 
 
@@ -194,6 +363,34 @@ withCssBlock s (Config c) =
             c.css
     in
     Config c |> withCss { css | block = s }
+
+
+withRowDimensionIcons : String -> String -> Config a comparable -> Config a comparable
+withRowDimensionIcons decr incr (Config c) =
+    let
+        css =
+            c.css
+    in
+    Config c
+        |> withCss
+            { css
+                | iconDecreaseRowDimension = Just decr
+                , iconIncreaseRowDimension = Just incr
+            }
+
+
+withColumnDimensionIcons : String -> String -> Config a comparable -> Config a comparable
+withColumnDimensionIcons decr incr (Config c) =
+    let
+        css =
+            c.css
+    in
+    Config c
+        |> withCss
+            { css
+                | iconDecreaseColumnDimension = Just decr
+                , iconIncreaseColumnDimension = Just incr
+            }
 
 
 withCss : CssConfig -> Config a comparable -> Config a comparable
@@ -238,12 +435,12 @@ columnDimensionSummary (Config c) =
 
 
 type Msg a
-    = ToggleSelectOnlyRow Level
-    | ToggleSelectOnlyColumn Level
-    | ToggleSelectOnlyCell ( Level, Level )
-    | ToggleSelectAddRow Level
-    | ToggleSelectAddColumn Level
-    | ToggleSelectAddCell ( Level, Level )
+    = ToggleSelectOnlyRow Levels
+    | ToggleSelectOnlyColumn Levels
+    | ToggleSelectOnlyCell LevelsPair
+    | ToggleSelectAddRow Levels
+    | ToggleSelectAddColumn Levels
+    | ToggleSelectAddCell LevelsPair
     | UpdateQuery (Query.Msg a)
     | NoOp
 
@@ -355,34 +552,43 @@ viewHeader :
     -> Html (Msg a)
 viewHeader b c rdims cdims cols st =
     let
-        scols =
-            case st of
-                SelectedColumns s ->
-                    s
-
-                _ ->
-                    Set.empty
-
         cdimsum =
             columnDimensionSummary c
 
         rdimsum =
             rowDimensionSummary c
 
+        css =
+            cssConfig c
+
         cdimhdr =
             th [ colspan <| List.length cols ]
-                [ viewDimHeader b "column" cdimsum "◄" "►" Query.SetColumnDimensions cdims
+                [ viewDimHeader
+                    b
+                    "column"
+                    cdimsum
+                    css.iconDecreaseColumnDimension
+                    css.iconIncreaseColumnDimension
+                    Query.SetColumnDimensions
+                    cdims
                     |> Html.map UpdateQuery
                 ]
 
         rdimhdr =
             th []
-                [ viewDimHeader b "row" rdimsum "▲" "▼" Query.SetRowDimensions rdims
+                [ viewDimHeader
+                    b
+                    "row"
+                    rdimsum
+                    css.iconDecreaseRowDimension
+                    css.iconIncreaseRowDimension
+                    Query.SetRowDimensions
+                    rdims
                     |> Html.map UpdateQuery
                 ]
 
         colhdrs =
-            viewHeaderRows b rdimhdr (rowSummary c) cols scols
+            viewHeaderRows b rdimhdr (rowSummary c) cols st
     in
     thead []
         (tr []
@@ -397,12 +603,12 @@ viewDimHeader :
     Bem.Block
     -> String
     -> String
-    -> String
-    -> String
+    -> Maybe String
+    -> Maybe String
     -> (Maybe Int -> Query.Msg a)
     -> Window String
     -> Html (Query.Msg a)
-viewDimHeader b dtype sumlbl chdecr chincr qmsg dims =
+viewDimHeader b dtype sumlbl idecr iincr qmsg dims =
     let
         ed =
             b.element "dimensions"
@@ -442,7 +648,7 @@ viewDimHeader b dtype sumlbl chdecr chincr qmsg dims =
                     , dims |> wposIncr |> Just
                     )
     in
-    th
+    div
         [ ed |> elementOf "type" dtype
         , ed
             |> elementList
@@ -458,9 +664,10 @@ viewDimHeader b dtype sumlbl chdecr chincr qmsg dims =
                       , mdecr |> Maybe.unwrap "disabled" (always "enabled")
                       )
                     ]
+            , mdecr |> Maybe.map2 (\i _ -> class i) idecr |> Maybe.withDefault emptyAttribute
             , mdecr |> Maybe.unwrap emptyAttribute (Just >> qmsg >> onClick)
             ]
-            [ mdecr |> Maybe.unwrap (text "") (always (text chdecr)) ]
+            [ text "" ]
         , span
             [ ec
                 |> elementOfList
@@ -469,9 +676,10 @@ viewDimHeader b dtype sumlbl chdecr chincr qmsg dims =
                       , mincr |> Maybe.unwrap "disabled" (always "enabled")
                       )
                     ]
+            , mincr |> Maybe.map2 (\i _ -> class i) iincr |> Maybe.withDefault emptyAttribute
             , mincr |> Maybe.unwrap emptyAttribute (Just >> qmsg >> onClick)
             ]
-            [ mincr |> Maybe.unwrap (text "") (always (text chincr)) ]
+            [ text "" ]
         , span [ el |> element ] [ text lbl ]
         ]
 
@@ -481,18 +689,14 @@ emptyAttribute =
     Html.Attributes.property "" Json.Encode.null
 
 
-
--- TODO
-
-
 viewHeaderRows :
     Bem.Block
     -> Html (Msg a)
     -> String
     -> List Display.ColumnLabel
-    -> Set Level
+    -> State
     -> List (Html (Msg a))
-viewHeaderRows b rdimHdr rsum cols lvls =
+viewHeaderRows b rdimHdr rsum cols st =
     let
         maxdims =
             cols
@@ -505,11 +709,11 @@ viewHeaderRows b rdimHdr rsum cols lvls =
     in
     cols
         |> List.foldl
-            (updateHeaderValueAndColRows b maxdims rsum lvls)
+            (updateHeaderValueAndColRows b maxdims rsum st)
             ( Nothing, [], List.repeat maxdims [] )
         |> (\( _, vh, chs ) ->
                 (chs |> List.map (viewHeaderRow e "column" (th [] [])))
-                    ++ [ vh |> viewHeaderRow e "value" (th [] [ rdimHdr ]) ]
+                    ++ [ vh |> viewHeaderRow e "value" rdimHdr ]
            )
 
 
@@ -529,24 +733,46 @@ updateHeaderValueAndColRows :
     Bem.Block
     -> Int
     -> String
-    -> Set Level
+    -> State
     -> Display.ColumnLabel
     -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
     -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
-updateHeaderValueAndColRows b maxdims rsum lvls next ( mprev, vrow, crows ) =
+updateHeaderValueAndColRows b maxdims rsum st next ( mprev, vrow, crows ) =
     let
         e =
             b.element "header"
 
         mprevl =
             mprev |> Maybe.map .level
+
+        nextl =
+            next.level
+
+        issel =
+            isColumnSelected nextl st
+
+        isselind =
+            isAncestorColumnSelected nextl st
+                || isSelected [] nextl st
+                || isAncestorSelected [] nextl st
     in
     ( Just <| next
-    , vrow ++ [ viewHeaderCell e "value" maxdims lvls next.level (Just next.value) ]
-    , next.level
+    , vrow
+        ++ [ viewHeaderCell
+                e
+                "value"
+                maxdims
+                issel
+                isselind
+                nextl
+                (Just next.value)
+           ]
+    , nextl
         |> headerLabelOrSummaryNonRepeat rsum maxdims mprevl
         |> List.map2
-            (\crow mlabel -> updateHeaderColRow e maxdims lvls next.level mlabel crow)
+            (\crow mlabel ->
+                updateHeaderColRow e maxdims issel isselind next.level mlabel crow
+            )
             crows
     )
 
@@ -554,32 +780,44 @@ updateHeaderValueAndColRows b maxdims rsum lvls next ( mprev, vrow, crows ) =
 updateHeaderColRow :
     Bem.Element
     -> Int
-    -> Set Level
-    -> Level
+    -> Bool
+    -> Bool
+    -> Levels
     -> Maybe String
     -> List (Html (Msg a))
     -> List (Html (Msg a))
-updateHeaderColRow e maxdims lvls lvl mlabel crow =
-    crow ++ [ viewHeaderCell e "column" maxdims lvls lvl mlabel ]
+updateHeaderColRow e maxdims issel isselind lvl mlabel crow =
+    crow ++ [ viewHeaderCell e "column" maxdims issel isselind lvl mlabel ]
 
 
 viewHeaderCell :
     Bem.Element
     -> String
     -> Int
-    -> Set Level
-    -> Level
+    -> Bool
+    -> Bool
+    -> Levels
     -> Maybe String
     -> Html (Msg a)
-viewHeaderCell e etype maxdims lvls lvl mlabel =
+viewHeaderCell e etype maxdims issel isselind lvl mlabel =
+    let
+        n =
+            lvl |> List.length
+    in
     th
         [ e
             |> elementList
-                [ ( "selected", Set.member lvl lvls )
-                , ( "summary", (lvl |> List.length) < maxdims )
-                , ( "summary-grand", (lvl |> List.length) == 0 )
+                [ ( "selected", issel )
+                , ( "selected-indirect", isselind && not issel )
+                , ( "summary", n < maxdims )
+                , ( "summary-grand", n == 0 )
+                , ( "summary-column-grand", n == 0 )
                 ]
-        , e |> elementOf "type" etype
+        , e
+            |> elementOfList
+                [ ( "type", etype )
+                , ( "dimension", n |> String.fromInt )
+                ]
         , Mouse.onClick (toggleSelectColumn lvl)
         ]
         [ text <| Maybe.withDefault "" <| mlabel ]
@@ -588,8 +826,8 @@ viewHeaderCell e etype maxdims lvls lvl mlabel =
 headerLabelOrSummaryNonRepeat :
     String
     -> Int
-    -> Maybe Level
-    -> Level
+    -> Maybe Levels
+    -> Levels
     -> List (Maybe String)
 headerLabelOrSummaryNonRepeat rsum maxdims mprev next =
     let
@@ -602,7 +840,7 @@ headerLabelOrSummaryNonRepeat rsum maxdims mprev next =
         |> Maybe.withDefault (padRight maxdims next_)
 
 
-labelOrSummary : String -> Level -> Level
+labelOrSummary : String -> Levels -> Levels
 labelOrSummary rsum lvl =
     case lvl of
         [] ->
@@ -652,7 +890,7 @@ viewBodyRow :
     Bem.Block
     -> Config a comparable
     -> Int
-    -> Level
+    -> Levels
     -> List (Display.LabelledValue (Html Never))
     -> State
     -> Html (Msg a)
@@ -662,55 +900,61 @@ viewBodyRow b (Config c) rmaxdims lvl vals st =
             b.element "row"
 
         eh =
-            b.element "header-column"
+            b.element "header"
 
-        ( clvls, rlvls, dlvls ) =
-            case st of
-                SelectedRows lvls ->
-                    ( Set.empty, lvls, Set.empty )
+        isselect =
+            isRowSelected lvl st
 
-                SelectedColumns lvls ->
-                    ( lvls, Set.empty, Set.empty )
+        isselectind =
+            isAncestorRowSelected lvl st
+                || isSelected lvl [] st
+                || isAncestorSelected lvl [] st
 
-                SelectedCells lvls ->
-                    ( Set.empty, Set.empty, lvls )
+        n =
+            lvl |> List.length
     in
     tr
         [ er
             |> elementList
-                [ ( "selected", Set.member lvl rlvls )
-                , ( "summary", (lvl |> List.length) < rmaxdims )
-                , ( "summary-grand", (lvl |> List.length) == 0 )
+                [ ( "selected", isselect )
+                , ( "selected-indirect", isselectind && not isselect )
+                , ( "summary", n < rmaxdims )
+                , ( "summary-grand", n == 0 )
+                , ( "summary-row-grand", n == 0 )
                 ]
         ]
         (viewRowHeader eh c.columnSummary rmaxdims lvl
-            :: viewBodyRowCells b c.emptyCell rmaxdims vals rlvls clvls dlvls
+            :: viewBodyRowCells b c.emptyCell rmaxdims isselect isselectind vals st
         )
 
 
-viewRowHeader : Bem.Element -> String -> Int -> Level -> Html (Msg a)
+viewRowHeader : Bem.Element -> String -> Int -> Levels -> Html (Msg a)
 viewRowHeader e csum rmaxdims lvl =
     let
         ndim =
             rmaxdims - (rmaxdims - (lvl |> List.length))
     in
     td
-        [ e |> elementOf "dimension" (ndim |> String.fromInt)
+        [ e
+            |> elementOfList
+                [ ( "type", "row" )
+                , ( "dimension", ndim |> String.fromInt )
+                ]
         , Mouse.onClick (toggleSelectRow lvl)
         ]
-        [ text <| Maybe.withDefault csum <| listLast <| lvl ]
+        [ text <| Maybe.withDefault csum <| List.last <| lvl ]
 
 
 viewBodyRowCells :
     Bem.Block
     -> Html Never
     -> Int
+    -> Bool
+    -> Bool
     -> List (Display.LabelledValue (Html Never))
-    -> Set Level
-    -> Set Level
-    -> Set ( Level, Level )
+    -> State
     -> List (Html (Msg a))
-viewBodyRowCells b defcell rmaxdims vals rlvls clvls dlvls =
+viewBodyRowCells b defcell rmaxdims rsel rselind vals st =
     let
         e =
             b.element "cell"
@@ -723,19 +967,19 @@ viewBodyRowCells b defcell rmaxdims vals rlvls clvls dlvls =
     in
     vals
         |> List.map
-            (\v -> viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) v rlvls clvls dlvls)
+            (\v -> viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) rsel rselind v st)
 
 
 viewBodyRowCell :
     Bem.Element
     -> Html Never
     -> ( Int, Int )
+    -> Bool
+    -> Bool
     -> Display.LabelledValue (Html Never)
-    -> Set Level
-    -> Set Level
-    -> Set ( Level, Level )
+    -> State
     -> Html (Msg a)
-viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) val rlvls clvls dlvls =
+viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) rsel rselind val st =
     let
         rlvl =
             val.row.level
@@ -743,26 +987,36 @@ viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) val rlvls clvls dlvls =
         clvl =
             val.column.level
 
+        rn =
+            rlvl |> List.length
+
+        cn =
+            clvl |> List.length
+
         isselect =
-            (rlvls |> Set.member rlvl)
-                || (clvls |> Set.member clvl)
-                || (dlvls |> Set.member ( rlvl, clvl ))
+            rsel
+                || isColumnSelected clvl st
+                || isSelected rlvl clvl st
+
+        isselectind =
+            rselind
+                || isAncestorColumnSelected clvl st
+                || isSelected [] clvl st
+                || isAncestorSelected rlvl clvl st
 
         issum =
-            ((rlvl |> List.length) < rmaxdims)
-                || ((clvl |> List.length) < cmaxdims)
-
-        isgrandsum =
-            ((rlvl |> List.length) == 0)
-                || ((clvl |> List.length) == 0)
+            (rn < rmaxdims) || (cn < cmaxdims)
     in
     td
         [ e
             |> elementList
                 [ ( "selected", isselect )
+                , ( "selected-indirect", isselectind && not isselect )
                 , ( "summary", issum )
-                , ( "summary-grand", isgrandsum )
-                , ( "missing", maybeIsNothing val.value )
+                , ( "summary-grand", rn == 0 || cn == 0 )
+                , ( "summary-row-grand", rn == 0 )
+                , ( "summary-column-grand", cn == 0 )
+                , ( "missing", Maybe.isNothing val.value )
                 ]
         , Mouse.onClick (toggleSelectCell ( rlvl, clvl ))
         ]
@@ -775,7 +1029,7 @@ viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) val rlvls clvls dlvls =
 -- -----------------------------------------------------------------------------
 
 
-toggleSelectColumn : Level -> Mouse.Event -> Msg a
+toggleSelectColumn : Levels -> Mouse.Event -> Msg a
 toggleSelectColumn lvl { keys } =
     if keys.ctrl then
         ToggleSelectAddColumn lvl
@@ -784,7 +1038,7 @@ toggleSelectColumn lvl { keys } =
         ToggleSelectOnlyColumn lvl
 
 
-toggleSelectRow : Level -> Mouse.Event -> Msg a
+toggleSelectRow : Levels -> Mouse.Event -> Msg a
 toggleSelectRow lvl { keys } =
     if keys.ctrl then
         ToggleSelectAddRow lvl
@@ -793,7 +1047,7 @@ toggleSelectRow lvl { keys } =
         ToggleSelectOnlyRow lvl
 
 
-toggleSelectCell : ( Level, Level ) -> Mouse.Event -> Msg a
+toggleSelectCell : LevelsPair -> Mouse.Event -> Msg a
 toggleSelectCell rcpair { keys } =
     if keys.ctrl then
         ToggleSelectAddCell rcpair
@@ -806,16 +1060,6 @@ toggleSelectCell rcpair { keys } =
 -- -----------------------------------------------------------------------------
 -- UTILS
 -- -----------------------------------------------------------------------------
-
-
-listLast : List a -> Maybe a
-listLast =
-    List.reverse >> List.head
-
-
-maybeIsNothing : Maybe a -> Bool
-maybeIsNothing =
-    Maybe.map (always False) >> Maybe.withDefault True
 
 
 padRight : Int -> List a -> List (Maybe a)

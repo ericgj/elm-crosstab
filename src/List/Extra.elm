@@ -1,12 +1,32 @@
 module List.Extra exposing
     ( andThen
-    , combinationsFrom
     , greedyGroupsOf
     , greedyGroupsOfWithStep
+    , inits
+    , last
     , lift2
     )
 
 import List exposing (..)
+
+
+{-| Extract the last element of a list.
+last [ 1, 2, 3 ]
+--> Just 3
+last []
+--> Nothing
+-}
+last : List a -> Maybe a
+last items =
+    case items of
+        [] ->
+            Nothing
+
+        [ x ] ->
+            Just x
+
+        _ :: rest ->
+            last rest
 
 
 andThen : (a -> List b) -> List a -> List b
@@ -19,11 +39,13 @@ lift2 f la lb =
     la |> andThen (\a -> lb |> andThen (\b -> [ f a b ]))
 
 
-combinationsFrom : Int -> List a -> List (List a)
-combinationsFrom start list =
-    List.length list
-        |> List.range start
-        |> List.map (\n -> List.take n list)
+{-| Return all initial segments of a list, from shortest to longest, empty list first, the list itself last.
+inits [ 1, 2, 3 ]
+--> [ [], [ 1 ], [ 1, 2 ], [ 1, 2, 3 ] ]
+-}
+inits : List a -> List (List a)
+inits =
+    foldr (\e acc -> [] :: map ((::) e) acc) [ [] ]
 
 
 {-| Greedily split list into groups of length `size`. The last group of

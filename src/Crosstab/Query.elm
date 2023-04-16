@@ -24,6 +24,7 @@ module Crosstab.Query exposing
     , withSummaryAtEnd
     )
 
+import Crosstab.Levels exposing (Levels)
 import Dict
 import Order exposing (order2, orderMany, reverseOrder)
 
@@ -41,7 +42,7 @@ type alias QueryData a =
 
 
 type alias CompareAxis a =
-    List String -> List a -> List String -> List a -> Order
+    Levels -> List a -> Levels -> List a -> Order
 
 
 default : Query a

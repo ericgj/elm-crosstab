@@ -44,6 +44,7 @@ module Crosstab exposing
 
 import Crosstab.Accum as Accum exposing (ParametricData, ParametricStats)
 import Crosstab.Display as Display
+import Crosstab.Levels exposing (Levels, LevelsPair)
 import Crosstab.Query as Query exposing (CompareAxis, Query)
 import Crosstab.Spec as Spec exposing (Spec)
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
@@ -69,14 +70,6 @@ type alias CrosstabData a =
 
 type alias Table a =
     Dict LevelsPair a
-
-
-type alias LevelsPair =
-    ( Levels, Levels )
-
-
-type alias Levels =
-    List String
 
 
 
@@ -160,8 +153,8 @@ updateCrosstabTable spec a (Crosstab c) =
         combos =
             List.lift2
                 Tuple.pair
-                (rows |> List.combinationsFrom 0)
-                (cols |> List.combinationsFrom 0)
+                (rows |> List.inits)
+                (cols |> List.inits)
     in
     Crosstab
         { c | table = updateTable combos fn initVal c.table }

@@ -1,6 +1,16 @@
-module Maybe.Extra exposing (combine, unwrap)
+module Maybe.Extra exposing (combine, isNothing, unwrap)
 
 import Maybe exposing (..)
+
+
+isNothing : Maybe a -> Bool
+isNothing m =
+    case m of
+        Nothing ->
+            True
+
+        Just _ ->
+            False
 
 
 combine : List (Maybe a) -> Maybe (List a)
