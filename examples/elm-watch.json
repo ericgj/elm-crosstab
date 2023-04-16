@@ -1,0 +1,10 @@
+{
+    "targets": {
+        "examples": {
+            "inputs": [
+                "./Main.elm"
+            ],
+            "output": "./elm.js"
+        }
+    }
+}

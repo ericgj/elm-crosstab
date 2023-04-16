@@ -2,5 +2,8 @@
   "devDependencies": {
     "elm-review": "^2.9.2",
     "elm-test": "^0.19.1-revision12"
+  },
+  "dependencies": {
+    "elm-watch": "^1.1.2"
   }
 }

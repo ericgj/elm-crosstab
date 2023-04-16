@@ -23,6 +23,8 @@ review-examples:
 test:
 	./node_modules/elm-test/bin/elm-test
 
+watch:
+	python -m http.server 8080 & cd examples && node ../node_modules/elm-watch/index.js hot && kill %1
 
 .PHONY: build build-examples format review review-examples test
 
