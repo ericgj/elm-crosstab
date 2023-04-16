@@ -2,6 +2,54 @@
 
 A library for accessing cross-tabulated data
 
+_16 Apr 2023_
+
+## View state reconsidered
+
+I am slowly moving towards a view where Query is put into state. Part of the
+issue I had before is that Query was only partially edited by the Display.Table
+view. I couldn't see how the sorting UI should work. But I have an idea now.
+
+I think that it may be useful to split out the view into a View.Query
+module, with view functions like:
+
+    viewRowDimensions: Config a msg -> List String -> Query a -> Html msg
+
+### Notes:
+
+\1.
+Note the `List String`, not `Window String`, for the dimension labels. `Window` 
+is derived from this list and the Query state. So I think we can just store 
+`List String` in Display.Table now that Query is in scope of the view. I 
+think part of the complexity of the current dimension controls is due to this 
+implicit shared state, spread across modules.
+
+
+\2. 
+As with sortable-table, the view could directly update the query state, and
+the parent (e.g. View.Selectable) update just deal with it as
+
+    New Query q ->
+        State { s | query = q }
+
+But having said that, I am not sure how reusable these views are. They are a
+bit closely tied to the Display.Table view that integrates them into a 
+particular place in the table. But actually I have in mind a more generic
+view that would work ok in different places. So maybe this would work.
+
+
+\3.
+If the Display.Table views (e.g. View.Selectable) hold Query in state, then
+essentially they could be passed in the Crosstab and run the query themselves.
+In this division of labor, app code handles getting the data and configuring 
+the Crosstab; library code handles running the Crosstab.query and allowing the 
+user to update the Query parameters.
+
+(Eventually this could be pushed back even further, theoretically speaking,
+as the library provides a UI for configuring the Crosstab (i.e. Crosstab.Spec,
+Crosstab.Accum) -- but that is quite a bit trickier.)
+
+
 
 _8 Apr 2023_
 
