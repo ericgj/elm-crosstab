@@ -753,8 +753,6 @@ updateHeaderValueAndColRows b maxdims rsum st next ( mprev, vrow, crows ) =
 
         isselind =
             isAncestorColumnSelected nextl st
-                || isSelected [] nextl st
-                || isAncestorSelected [] nextl st
     in
     ( Just <| next
     , vrow
@@ -902,13 +900,11 @@ viewBodyRow b (Config c) rmaxdims lvl vals st =
         eh =
             b.element "header"
 
-        isselect =
+        issel =
             isRowSelected lvl st
 
-        isselectind =
+        isselind =
             isAncestorRowSelected lvl st
-                || isSelected lvl [] st
-                || isAncestorSelected lvl [] st
 
         n =
             lvl |> List.length
@@ -916,15 +912,15 @@ viewBodyRow b (Config c) rmaxdims lvl vals st =
     tr
         [ er
             |> elementList
-                [ ( "selected", isselect )
-                , ( "selected-indirect", isselectind && not isselect )
+                [ ( "selected", issel )
+                , ( "selected-indirect", isselind && not issel )
                 , ( "summary", n < rmaxdims )
                 , ( "summary-grand", n == 0 )
                 , ( "summary-row-grand", n == 0 )
                 ]
         ]
         (viewRowHeader eh c.columnSummary rmaxdims lvl
-            :: viewBodyRowCells b c.emptyCell rmaxdims isselect isselectind vals st
+            :: viewBodyRowCells b c.emptyCell rmaxdims issel isselind vals st
         )
 
 
