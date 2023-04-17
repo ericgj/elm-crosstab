@@ -26,6 +26,28 @@
     color: white;
 }
 
-.simple-crosstab__dimensions-control--state-enabled {
-  padding-right: 0.25rem;
+.simple-crosstab__breadcrumbs ul {
+    list-style-type: none;
+    padding-left: 0;
 }
+
+.simple-crosstab__breadcrumb {
+    display: inline-block;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
+.simple-crosstab__breadcrumb--current {
+    background-color: black;
+    color: white;
+}
+
+.simple-crosstab__breadcrumb--type-not-followed {
+    color: rgba(0,0,0,0.5);
+}
+
+.simple-crosstab__breadcrumb-separator {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+

@@ -51,9 +51,9 @@ import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import List.Extra as List
+import Maybe.Extra as Maybe
 import Order exposing (order2)
 import OrderedSet
-import Window exposing (Window)
 
 
 type Crosstab a
@@ -568,27 +568,32 @@ chiSqImp row col table value =
 query : Query a -> Crosstab a -> Maybe (Display.Table a)
 query q (Crosstab c) =
     let
-        rowDims =
+        nrowdims =
             q |> Query.rowDimensions
 
-        columnDims =
+        rowdims =
+            nrowdims
+                |> Maybe.unwrap c.rowDimLabels (\n -> List.take n c.rowDimLabels)
+
+        ncoldims =
             q |> Query.columnDimensions
 
-        sortRows =
+        coldims =
+            ncoldims
+                |> Maybe.unwrap c.columnDimLabels (\n -> List.take n c.columnDimLabels)
+
+        rsort =
             q |> Query.sortRows
 
-        sortColumns =
+        csort =
             q |> Query.sortColumns
     in
     c.table
         |> Dict.toList
         |> List.filter
-            (filterMaybeDimensions rowDims columnDims)
-        |> sortLevelsPairValuesWith sortRows sortColumns
-        |> cartesianToDisplayTable
-            c.valueLabel
-            (c.rowDimLabels |> Window.initMaybeOpen rowDims)
-            (c.columnDimLabels |> Window.initMaybeOpen columnDims)
+            (filterMaybeDimensions nrowdims ncoldims)
+        |> sortLevelsPairValuesWith rsort csort
+        |> cartesianToDisplayTable c.valueLabel c.rowDimLabels c.columnDimLabels
 
 
 filterMaybeDimensions : Maybe Int -> Maybe Int -> ( LevelsPair, a ) -> Bool
@@ -641,8 +646,8 @@ sortLevelsPairValuesWith rfn cfn list =
 
 cartesianToDisplayTable :
     ValueLabel
-    -> Window String
-    -> Window String
+    -> List String
+    -> List String
     -> List ( LevelsPair, Maybe a )
     -> Maybe (Display.Table a)
 cartesianToDisplayTable vlabel rdims cdims data =

@@ -18,14 +18,12 @@ module Crosstab.Display exposing
     , tableRowDimensions
     , tableRowLabels
     , tableRows
-    , tableTitle
     , tableValueLabel
     )
 
 import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import List.Extra as List
 import Maybe.Extra as Maybe
-import Window exposing (Window)
 
 
 type Table a
@@ -42,8 +40,8 @@ type Header
 
 type alias TableHeaderData =
     { valueLabel : ValueLabel
-    , rowDimLabels : Window String
-    , columnDimLabels : Window String
+    , rowDimLabels : List String
+    , columnDimLabels : List String
     }
 
 
@@ -119,26 +117,17 @@ groupsOf2d nrows ncols list =
 -- GETTERS
 
 
-tableTitle : Table a -> String
-tableTitle (Table (TableHeader th) _ _) =
-    (th.valueLabel |> ValueLabel.toString)
-        ++ " by "
-        ++ (th.rowDimLabels |> Window.getOpen |> String.join "-")
-        ++ " and "
-        ++ (th.columnDimLabels |> Window.getOpen |> String.join "-")
-
-
 tableValueLabel : Table a -> ValueLabel
 tableValueLabel (Table (TableHeader th) _ _) =
     th.valueLabel
 
 
-tableRowDimensions : Table a -> Window String
+tableRowDimensions : Table a -> List String
 tableRowDimensions (Table (TableHeader th) _ _) =
     th.rowDimLabels
 
 
-tableColumnDimensions : Table a -> Window String
+tableColumnDimensions : Table a -> List String
 tableColumnDimensions (Table (TableHeader th) _ _) =
     th.columnDimLabels
 
@@ -276,6 +265,6 @@ labelledRow vcols (TableHeader th) (Header h) rl (Row v vs) =
         |> (\lvals -> ( rlabel, lvals ))
 
 
-getLevelDimension : Window a -> List a -> List a
-getLevelDimension w l =
-    w |> Window.toList |> List.take (l |> List.length)
+getLevelDimension : List a -> List a -> List a
+getLevelDimension dims l =
+    dims |> List.take (List.length l)

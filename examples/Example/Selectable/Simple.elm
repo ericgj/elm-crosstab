@@ -1,13 +1,13 @@
 module Example.Selectable.Simple exposing (Model, Msg(..), default, init, update, view)
 
-import Crosstab
+import Crosstab exposing (Crosstab)
 import Crosstab.Accum as Accum exposing (ParametricStats)
 import Crosstab.Display as Display
 import Crosstab.Query as Query exposing (Query)
 import Crosstab.Spec as Spec
-import Crosstab.View.Selectable as Selectable
 import Data.Incarceration as Incarceration exposing (Incarceration)
 import Html exposing (..)
+import View.Crosstab.Selectable as Selectable
 
 
 
@@ -24,13 +24,12 @@ type Model
 
 type alias ModelData =
     { data : List I
-    , query : Query ParametricStats
     , value : ( String, I -> Int )
     , row : ( String, I -> String )
     , column : ( String, I -> String )
     , sortType : SortType
     , sortDir : Query.SortDir
-    , selected : Selectable.State
+    , selected : Selectable.State ParametricStats
     }
 
 
@@ -41,15 +40,18 @@ type SortType
 
 default : Model
 default =
+    let
+        q =
+            Query.sortingRowsBy <| regionSort <| [ "State Total", "Federal" ]
+    in
     init
         { data = []
-        , query = Query.sortingRowsBy <| regionSort <| [ "State Total", "Federal" ]
         , value = ( "incarcerated", \i -> i.totalM + i.totalF )
         , row = ( "region", .region >> Incarceration.regionToString )
         , column = ( "year", .year >> String.fromInt )
         , sortType = SortSum
         , sortDir = Query.Asc
-        , selected = Selectable.empty
+        , selected = Selectable.init q
         }
 
 
@@ -65,8 +67,8 @@ init =
     Model
 
 
-toTable : Model -> Maybe (Display.Table ParametricStats)
-toTable (Model m) =
+toCrosstab : Model -> Crosstab ParametricStats
+toCrosstab (Model m) =
     let
         ( vlab, vaccess ) =
             m.value
@@ -86,10 +88,9 @@ toTable (Model m) =
             )
         |> Crosstab.tabulate spec
         |> Crosstab.map "Stats" Crosstab.parametricStats
-        |> Crosstab.query m.query
 
 
-selected : Model -> Selectable.State
+selected : Model -> Selectable.State ParametricStats
 selected (Model m) =
     m.selected
 
@@ -139,12 +140,7 @@ update msg (Model m) =
             Model { m | data = d }
 
         UpdateSelected submsg ->
-            case submsg of
-                Selectable.UpdateQuery qmsg ->
-                    Model { m | query = Query.update qmsg m.query }
-
-                _ ->
-                    Model { m | selected = Selectable.update submsg m.selected }
+            Model { m | selected = Selectable.update submsg m.selected }
 
 
 
@@ -153,25 +149,9 @@ update msg (Model m) =
 
 view : Model -> Html Msg
 view m =
-    let
-        mtab =
-            m |> toTable
-    in
-    case mtab of
-        Nothing ->
-            viewEmptyTable
-
-        Just tab ->
-            let
-                conf =
-                    m |> tableConfig
-
-                sel =
-                    m |> selected
-            in
-            Selectable.view conf tab sel |> Html.map UpdateSelected
-
-
-viewEmptyTable : Html x
-viewEmptyTable =
-    h1 [] [ text "No data." ]
+    m
+        |> toCrosstab
+        |> (\tab ->
+                Selectable.view (tableConfig m) tab (selected m)
+                    |> Html.map UpdateSelected
+           )
