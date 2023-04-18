@@ -22,6 +22,7 @@ type alias Incarceration =
     { year : Int
     , state : String
     , region : Region
+    , regionCode : Int
     , greaterThan1YearM : Int
     , greaterThan1YearF : Int
     , lessThan1YearM : Int
@@ -108,6 +109,7 @@ csvDecode =
                 Csv.string
                 |> Csv.andThen (regionFromCode >> Csv.fromResult)
             )
+        |> pipeline (field "REGION" Csv.int)
         |> pipeline (field "CUSGT1M" Csv.int)
         |> pipeline (field "CUSGT1F" Csv.int)
         |> pipeline (field "CUSLT1M" Csv.int)

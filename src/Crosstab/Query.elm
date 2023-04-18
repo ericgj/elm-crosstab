@@ -1,11 +1,12 @@
 module Crosstab.Query exposing
     ( CompareAxis
-    , Msg(..)
     , Query
     , SortDir(..)
     , columnDimensions
     , default
     , defaultSort
+    , init
+    , reverseSortDir
     , rowDimensions
     , sort2
     , sortByFirstLevelInGivenOrder
@@ -20,7 +21,6 @@ module Crosstab.Query exposing
     , sortingBy
     , sortingColumnsBy
     , sortingRowsBy
-    , update
     , withSummaryAtEnd
     )
 
@@ -43,6 +43,11 @@ type alias QueryData a =
 
 type alias CompareAxis a =
     Levels -> List a -> Levels -> List a -> Order
+
+
+init : QueryData a -> Query a
+init =
+    Query
 
 
 default : Query a
@@ -110,39 +115,22 @@ getQueryData (Query q) =
 
 
 
--- UPDATE
-
-
-type Msg a
-    = SetRowDimensions (Maybe Int)
-    | SetColumnDimensions (Maybe Int)
-    | SortRows (CompareAxis a)
-    | SortColumns (CompareAxis a)
-
-
-update : Msg a -> Query a -> Query a
-update msg (Query q) =
-    case msg of
-        SetRowDimensions n ->
-            Query { q | rowDimensions = n }
-
-        SetColumnDimensions n ->
-            Query { q | columnDimensions = n }
-
-        SortRows fn ->
-            Query { q | sortRows = fn }
-
-        SortColumns fn ->
-            Query { q | sortColumns = fn }
-
-
-
 -- SORTING
 
 
 type SortDir
     = Asc
     | Desc
+
+
+reverseSortDir : SortDir -> SortDir
+reverseSortDir s =
+    case s of
+        Asc ->
+            Desc
+
+        Desc ->
+            Asc
 
 
 {-| Sort axis by levels in the given direction

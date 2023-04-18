@@ -27,39 +27,37 @@ type alias ModelData =
     , value : ( String, I -> Int )
     , row : ( String, I -> String )
     , column : ( String, I -> String )
-    , sortType : SortType
-    , sortDir : Query.SortDir
-    , selected : Selectable.State ParametricStats
+    , selected : Selectable.State
     }
-
-
-type SortType
-    = SortSum
-    | SortMean
 
 
 default : Model
 default =
-    let
-        q =
-            Query.sortingRowsBy <| regionSort <| [ "State Total", "Federal" ]
-    in
     init
         { data = []
         , value = ( "incarcerated", \i -> i.totalM + i.totalF )
-        , row = ( "region", .region >> Incarceration.regionToString )
+        , row = ( "region", getRegionWithCode )
         , column = ( "year", .year >> String.fromInt )
-        , sortType = SortSum
-        , sortDir = Query.Asc
-        , selected = Selectable.init q
+        , selected = Selectable.init
         }
 
 
-regionSort : List String -> Query.CompareAxis a
-regionSort lsort =
-    lsort
-        |> Query.sortByFirstLevelInGivenOrder LT
-        |> Query.withSummaryAtEnd
+getRegionWithCode : I -> String
+getRegionWithCode i =
+    (i.regionCode |> String.fromInt)
+        ++ "-"
+        ++ (i.region |> Incarceration.regionToString)
+
+
+
+{- can't handle this kind of thing yet :(
+   regionSort : List String -> Query.CompareAxis a
+   regionSort lsort =
+       lsort
+           |> Query.sortByFirstLevelInGivenOrder LT
+           |> Query.withSummaryAtEnd
+
+-}
 
 
 init : ModelData -> Model
@@ -90,7 +88,7 @@ toCrosstab (Model m) =
         |> Crosstab.map "Stats" Crosstab.parametricStats
 
 
-selected : Model -> Selectable.State ParametricStats
+selected : Model -> Selectable.State
 selected (Model m) =
     m.selected
 
@@ -101,25 +99,18 @@ selected (Model m) =
 
 tableConfig : Model -> Selectable.Config ParametricStats Float
 tableConfig (Model m) =
-    let
-        sortvals =
-            case m.sortType of
-                SortSum ->
-                    Query.sortByValueAs .sum m.sortDir
-
-                SortMean ->
-                    Query.sortByValueMaybeAs .mean LT m.sortDir
-    in
     Selectable.valueConfig
-        sortvals
-        [ ( "Pop"
-          , .sum >> round >> String.fromInt >> text
-          )
-        , ( "Avg/State"
-          , .mean
-                >> Maybe.map (round >> String.fromInt >> text)
-                >> Maybe.withDefault Selectable.defaultEmptyCell
-          )
+        [ { label = "Pop"
+          , render = .sum >> round >> String.fromInt >> text
+          , sort = .sum
+          }
+        , { label = "Avg/State"
+          , render =
+                .mean
+                    >> Maybe.map (round >> String.fromInt >> text)
+                    >> Maybe.withDefault Selectable.defaultEmptyCell
+          , sort = .mean >> Maybe.withDefault 0.0
+          }
         ]
         |> Selectable.withCssBlock "simple-crosstab"
 

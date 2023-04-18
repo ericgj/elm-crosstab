@@ -1,27 +1,157 @@
 module View.Crosstab.Query exposing
     ( Config
     , CssConfig
+    , State
     , config
+    , init
+    , toQuery
     , viewColumnDimensions
     , viewRowDimensions
     )
 
-import Crosstab.Query as Query exposing (CompareAxis, Query)
+import Crosstab.Query as Query exposing (CompareAxis, Query, SortDir)
 import Html exposing (..)
-import Html.Bem as Bem exposing (elementOf)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (checked, class, name, type_)
+import Html.Attributes.Extra as Attributes
+import Html.Bem as Bem exposing (elementList, elementOf, elementOfList)
+import Html.Events exposing (onClick, onInput)
 import List.Extra as List
 import Maybe.Extra as Maybe
 import View.Breadcrumbs as Breadcrumbs
 
 
-type Config a msg
-    = Config (ConfigData a msg)
+
+-- STATE
 
 
-type alias ConfigData a msg =
-    { newQuery : Query a -> msg
+type State
+    = State StateData
+
+
+type alias StateData =
+    { rowDimensions : Maybe Int
+    , columnDimensions : Maybe Int
+    , rowSort : SortState
+    , columnSort : SortState
+    }
+
+
+type SortState
+    = ByLevels SortDir
+    | ByValue Int SortDir
+
+
+init : State
+init =
+    State
+        { rowDimensions = Nothing
+        , columnDimensions = Nothing
+        , rowSort = ByLevels Query.Asc
+        , columnSort = ByLevels Query.Asc
+        }
+
+
+rowDimensions : State -> Maybe Int
+rowDimensions (State st) =
+    st.rowDimensions
+
+
+columnDimensions : State -> Maybe Int
+columnDimensions (State st) =
+    st.columnDimensions
+
+
+rowSort : State -> SortState
+rowSort (State st) =
+    st.rowSort
+
+
+columnSort : State -> SortState
+columnSort (State st) =
+    st.columnSort
+
+
+rowSortDir : State -> SortDir
+rowSortDir st =
+    case rowSort st of
+        ByLevels dir ->
+            dir
+
+        ByValue _ dir ->
+            dir
+
+
+columnSortDir : State -> SortDir
+columnSortDir st =
+    case columnSort st of
+        ByLevels dir ->
+            dir
+
+        ByValue _ dir ->
+            dir
+
+
+
+--------------------------------------------------------------------------------
+-- STATE -> QUERY
+--------------------------------------------------------------------------------
+
+
+toQuery : List (a -> comparable) -> State -> Query a
+toQuery vsorts st =
+    Query.init
+        { rowDimensions = rowDimensions st
+        , columnDimensions = columnDimensions st
+        , sortRows = toRowCompareAxis vsorts st
+        , sortColumns = toColumnCompareAxis vsorts st
+        }
+
+
+toRowCompareAxis : List (a -> comparable) -> State -> CompareAxis a
+toRowCompareAxis vsorts st =
+    toCompareAxisHelp .rowSort vsorts st |> Query.withSummaryAtEnd
+
+
+toColumnCompareAxis : List (a -> comparable) -> State -> CompareAxis a
+toColumnCompareAxis vsorts st =
+    toCompareAxisHelp .columnSort vsorts st |> Query.withSummaryAtEnd
+
+
+toCompareAxisHelp : (StateData -> SortState) -> List (a -> comparable) -> State -> CompareAxis a
+toCompareAxisHelp sortst vsorts (State st) =
+    case sortst st of
+        ByLevels dir ->
+            Query.sortByLevels dir
+
+        ByValue i dir ->
+            let
+                mvsort =
+                    if i > List.length vsorts then
+                        List.head vsorts
+
+                    else
+                        List.getAt i vsorts
+            in
+            mvsort
+                |> Maybe.unwrap
+                    (Query.sortByLevels dir)
+                    (\vsort -> Query.sortByValueAs vsort dir)
+
+
+
+--------------------------------------------------------------------------------
+-- CONFIG
+--------------------------------------------------------------------------------
+
+
+type Config a comparable msg
+    = Config (ConfigData a comparable msg)
+
+
+type alias ConfigData a comparable msg =
+    { msg : State -> msg
     , summaryLabel : String
+    , valueSorts : List ( String, a -> comparable )
     , css : CssConfig
     }
 
@@ -29,75 +159,173 @@ type alias ConfigData a msg =
 type alias CssConfig =
     { block : String
     , iconSeparator : Maybe String
+    , iconSortAsc : Maybe String
+    , iconSortDesc : Maybe String
     }
 
 
-config : ConfigData a msg -> Config a msg
+config : ConfigData a comparable msg -> Config a comparable msg
 config =
     Config
 
 
-newQuery : Config a msg -> (Query a -> msg)
-newQuery (Config c) =
-    c.newQuery
+newState : Config a comparable msg -> (State -> msg)
+newState (Config c) =
+    c.msg
+
+
+summaryLabel : Config a comparable msg -> String
+summaryLabel (Config c) =
+    c.summaryLabel
+
+
+valueSorts : Config a comparable msg -> List ( String, a -> comparable )
+valueSorts (Config c) =
+    c.valueSorts
+
+
+cssConfig : Config a comparable msg -> CssConfig
+cssConfig (Config c) =
+    c.css
+
+
+sortIcon : CssConfig -> SortDir -> Maybe String
+sortIcon css dir =
+    case dir of
+        Query.Asc ->
+            css.iconSortAsc
+
+        Query.Desc ->
+            css.iconSortDesc
 
 
 
+--------------------------------------------------------------------------------
+-- UPDATE
+--------------------------------------------------------------------------------
+
+
+type Msg
+    = SetRowDimensions (Maybe Int)
+    | SetColumnDimensions (Maybe Int)
+    | SetRowSortByLevels SortDir
+    | SetRowSortByValue Int SortDir
+    | SetColumnSortByLevels SortDir
+    | SetColumnSortByValue Int SortDir
+
+
+update : Msg -> State -> State
+update msg (State st) =
+    case msg of
+        SetRowDimensions mi ->
+            State { st | rowDimensions = mi }
+
+        SetColumnDimensions mi ->
+            State { st | columnDimensions = mi }
+
+        SetRowSortByLevels dir ->
+            State { st | rowSort = ByLevels dir }
+
+        SetRowSortByValue i dir ->
+            State { st | rowSort = ByValue i dir }
+
+        SetColumnSortByLevels dir ->
+            State { st | columnSort = ByLevels dir }
+
+        SetColumnSortByValue i dir ->
+            State { st | columnSort = ByValue i dir }
+
+
+
+--------------------------------------------------------------------------------
 -- VIEWS
+--------------------------------------------------------------------------------
 
 
-viewRowDimensions : Config a msg -> List String -> Query a -> Html msg
-viewRowDimensions c dims q =
-    viewDimensions "row" Query.rowDimensions Query.SetRowDimensions Query.SortRows c dims q
+viewRowDimensions : Config a comparable msg -> List String -> State -> Html msg
+viewRowDimensions c dims st =
+    viewDimensions
+        "row"
+        rowDimensions
+        SetRowDimensions
+        rowSort
+        SetRowSortByLevels
+        SetRowSortByValue
+        c
+        dims
+        st
 
 
-viewColumnDimensions : Config a msg -> List String -> Query a -> Html msg
-viewColumnDimensions c dims q =
-    viewDimensions "column" Query.columnDimensions Query.SetColumnDimensions Query.SortColumns c dims q
+viewColumnDimensions : Config a comparable msg -> List String -> State -> Html msg
+viewColumnDimensions c dims st =
+    viewDimensions
+        "column"
+        columnDimensions
+        SetColumnDimensions
+        columnSort
+        SetColumnSortByLevels
+        SetColumnSortByValue
+        c
+        dims
+        st
 
 
 viewDimensions :
     String
-    -> (Query a -> Maybe Int)
-    -> (Maybe Int -> Query.Msg a)
-    -> (CompareAxis a -> Query.Msg a)
-    -> Config a msg
+    -> (State -> Maybe Int)
+    -> (Maybe Int -> Msg)
+    -> (State -> SortState)
+    -> (SortDir -> Msg)
+    -> (Int -> SortDir -> Msg)
+    -> Config a comparable msg
     -> List String
-    -> Query a
+    -> State
     -> Html msg
-viewDimensions etype getDims setDims setSort c dims q =
-    viewDimensionsInner etype getDims setDims setSort c dims q |> Html.map (newQuery c)
+viewDimensions etype getDims setDims getSort sortLvls sortVals c dims st =
+    viewDimensionsInner etype getDims setDims getSort sortLvls sortVals c dims st
+        |> Html.map (\msg -> update msg st |> newState c)
 
 
 viewDimensionsInner :
     String
-    -> (Query a -> Maybe Int)
-    -> (Maybe Int -> Query.Msg a)
-    -> (CompareAxis a -> Query.Msg a)
-    -> Config a msg
+    -> (State -> Maybe Int)
+    -> (Maybe Int -> Msg)
+    -> (State -> SortState)
+    -> (SortDir -> Msg)
+    -> (Int -> SortDir -> Msg)
+    -> Config a comparable msg
     -> List String
-    -> Query a
-    -> Html (Query a)
-viewDimensionsInner etype getDims setDims setSort (Config c) dims q =
+    -> State
+    -> Html Msg
+viewDimensionsInner etype getDims setDims getSort sortLvls sortVals c dims st =
     let
         b =
-            Bem.init c.css.block
+            Bem.init css.block
 
         e =
             b.element "dimensions"
 
+        sumlbl =
+            summaryLabel c
+
+        css =
+            cssConfig c
+
+        vsorts =
+            valueSorts c
+
         cur =
-            q
+            st
                 |> getDims
                 |> Maybe.withDefault (List.length dims)
 
         bconfig =
             Breadcrumbs.config
-                { closedLabel = c.summaryLabel
-                , toMsg = unlessMaxDimension dims >> setDims >> (\m -> Query.update m q)
+                { closedLabel = sumlbl
+                , toMsg = unlessMaxDimension dims >> setDims
                 , css =
-                    { block = c.css.block
-                    , iconSeparator = c.css.iconSeparator
+                    { block = b.name
+                    , iconSeparator = css.iconSeparator
                     }
                 }
     in
@@ -105,6 +333,7 @@ viewDimensionsInner etype getDims setDims setSort (Config c) dims q =
         [ e |> elementOf "type" etype
         ]
         [ Breadcrumbs.view bconfig cur dims
+        , viewSort b etype css getSort sortLvls sortVals vsorts st
         ]
 
 
@@ -115,3 +344,140 @@ unlessMaxDimension dims i =
 
     else
         Just i
+
+
+viewSort :
+    Bem.Block
+    -> String
+    -> CssConfig
+    -> (State -> SortState)
+    -> (SortDir -> Msg)
+    -> (Int -> SortDir -> Msg)
+    -> List ( String, a -> comparable )
+    -> State
+    -> Html Msg
+viewSort b etype css getSort sortLvls sortVals vsorts st =
+    let
+        e =
+            b.element "sort"
+    in
+    div
+        [ e |> elementOf "type" etype ]
+        (viewSortByLevels b etype css getSort sortLvls st
+            :: (vsorts
+                    |> List.indexedMap
+                        (\i ( v, _ ) -> viewSortByValue b etype css getSort sortVals i v st)
+               )
+        )
+
+
+viewSortByLevels :
+    Bem.Block
+    -> String
+    -> CssConfig
+    -> (State -> SortState)
+    -> (SortDir -> Msg)
+    -> State
+    -> Html Msg
+viewSortByLevels b etype css getSort sortLvls st =
+    let
+        e =
+            b.element "sort-choice"
+
+        ( iscur, dir ) =
+            case getSort st of
+                ByLevels d ->
+                    ( True, d )
+
+                _ ->
+                    ( False, Query.Asc )
+    in
+    div
+        [ e |> elementOfList [ ( "type", etype ), ( "by", "levels" ) ]
+        , e |> elementList [ ( "selected", iscur ) ]
+        ]
+        [ label
+            []
+            [ input
+                [ type_ "radio"
+                , name (Bem.elementNameOf e "type" etype)
+                , checked iscur
+                , onInput (always (sortLvls dir))
+                ]
+                []
+            , text "By Levels"
+            ]
+        , viewSortDir b etype "levels" css sortLvls dir
+        ]
+
+
+viewSortByValue :
+    Bem.Block
+    -> String
+    -> CssConfig
+    -> (State -> SortState)
+    -> (Int -> SortDir -> Msg)
+    -> Int
+    -> String
+    -> State
+    -> Html Msg
+viewSortByValue b etype css getSort sortVals i vlbl st =
+    let
+        e =
+            b.element "sort-choice"
+
+        ( mcur, dir ) =
+            case getSort st of
+                ByValue i_ d ->
+                    ( Just i_, d )
+
+                _ ->
+                    ( Nothing, Query.Asc )
+
+        iscur =
+            mcur |> Maybe.unwrap False ((==) i)
+    in
+    div
+        [ e |> elementOfList [ ( "type", etype ), ( "by", "value" ) ]
+        , e |> elementList [ ( "selected", iscur ) ]
+        ]
+        [ label
+            []
+            [ input
+                [ type_ "radio"
+                , name (Bem.elementNameOf e "type" etype)
+                , checked iscur
+                , onInput (always (sortVals i dir))
+                ]
+                []
+            , text ("By " ++ vlbl)
+            ]
+        , viewSortDir b etype "value" css (sortVals i) dir
+        ]
+
+
+viewSortDir :
+    Bem.Block
+    -> String
+    -> String
+    -> CssConfig
+    -> (SortDir -> Msg)
+    -> SortDir
+    -> Html Msg
+viewSortDir b etype bytype css sortLvls dir =
+    let
+        e =
+            b.element "sort-choice-dir"
+
+        newdir =
+            Query.reverseSortDir dir
+
+        micon =
+            sortIcon css dir
+    in
+    div
+        [ e |> elementOfList [ ( "type", etype ), ( "by", bytype ) ]
+        , micon |> Maybe.unwrap Attributes.empty class
+        , onClick (sortLvls newdir)
+        ]
+        []

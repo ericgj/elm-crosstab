@@ -13,7 +13,7 @@ module View.Crosstab.Selectable exposing
     , floatValueConfig
     , init
     , intValueConfig
-    , isEmpty
+    , noneSelected
     , singleValueConfig
     , update
     , valueConfig
@@ -21,17 +21,19 @@ module View.Crosstab.Selectable exposing
     , withColumnDimensionSummaryLabel
     , withColumnSummaryLabel
     , withCssBlock
+    , withDimensionSeparatorIcon
     , withDimensionSummaryLabel
     , withEmptyCell
-    , withDimensionSeparatorIcon
     , withRowDimensionSummaryLabel
     , withRowSummaryLabel
+    , withSortColumnDimensionIcons
+    , withSortRowDimensionIcons
     )
 
 import Crosstab exposing (Crosstab)
 import Crosstab.Display as Display exposing (Table)
 import Crosstab.Levels exposing (Levels, LevelsPair)
-import Crosstab.Query as Query exposing (Query, CompareAxis)
+import Crosstab.Query as Query exposing (CompareAxis, Query, SortDir)
 import Crosstab.Spec as Spec exposing (Spec)
 import Html exposing (..)
 import Html.Attributes exposing (class, colspan)
@@ -42,7 +44,7 @@ import Json.Encode
 import List.Extra as List
 import Maybe.Extra as Maybe
 import Set exposing (Set)
-import View.Crosstab.Query exposing (viewRowDimensions, viewColumnDimensions)
+import View.Crosstab.Query exposing (viewColumnDimensions, viewRowDimensions)
 
 
 
@@ -51,13 +53,15 @@ import View.Crosstab.Query exposing (viewRowDimensions, viewColumnDimensions)
 -- -----------------------------------------------------------------------------
 
 
-type State a =
-    State (StateData a)
+type State
+    = State StateData
 
-type alias StateData a =
-    { query : Query a
+
+type alias StateData =
+    { query : View.Crosstab.Query.State
     , selected : SelectedState
     }
+
 
 type SelectedState
     = SelectedRows (Set Levels)
@@ -65,9 +69,10 @@ type SelectedState
     | SelectedCells (Set LevelsPair)
 
 
-init : Query a -> State a
-init q =
-    State { query = q, selected = emptySelected }
+init : State
+init =
+    State { query = View.Crosstab.Query.init, selected = emptySelected }
+
 
 emptySelected : SelectedState
 emptySelected =
@@ -75,21 +80,25 @@ emptySelected =
 
 
 
+---------------------------------------
 -- STATE GETTERS
+---------------------------------------
 
-query : State a -> Query a
+
+query : State -> View.Crosstab.Query.State
 query (State st) =
     st.query
 
-selected : State a -> SelectedState
+
+selected : State -> SelectedState
 selected (State st) =
     st.selected
 
 
 {-| True if no rows, columns or cells are selected
 -}
-isEmpty : State a -> Bool
-isEmpty (State st) =
+noneSelected : State -> Bool
+noneSelected (State st) =
     case st.selected of
         SelectedRows s ->
             Set.isEmpty s
@@ -101,9 +110,15 @@ isEmpty (State st) =
             Set.isEmpty s
 
 
+
+---------------------------------------
+-- SELECTION QUERIES
+---------------------------------------
+
+
 isRowSelected :
     List String
-    -> State a
+    -> State
     -> Bool
 isRowSelected rl (State st) =
     case st.selected of
@@ -116,7 +131,7 @@ isRowSelected rl (State st) =
 
 isAncestorRowSelected :
     List String
-    -> State a
+    -> State
     -> Bool
 isAncestorRowSelected rl (State st) =
     case st.selected of
@@ -129,7 +144,7 @@ isAncestorRowSelected rl (State st) =
 
 isColumnSelected :
     List String
-    -> State a
+    -> State
     -> Bool
 isColumnSelected cl (State st) =
     case st.selected of
@@ -142,7 +157,7 @@ isColumnSelected cl (State st) =
 
 isAncestorColumnSelected :
     List String
-    -> State a
+    -> State
     -> Bool
 isAncestorColumnSelected cl (State st) =
     case st.selected of
@@ -156,7 +171,7 @@ isAncestorColumnSelected cl (State st) =
 isSelected :
     List String
     -> List String
-    -> State a
+    -> State
     -> Bool
 isSelected rl cl (State st) =
     case st.selected of
@@ -173,7 +188,7 @@ isSelected rl cl (State st) =
 isAncestorSelected :
     List String
     -> List String
-    -> State a
+    -> State
     -> Bool
 isAncestorSelected rl cl (State st) =
     case st.selected of
@@ -198,10 +213,12 @@ isAncestorSelected rl cl (State st) =
 
 
 
+--------------------------------------------------------------------------------
 -- CROSSFILTERING
+--------------------------------------------------------------------------------
 
 
-crossFilter : Spec a b c -> State c -> List a -> List a
+crossFilter : Spec a b c -> State -> List a -> List a
 crossFilter spec st list =
     let
         r =
@@ -216,7 +233,7 @@ crossFilter spec st list =
 filterSelected :
     (a -> List String)
     -> (a -> List String)
-    -> State b
+    -> State
     -> List a
     -> List a
 filterSelected r c st list =
@@ -227,7 +244,7 @@ filterSelected r c st list =
 filterSelectedHelp :
     (a -> List String)
     -> (a -> List String)
-    -> State b
+    -> State
     -> a
     -> Bool
 filterSelectedHelp r c st a =
@@ -268,8 +285,7 @@ ancestorInits list =
 
 type Config a comparable
     = Config
-        { sortValues : CompareAxis a
-        , valueColumns : List ( String, a -> Html Never )
+        { valueColumns : List (ValueColumn a comparable)
         , emptyCell : Html Never
         , columnSummary : String
         , rowSummary : String
@@ -279,32 +295,52 @@ type Config a comparable
         }
 
 
-type alias CssConfig =
-    { block : String
-    , iconDimensionSeparator : Maybe String
+type alias ValueColumn a comparable =
+    { label : String
+    , render : a -> Html Never
+    , sort : a -> comparable
     }
 
 
-intValueConfig : String -> Query.SortDir -> Config Int Int
-intValueConfig s dir =
-    valueConfig (Query.sortByValue dir) [ ( s, String.fromInt >> text ) ]
+type alias CssConfig =
+    { block : String
+    , iconDimensionSeparator : Maybe String
+    , iconSortRowDimensionsAsc : Maybe String
+    , iconSortRowDimensionsDesc : Maybe String
+    , iconSortColumnDimensionsAsc : Maybe String
+    , iconSortColumnDimensionsDesc : Maybe String
+    }
 
 
-floatValueConfig : String -> Query.SortDir -> Config Float Float
-floatValueConfig s dir =
-    valueConfig (Query.sortByValue dir) [ ( s, String.fromFloat >> text ) ]
+intValueConfig : String -> Config Int Int
+intValueConfig s =
+    valueConfig
+        [ { label = s
+          , render = String.fromInt >> text
+          , sort = identity
+          }
+        ]
 
 
-singleValueConfig : CompareAxis a -> String -> (a -> Html Never) -> Config a comparable
-singleValueConfig sortfn s valfn =
-    valueConfig sortfn [ ( s, valfn ) ]
+floatValueConfig : String -> Int -> Config Float Float
+floatValueConfig s dec =
+    valueConfig
+        [ { label = s
+          , render = roundToDecimal dec >> text
+          , sort = identity
+          }
+        ]
 
 
-valueConfig : CompareAxis a -> List ( String, a -> Html Never ) -> Config a comparable
-valueConfig sortfn valfns =
+singleValueConfig : ValueColumn a comparable -> Config a comparable
+singleValueConfig vcol =
+    valueConfig [ vcol ]
+
+
+valueConfig : List (ValueColumn a comparable) -> Config a comparable
+valueConfig vcols =
     Config
-        { sortValues = sortfn
-        , valueColumns = valfns
+        { valueColumns = vcols
         , emptyCell = defaultEmptyCell
         , columnSummary = defaultColumnSummary
         , rowSummary = defaultRowSummary
@@ -312,6 +348,25 @@ valueConfig sortfn valfns =
         , rowDimensionSummary = defaultDimensionSummary
         , css = defaultCssConfig
         }
+
+
+roundToDecimal : Int -> Float -> String
+roundToDecimal i f =
+    if i == 0 then
+        round f |> String.fromInt
+
+    else
+        let
+            fac =
+                toFloat (10 ^ i)
+
+            x =
+                floor f
+
+            y =
+                (f - toFloat x) * fac |> round
+        in
+        String.fromInt x ++ "." ++ String.fromInt y
 
 
 defaultEmptyCell : Html Never
@@ -338,6 +393,10 @@ defaultCssConfig : CssConfig
 defaultCssConfig =
     { block = "crosstab"
     , iconDimensionSeparator = Just "fa-solid fa-chevron-right"
+    , iconSortRowDimensionsAsc = Just "fa-solid fa-arrow-down"
+    , iconSortRowDimensionsDesc = Just "fa-solid fa-arrow-up"
+    , iconSortColumnDimensionsAsc = Just "fa-solid fa-arrow-right"
+    , iconSortColumnDimensionsDesc = Just "fa-solid fa-arrow-left"
     }
 
 
@@ -393,6 +452,34 @@ withDimensionSeparatorIcon s (Config c) =
             }
 
 
+withSortRowDimensionIcons : String -> String -> Config a comparable -> Config a comparable
+withSortRowDimensionIcons asc desc (Config c) =
+    let
+        css =
+            c.css
+    in
+    Config c
+        |> withCss
+            { css
+                | iconSortRowDimensionsAsc = Just asc
+                , iconSortRowDimensionsDesc = Just desc
+            }
+
+
+withSortColumnDimensionIcons : String -> String -> Config a comparable -> Config a comparable
+withSortColumnDimensionIcons asc desc (Config c) =
+    let
+        css =
+            c.css
+    in
+    Config c
+        |> withCss
+            { css
+                | iconSortColumnDimensionsAsc = Just asc
+                , iconSortColumnDimensionsDesc = Just desc
+            }
+
+
 withCss : CssConfig -> Config a comparable -> Config a comparable
 withCss css (Config c) =
     Config { c | css = css }
@@ -408,9 +495,24 @@ cssConfig (Config c) =
     c.css
 
 
-valueColumns : Config a comparable -> List ( String, a -> Html Never )
+valueColumns : Config a comparable -> List (ValueColumn a comparable)
 valueColumns (Config c) =
     c.valueColumns
+
+
+valueColumnLabelsAndRenders : Config a comparable -> List ( String, a -> Html Never )
+valueColumnLabelsAndRenders =
+    valueColumns >> List.map (\v -> ( v.label, v.render ))
+
+
+valueColumnLabelsAndSorts : Config a comparable -> List ( String, a -> comparable )
+valueColumnLabelsAndSorts =
+    valueColumns >> List.map (\v -> ( v.label, v.sort ))
+
+
+valueColumnSorts : Config a comparable -> List (a -> comparable)
+valueColumnSorts =
+    valueColumns >> List.map .sort
 
 
 rowSummary : Config a comparable -> String
@@ -441,11 +543,11 @@ type Msg a
     | ToggleSelectAddRow Levels
     | ToggleSelectAddColumn Levels
     | ToggleSelectAddCell LevelsPair
-    | NewQuery (Query a)
+    | NewQuery View.Crosstab.Query.State
     | NoOp
 
 
-update : Msg a -> State a -> State a
+update : Msg a -> State -> State
 update msg state =
     case ( msg, state ) of
         ( NoOp, _ ) ->
@@ -460,7 +562,7 @@ update msg state =
 
 updateSelectedState : Msg a -> SelectedState -> SelectedState
 updateSelectedState msg state =
-    case (msg, state) of
+    case ( msg, state ) of
         ( ToggleSelectOnlyRow new, SelectedRows cur ) ->
             SelectedRows <| toggleOnly cur new
 
@@ -525,20 +627,28 @@ toggleAdd cur new =
 -- -----------------------------------------------------------------------------
 
 
-view : Config a comparable -> Crosstab a -> State a -> Html (Msg a)
+view : Config a comparable -> Crosstab a -> State -> Html (Msg a)
 view c tab st =
+    let
+        vcols =
+            c |> valueColumnSorts
+
+        q =
+            query st |> View.Crosstab.Query.toQuery vcols
+    in
     tab
-        |> Crosstab.query (query st)
+        |> Crosstab.query q
         |> Maybe.unwrap (text "TODO") (\dtab -> viewTable c dtab st)
 
-viewTable : Config a comparable -> Table a -> State a -> Html (Msg a)
+
+viewTable : Config a comparable -> Table a -> State -> Html (Msg a)
 viewTable c tab st =
     let
         b =
             Bem.init <| .block <| cssConfig c
 
         ltab =
-            tab |> Display.labelledTable (valueColumns c)
+            tab |> Display.labelledTable (valueColumnLabelsAndRenders c)
 
         rdims =
             Display.tableRowDimensions tab
@@ -546,7 +656,7 @@ viewTable c tab st =
         cdims =
             Display.tableColumnDimensions tab
     in
-    table [ b |> blockList [ ( "selected", not <| isEmpty st ) ] ]
+    table [ b |> blockList [ ( "selected", not <| noneSelected st ) ] ]
         [ viewHeader b c rdims cdims ltab.columns st
         , viewBody b c ltab.rows st
         ]
@@ -564,7 +674,7 @@ viewHeader :
     -> List String
     -> List String
     -> List Display.ColumnLabel
-    -> State a
+    -> State
     -> Html (Msg a)
 viewHeader b c rdims cdims cols st =
     let
@@ -575,22 +685,28 @@ viewHeader b c rdims cdims cols st =
             query st
 
         rdimcfg =
-            View.Crosstab.Query.config 
-                { newQuery = NewQuery
+            View.Crosstab.Query.config
+                { msg = NewQuery
                 , summaryLabel = rowDimensionSummary c
-                , css = 
+                , valueSorts = valueColumnLabelsAndSorts c
+                , css =
                     { block = b.name
-                    , iconSeparator = css.iconDimensionSeparator 
+                    , iconSeparator = css.iconDimensionSeparator
+                    , iconSortAsc = css.iconSortRowDimensionsAsc
+                    , iconSortDesc = css.iconSortRowDimensionsDesc
                     }
                 }
 
         cdimcfg =
             View.Crosstab.Query.config
-                { newQuery = NewQuery
+                { msg = NewQuery
                 , summaryLabel = columnDimensionSummary c
-                , css = 
+                , valueSorts = valueColumnLabelsAndSorts c
+                , css =
                     { block = b.name
-                    , iconSeparator = css.iconDimensionSeparator 
+                    , iconSeparator = css.iconDimensionSeparator
+                    , iconSortAsc = css.iconSortColumnDimensionsAsc
+                    , iconSortDesc = css.iconSortColumnDimensionsDesc
                     }
                 }
 
@@ -619,7 +735,7 @@ viewHeaderRows :
     -> Html (Msg a)
     -> String
     -> List Display.ColumnLabel
-    -> State a
+    -> State
     -> List (Html (Msg a))
 viewHeaderRows b rdimHdr rsum cols st =
     let
@@ -658,7 +774,7 @@ updateHeaderValueAndColRows :
     Bem.Block
     -> Int
     -> String
-    -> State a
+    -> State
     -> Display.ColumnLabel
     -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
     -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
@@ -783,7 +899,7 @@ viewBody :
     Bem.Block
     -> Config a comparable
     -> List (Display.LabelledRow (Html Never))
-    -> State a
+    -> State
     -> Html (Msg a)
 viewBody b c rows st =
     tbody [] <|
@@ -794,7 +910,7 @@ viewBodyRows :
     Bem.Block
     -> Config a comparable
     -> List (Display.LabelledRow (Html Never))
-    -> State a
+    -> State
     -> List (Html (Msg a))
 viewBodyRows b c rows st =
     let
@@ -815,7 +931,7 @@ viewBodyRow :
     -> Int
     -> Levels
     -> List (Display.LabelledValue (Html Never))
-    -> State a
+    -> State
     -> Html (Msg a)
 viewBodyRow b (Config c) rmaxdims lvl vals st =
     let
@@ -873,7 +989,7 @@ viewBodyRowCells :
     -> Bool
     -> Bool
     -> List (Display.LabelledValue (Html Never))
-    -> State a
+    -> State
     -> List (Html (Msg a))
 viewBodyRowCells b defcell rmaxdims rsel rselind vals st =
     let
@@ -898,7 +1014,7 @@ viewBodyRowCell :
     -> Bool
     -> Bool
     -> Display.LabelledValue (Html Never)
-    -> State a
+    -> State
     -> Html (Msg a)
 viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) rsel rselind val st =
     let

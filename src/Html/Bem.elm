@@ -8,6 +8,8 @@ module Html.Bem exposing
     , element
     , elementList
     , elementMod
+    , elementNameMod
+    , elementNameOf
     , elementOf
     , elementOfList
     , init
@@ -34,6 +36,21 @@ init b =
     { name = b
     , element = Element b
     }
+
+
+elementName : Element -> String
+elementName e =
+    joinElement e.block e.name
+
+
+elementNameMod : Element -> String -> String
+elementNameMod e m =
+    joinElementMod e.block e.name m
+
+
+elementNameOf : Element -> String -> String -> String
+elementNameOf e k v =
+    joinElementOf e.block e.name k v
 
 
 block : Block -> Attribute a
