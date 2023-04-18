@@ -1,9 +1,9 @@
-module Example.Selectable.Simple exposing (Model, Msg(..), default, update, view)
+module Example.Selectable.TwoByTwo exposing (Model, Msg(..), default, update, view)
 
 import Crosstab exposing (Crosstab)
 import Crosstab.Accum as Accum exposing (ParametricStats)
 import Crosstab.Spec as Spec
-import Data.Incarceration as Incarceration exposing (Incarceration)
+import Data.Incarceration as Incarceration
 import Html exposing (..)
 import View.Crosstab.Selectable as Selectable
 
@@ -13,7 +13,7 @@ import View.Crosstab.Selectable as Selectable
 
 
 type alias I =
-    Incarceration
+    Incarceration.Incarceration
 
 
 type alias Model =
@@ -51,11 +51,13 @@ spec =
     Spec.init
         { rows =
             [ ( "region", getRegionWithCode )
+            , ( "state", .state )
             ]
         , columns =
             [ ( "year", .year >> String.fromInt )
+            , ( "gender", .gender )
             ]
-        , value = ( "incarceration", Accum.parametric (\i -> i.totalM + i.totalF) )
+        , value = ( "incarceration", Accum.parametric (\i -> i.total) )
         }
 
 
@@ -67,6 +69,7 @@ toCrosstab data =
                 (i.year >= 2005)
                     && not (i.region == Incarceration.USTotal)
             )
+        |> Incarceration.stackedByGender
         |> Crosstab.tabulate spec
         |> Crosstab.map "Stats" Crosstab.parametricStats
 
@@ -90,7 +93,7 @@ tableConfig =
           , sort = .mean >> Maybe.withDefault 0.0
           }
         ]
-        |> Selectable.withCssBlock "simple-crosstab"
+        |> Selectable.withCssBlock "twobytwo-crosstab"
 
 
 

@@ -33,14 +33,11 @@ module View.Crosstab.Selectable exposing
 import Crosstab exposing (Crosstab)
 import Crosstab.Display as Display exposing (Table)
 import Crosstab.Levels exposing (Levels, LevelsPair)
-import Crosstab.Query as Query exposing (CompareAxis, Query, SortDir)
 import Crosstab.Spec as Spec exposing (Spec)
 import Html exposing (..)
-import Html.Attributes exposing (class, colspan, style)
-import Html.Bem as Bem exposing (blockList, element, elementList, elementOf, elementOfList)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (colspan, style)
+import Html.Bem as Bem exposing (blockList, elementList, elementOf, elementOfList)
 import Html.Events.Extra.Mouse as Mouse
-import Json.Encode
 import List.Extra as List
 import Maybe.Extra as Maybe
 import Set exposing (Set)
@@ -91,11 +88,6 @@ emptySelected =
 query : State -> View.Crosstab.Query.State
 query (State st) =
     st.query
-
-
-selected : State -> SelectedState
-selected (State st) =
-    st.selected
 
 
 {-| True if no rows, columns or cells are selected
@@ -543,7 +535,7 @@ columnDimensionSummary (Config c) =
 -- -----------------------------------------------------------------------------
 
 
-type Msg a
+type Msg
     = ToggleSelectOnlyRow Levels
     | ToggleSelectOnlyColumn Levels
     | ToggleSelectOnlyCell LevelsPair
@@ -554,7 +546,7 @@ type Msg a
     | NoOp
 
 
-update : Msg a -> State -> State
+update : Msg -> State -> State
 update msg state =
     case ( msg, state ) of
         ( NoOp, _ ) ->
@@ -567,7 +559,7 @@ update msg state =
             State { st | selected = updateSelectedState msg st.selected }
 
 
-updateSelectedState : Msg a -> SelectedState -> SelectedState
+updateSelectedState : Msg -> SelectedState -> SelectedState
 updateSelectedState msg state =
     case ( msg, state ) of
         ( ToggleSelectOnlyRow new, SelectedRows cur ) ->
@@ -634,7 +626,7 @@ toggleAdd cur new =
 -- -----------------------------------------------------------------------------
 
 
-view : Config a comparable -> Crosstab a -> State -> Html (Msg a)
+view : Config a comparable -> Crosstab a -> State -> Html Msg
 view c tab st =
     let
         vcols =
@@ -648,7 +640,7 @@ view c tab st =
         |> Maybe.unwrap (text "TODO") (\dtab -> viewTable c dtab st)
 
 
-viewTable : Config a comparable -> Table a -> State -> Html (Msg a)
+viewTable : Config a comparable -> Table a -> State -> Html Msg
 viewTable c tab st =
     let
         b =
@@ -682,7 +674,7 @@ viewHeader :
     -> List String
     -> List Display.ColumnLabel
     -> State
-    -> Html (Msg a)
+    -> Html Msg
 viewHeader b c rdims cdims cols st =
     let
         css =
@@ -743,11 +735,11 @@ viewHeader b c rdims cdims cols st =
 
 viewHeaderRows :
     Bem.Block
-    -> Html (Msg a)
+    -> Html Msg
     -> String
     -> List Display.ColumnLabel
     -> State
-    -> List (Html (Msg a))
+    -> List (Html Msg)
 viewHeaderRows b rdimHdr rsum cols st =
     let
         maxdims =
@@ -772,9 +764,9 @@ viewHeaderRows b rdimHdr rsum cols st =
 viewHeaderRow :
     Bem.Element
     -> String
-    -> Html (Msg a)
-    -> List (Html (Msg a))
-    -> Html (Msg a)
+    -> Html Msg
+    -> List (Html Msg)
+    -> Html Msg
 viewHeaderRow e rtype prefix cols =
     tr
         [ e |> elementOf "type" rtype ]
@@ -787,8 +779,8 @@ updateHeaderValueAndColRows :
     -> String
     -> State
     -> Display.ColumnLabel
-    -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
-    -> ( Maybe Display.ColumnLabel, List (Html (Msg a)), List (List (Html (Msg a))) )
+    -> ( Maybe Display.ColumnLabel, List (Html Msg), List (List (Html Msg)) )
+    -> ( Maybe Display.ColumnLabel, List (Html Msg), List (List (Html Msg)) )
 updateHeaderValueAndColRows b maxdims rsum st next ( mprev, vrow, crows ) =
     let
         e =
@@ -834,8 +826,8 @@ updateHeaderColRow :
     -> Bool
     -> Levels
     -> Maybe String
-    -> List (Html (Msg a))
-    -> List (Html (Msg a))
+    -> List (Html Msg)
+    -> List (Html Msg)
 updateHeaderColRow e maxdims issel isselind lvl mlabel crow =
     crow ++ [ viewHeaderCell e "column" maxdims issel isselind lvl mlabel ]
 
@@ -848,7 +840,7 @@ viewHeaderCell :
     -> Bool
     -> Levels
     -> Maybe String
-    -> Html (Msg a)
+    -> Html Msg
 viewHeaderCell e etype maxdims issel isselind lvl mlabel =
     let
         n =
@@ -911,7 +903,7 @@ viewBody :
     -> Config a comparable
     -> List (Display.LabelledRow (Html Never))
     -> State
-    -> Html (Msg a)
+    -> Html Msg
 viewBody b c rows st =
     tbody [] <|
         viewBodyRows b c rows st
@@ -922,7 +914,7 @@ viewBodyRows :
     -> Config a comparable
     -> List (Display.LabelledRow (Html Never))
     -> State
-    -> List (Html (Msg a))
+    -> List (Html Msg)
 viewBodyRows b c rows st =
     let
         rmaxdims =
@@ -943,7 +935,7 @@ viewBodyRow :
     -> Levels
     -> List (Display.LabelledValue (Html Never))
     -> State
-    -> Html (Msg a)
+    -> Html Msg
 viewBodyRow b (Config c) rmaxdims lvl vals st =
     let
         er =
@@ -976,7 +968,7 @@ viewBodyRow b (Config c) rmaxdims lvl vals st =
         )
 
 
-viewRowHeader : Bem.Element -> String -> Int -> Levels -> Html (Msg a)
+viewRowHeader : Bem.Element -> String -> Int -> Levels -> Html Msg
 viewRowHeader e csum rmaxdims lvl =
     let
         ndim =
@@ -1001,7 +993,7 @@ viewBodyRowCells :
     -> Bool
     -> List (Display.LabelledValue (Html Never))
     -> State
-    -> List (Html (Msg a))
+    -> List (Html Msg)
 viewBodyRowCells b defcell rmaxdims rsel rselind vals st =
     let
         e =
@@ -1026,7 +1018,7 @@ viewBodyRowCell :
     -> Bool
     -> Display.LabelledValue (Html Never)
     -> State
-    -> Html (Msg a)
+    -> Html Msg
 viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) rsel rselind val st =
     let
         rlvl =
@@ -1077,7 +1069,7 @@ viewBodyRowCell e defcell ( rmaxdims, cmaxdims ) rsel rselind val st =
 -- -----------------------------------------------------------------------------
 
 
-toggleSelectColumn : Levels -> Mouse.Event -> Msg a
+toggleSelectColumn : Levels -> Mouse.Event -> Msg
 toggleSelectColumn lvl { keys } =
     if keys.ctrl then
         ToggleSelectAddColumn lvl
@@ -1086,7 +1078,7 @@ toggleSelectColumn lvl { keys } =
         ToggleSelectOnlyColumn lvl
 
 
-toggleSelectRow : Levels -> Mouse.Event -> Msg a
+toggleSelectRow : Levels -> Mouse.Event -> Msg
 toggleSelectRow lvl { keys } =
     if keys.ctrl then
         ToggleSelectAddRow lvl
@@ -1095,7 +1087,7 @@ toggleSelectRow lvl { keys } =
         ToggleSelectOnlyRow lvl
 
 
-toggleSelectCell : LevelsPair -> Mouse.Event -> Msg a
+toggleSelectCell : LevelsPair -> Mouse.Event -> Msg
 toggleSelectCell rcpair { keys } =
     if keys.ctrl then
         ToggleSelectAddCell rcpair

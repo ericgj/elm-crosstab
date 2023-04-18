@@ -21,7 +21,7 @@ module Crosstab.Display exposing
     , tableValueLabel
     )
 
-import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
+import Crosstab.ValueLabel exposing (ValueLabel)
 import List.Extra as List
 import Maybe.Extra as Maybe
 

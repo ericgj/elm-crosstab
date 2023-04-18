@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser
 import Data.Incarceration as Incarceration exposing (Incarceration)
 import Example.Selectable.Simple
+import Example.Selectable.TwoByTwo
 import Html exposing (..)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
@@ -28,7 +29,9 @@ type Model
 
 
 type alias ModelData =
-    { simpleSelectable : Switch Example.Selectable.Simple.Model
+    { data : List Incarceration
+    , simpleSelectable : Switch Example.Selectable.Simple.Model
+    , twoByTwoSelectable : Switch Example.Selectable.TwoByTwo.Model
     }
 
 
@@ -42,39 +45,13 @@ type HttpState
     | Failed Http.Error
 
 
-
--- SWITCH
-
-
-type Switch a
-    = Switch ( a, Bool )
-
-
-switchOn : a -> Switch a
-switchOn a =
-    Switch ( a, True )
-
-
-switchOff : a -> Switch a
-switchOff a =
-    Switch ( a, False )
-
-
-switchMap : (a -> b) -> Switch a -> Switch b
-switchMap fn (Switch ( a, st )) =
-    Switch ( fn a, st )
-
-
-toggle : Switch a -> Switch a
-toggle (Switch ( a, st )) =
-    Switch ( a, not st )
-
-
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
         Loading
-        { simpleSelectable = switchOff Example.Selectable.Simple.default
+        { data = []
+        , simpleSelectable = switchOff Example.Selectable.Simple.default
+        , twoByTwoSelectable = switchOff Example.Selectable.TwoByTwo.default
         }
     , loadData
     )
@@ -86,7 +63,9 @@ init _ =
 
 type Msg
     = ToggleSimpleSelectable
+    | ToggleTwoByTwoSelectable
     | UpdateSimpleSelectable Example.Selectable.Simple.Msg
+    | UpdateTwoByTwoSelectable Example.Selectable.TwoByTwo.Msg
     | Received (Result Http.Error (List Incarceration))
 
 
@@ -102,13 +81,19 @@ updateNoCmd msg model =
             Model (Failed err) m
 
         ( Received (Ok data), Model _ m ) ->
-            Model Loaded (setLoadedData data m)
+            Model Loaded { m | data = data }
 
         ( ToggleSimpleSelectable, Model st m ) ->
             Model st { m | simpleSelectable = toggle m.simpleSelectable }
 
+        ( ToggleTwoByTwoSelectable, Model st m ) ->
+            Model st { m | twoByTwoSelectable = toggle m.twoByTwoSelectable }
+
         ( UpdateSimpleSelectable submsg, Model st m ) ->
             Model st (updateSimpleSelectable submsg m)
+
+        ( UpdateTwoByTwoSelectable submsg, Model st m ) ->
+            Model st (updateTwoByTwoSelectable submsg m)
 
 
 updateSimpleSelectable : Example.Selectable.Simple.Msg -> ModelData -> ModelData
@@ -121,15 +106,13 @@ updateSimpleSelectable submsg m =
     }
 
 
-setLoadedData : List Incarceration -> ModelData -> ModelData
-setLoadedData data m =
+updateTwoByTwoSelectable : Example.Selectable.TwoByTwo.Msg -> ModelData -> ModelData
+updateTwoByTwoSelectable submsg m =
     { m
-        | simpleSelectable =
+        | twoByTwoSelectable =
             switchMap
-                (Example.Selectable.Simple.update
-                    (Example.Selectable.Simple.SetData data)
-                )
-                m.simpleSelectable
+                (Example.Selectable.TwoByTwo.update submsg)
+                m.twoByTwoSelectable
     }
 
 
@@ -163,8 +146,15 @@ view (Model st m) =
         , m.simpleSelectable
             |> viewSwitch
                 "Simple Selectable table"
-                Example.Selectable.Simple.view
+                (Example.Selectable.Simple.view m.data)
+                ToggleSimpleSelectable
                 UpdateSimpleSelectable
+        , m.twoByTwoSelectable
+            |> viewSwitch
+                "2x2 Selectable table"
+                (Example.Selectable.TwoByTwo.view m.data)
+                ToggleTwoByTwoSelectable
+                UpdateTwoByTwoSelectable
         ]
 
 
@@ -193,8 +183,36 @@ viewHttpState st =
             div [] [ text <| "Decoding error: " ++ s ]
 
 
-viewSwitch : String -> (a -> Html msg) -> (msg -> Msg) -> Switch a -> Html Msg
-viewSwitch title subview toMsg (Switch ( a, isOn )) =
+
+-- SWITCH
+
+
+type Switch a
+    = Switch ( a, Bool )
+
+
+switchOn : a -> Switch a
+switchOn a =
+    Switch ( a, True )
+
+
+switchOff : a -> Switch a
+switchOff a =
+    Switch ( a, False )
+
+
+switchMap : (a -> b) -> Switch a -> Switch b
+switchMap fn (Switch ( a, st )) =
+    Switch ( fn a, st )
+
+
+toggle : Switch a -> Switch a
+toggle (Switch ( a, st )) =
+    Switch ( a, not st )
+
+
+viewSwitch : String -> (a -> Html msg) -> Msg -> (msg -> Msg) -> Switch a -> Html Msg
+viewSwitch title subview toggleMsg toMsg (Switch ( a, isOn )) =
     let
         inner =
             if isOn then
@@ -212,7 +230,7 @@ viewSwitch title subview toMsg (Switch ( a, isOn )) =
     in
     div []
         [ h2 []
-            [ span [ cursor "pointer", onClick ToggleSimpleSelectable ] [ text caret ]
+            [ span [ cursor "pointer", onClick toggleMsg ] [ text caret ]
             , span [] [ text title ]
             ]
         , div [] inner

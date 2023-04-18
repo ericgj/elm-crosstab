@@ -8,6 +8,7 @@ module Html.Bem exposing
     , element
     , elementList
     , elementMod
+    , elementName
     , elementNameMod
     , elementNameOf
     , elementOf

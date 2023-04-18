@@ -1,0 +1,86 @@
+.twobytwo-crosstab__header {
+  font-family: 'SourceCodePro-Bold', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;    
+  font-weight: bold;
+}
+
+.twobytwo-crosstab__row--summary-row-grand {
+  background-color: lightyellow;
+}
+
+.twobytwo-crosstab__header--summary-column-grand, 
+.twobytwo-crosstab__cell--summary-column-grand {
+  background-color: lightyellow;
+}
+
+
+.twobytwo-crosstab__header--selected, 
+.twobytwo-crosstab__row--selected, 
+.twobytwo-crosstab__cell--selected {
+    background-color: black;
+    color: white;
+}
+.twobytwo-crosstab__header--selected-indirect, 
+.twobytwo-crosstab__row--selected-indirect, 
+.twobytwo-crosstab__cell--selected-indirect {
+    background-color: darkgray;
+    color: white;
+}
+
+.twobytwo-crosstab__header--type-row.twobytwo-crosstab__header--dimension-2 {
+    padding-left: 2rem;
+}
+
+.twobytwo-crosstab__breadcrumbs {
+    display: inline-block;
+}
+
+.twobytwo-crosstab__breadcrumbs ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.twobytwo-crosstab__breadcrumb {
+    display: inline-block;
+    padding: 0.25rem;
+    cursor: pointer;
+}
+
+.twobytwo-crosstab__breadcrumb--current {
+    background-color: black;
+    color: white;
+    cursor: none;
+}
+
+.twobytwo-crosstab__breadcrumb--type-followed {
+    background-color: black;
+    color: white;
+}
+
+.twobytwo-crosstab__breadcrumb-separator {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+}
+
+.twobytwo-crosstab__sort-toggle {
+    padding: 0.25rem;
+    margin-left: 1rem;
+    border: 1px solid black;
+    cursor: pointer;
+}
+
+.twobytwo-crosstab__sort {
+    width: fit-content;
+    margin-top: 0.25rem;
+    padding: 0.5rem;
+    background-color: lightyellow;
+    border: 1px solid darkgrey;
+}
+
+.twobytwo-crosstab__sort-toggle--show {
+    background-color: black;
+    color: white;
+}
+
+.twobytwo-crosstab__sort-choice-dir {
+    margin-left: 0.5rem;
+}

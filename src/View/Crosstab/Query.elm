@@ -75,26 +75,6 @@ columnSort (State st) =
     st.columnSort
 
 
-rowSortDir : State -> SortDir
-rowSortDir st =
-    case rowSort st of
-        ByLevels dir ->
-            dir
-
-        ByValue _ dir ->
-            dir
-
-
-columnSortDir : State -> SortDir
-columnSortDir st =
-    case columnSort st of
-        ByLevels dir ->
-            dir
-
-        ByValue _ dir ->
-            dir
-
-
 showRowSort : State -> Bool
 showRowSort (State st) =
     st.showRowSort
@@ -350,9 +330,6 @@ viewDimensionsInner etype getDims setDims getShow toggleShow getSort sortLvls so
         css =
             cssConfig c
 
-        vsorts =
-            valueSorts c
-
         cur =
             st
                 |> getDims
@@ -381,7 +358,7 @@ viewDimensionsInner etype getDims setDims getShow toggleShow getSort sortLvls so
             ]
          ]
             ++ (if isshow then
-                    [ viewSort b etype css getSort sortLvls sortVals vsorts st ]
+                    [ viewSort b etype css getSort sortLvls sortVals (valueSorts c) st ]
 
                 else
                     []

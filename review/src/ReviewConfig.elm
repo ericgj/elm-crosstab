@@ -41,7 +41,7 @@ config =
     [ NoExposingEverything.rule
     , NoImportingEverything.rule [ "Html", "Test" ]
         |> Rule.ignoreErrorsForFiles
-            [ "src/Maybe/Extra.elm", "src/List/Extra.elm" ]
+            [ "src/Html/Attributes/Extra.elm" ]
     , NoMissingTypeAnnotation.rule
     , NoPrematureLetComputation.rule
     , NoUnused.CustomTypeConstructors.rule []

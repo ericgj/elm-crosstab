@@ -1,8 +1,10 @@
 module Data.Incarceration exposing
-    ( Incarceration
+    ( GenderStacked
+    , Incarceration
     , Region(..)
     , csvDecode
     , regionToString
+    , stackedByGender
     )
 
 import Csv.Decode as Csv exposing (field, into, pipeline)
@@ -31,13 +33,79 @@ type alias Incarceration =
     , unsentencedF : Int
     , totalM : Int
     , totalF : Int
+    , whiteM : Int
     , whiteF : Int
+    , blackM : Int
     , blackF : Int
+    , hispM : Int
     , hispF : Int
+    , asianM : Int
     , asianF : Int
+    , nativeHawaiianM : Int
     , nativeHawaiianF : Int
+    , asianPacificM : Int
     , asianPacificF : Int
+    , twoRaceM : Int
     , twoRaceF : Int
+    }
+
+
+type alias GenderStacked =
+    { year : Int
+    , state : String
+    , region : Region
+    , regionCode : Int
+    , gender : String
+    , greaterThan1Year : Int
+    , lessThan1Year : Int
+    , unsentenced : Int
+    , total : Int
+    , white : Int
+    , hisp : Int
+    , nativeHawaiian : Int
+    , twoRace : Int
+    }
+
+
+stackedByGender : List Incarceration -> List GenderStacked
+stackedByGender data =
+    (data |> List.map stackedRecordByGenderM)
+        ++ (data |> List.map stackedRecordByGenderF)
+
+
+stackedRecordByGenderM : Incarceration -> GenderStacked
+stackedRecordByGenderM r =
+    { year = r.year
+    , state = r.state
+    , region = r.region
+    , regionCode = r.regionCode
+    , gender = "M"
+    , greaterThan1Year = r.greaterThan1YearM
+    , lessThan1Year = r.lessThan1YearM
+    , unsentenced = r.unsentencedM
+    , total = r.totalM
+    , white = r.whiteM
+    , hisp = r.hispM
+    , nativeHawaiian = r.nativeHawaiianM
+    , twoRace = r.twoRaceM
+    }
+
+
+stackedRecordByGenderF : Incarceration -> GenderStacked
+stackedRecordByGenderF r =
+    { year = r.year
+    , state = r.state
+    , region = r.region
+    , regionCode = r.regionCode
+    , gender = "F"
+    , greaterThan1Year = r.greaterThan1YearF
+    , lessThan1Year = r.lessThan1YearF
+    , unsentenced = r.unsentencedF
+    , total = r.totalF
+    , white = r.whiteF
+    , hisp = r.hispF
+    , nativeHawaiian = r.nativeHawaiianF
+    , twoRace = r.twoRaceF
     }
 
 
@@ -118,10 +186,17 @@ csvDecode =
         |> pipeline (field "CUSUNSF" Csv.int)
         |> pipeline (field "CUSTOTM" Csv.int)
         |> pipeline (field "CUSTOTF" Csv.int)
+        |> pipeline (field "WHITEM" Csv.int)
         |> pipeline (field "WHITEF" Csv.int)
+        |> pipeline (field "BLACKM" Csv.int)
         |> pipeline (field "BLACKF" Csv.int)
+        |> pipeline (field "HISPM" Csv.int)
         |> pipeline (field "HISPF" Csv.int)
+        |> pipeline (field "ASIANM" Csv.int)
         |> pipeline (field "ASIANF" Csv.int)
+        |> pipeline (field "NHPIM" Csv.int)
         |> pipeline (field "NHPIF" Csv.int)
+        |> pipeline (field "APIM" Csv.int)
         |> pipeline (field "APIF" Csv.int)
+        |> pipeline (field "TWORACEM" Csv.int)
         |> pipeline (field "TWORACEF" Csv.int)

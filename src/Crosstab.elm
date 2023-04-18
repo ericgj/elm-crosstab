@@ -51,7 +51,6 @@ import Crosstab.ValueLabel as ValueLabel exposing (ValueLabel)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import List.Extra as List
-import Maybe.Extra as Maybe
 import Order exposing (order2)
 import OrderedSet
 
@@ -571,16 +570,8 @@ query q (Crosstab c) =
         nrowdims =
             q |> Query.rowDimensions
 
-        rowdims =
-            nrowdims
-                |> Maybe.unwrap c.rowDimLabels (\n -> List.take n c.rowDimLabels)
-
         ncoldims =
             q |> Query.columnDimensions
-
-        coldims =
-            ncoldims
-                |> Maybe.unwrap c.columnDimLabels (\n -> List.take n c.columnDimLabels)
 
         rsort =
             q |> Query.sortRows

@@ -12,8 +12,6 @@ import Html.Attributes exposing (class)
 import Html.Attributes.Extra as Attributes
 import Html.Bem as Bem exposing (element, elementList, elementOfList)
 import Html.Events exposing (onClick)
-import List.Extra as List
-import Maybe.Extra as Maybe
 
 
 
