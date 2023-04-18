@@ -36,7 +36,7 @@ import Crosstab.Levels exposing (Levels, LevelsPair)
 import Crosstab.Query as Query exposing (CompareAxis, Query, SortDir)
 import Crosstab.Spec as Spec exposing (Spec)
 import Html exposing (..)
-import Html.Attributes exposing (class, colspan)
+import Html.Attributes exposing (class, colspan, style)
 import Html.Bem as Bem exposing (blockList, element, elementList, elementOf, elementOfList)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
@@ -71,7 +71,10 @@ type SelectedState
 
 init : State
 init =
-    State { query = View.Crosstab.Query.init, selected = emptySelected }
+    State
+        { query = View.Crosstab.Query.init
+        , selected = emptySelected
+        }
 
 
 emptySelected : SelectedState
@@ -309,6 +312,8 @@ type alias CssConfig =
     , iconSortRowDimensionsDesc : Maybe String
     , iconSortColumnDimensionsAsc : Maybe String
     , iconSortColumnDimensionsDesc : Maybe String
+    , iconShowSort : Maybe String
+    , iconHideSort : Maybe String
     }
 
 
@@ -397,6 +402,8 @@ defaultCssConfig =
     , iconSortRowDimensionsDesc = Just "fa-solid fa-arrow-up"
     , iconSortColumnDimensionsAsc = Just "fa-solid fa-arrow-right"
     , iconSortColumnDimensionsDesc = Just "fa-solid fa-arrow-left"
+    , iconShowSort = Just "fa-solid fa-arrow-down-short-wide"
+    , iconHideSort = Just "fa-solid fa-arrow-down-short-wide"
     }
 
 
@@ -694,6 +701,8 @@ viewHeader b c rdims cdims cols st =
                     , iconSeparator = css.iconDimensionSeparator
                     , iconSortAsc = css.iconSortRowDimensionsAsc
                     , iconSortDesc = css.iconSortRowDimensionsDesc
+                    , iconShowSort = css.iconShowSort
+                    , iconHideSort = css.iconHideSort
                     }
                 }
 
@@ -707,6 +716,8 @@ viewHeader b c rdims cdims cols st =
                     , iconSeparator = css.iconDimensionSeparator
                     , iconSortAsc = css.iconSortColumnDimensionsAsc
                     , iconSortDesc = css.iconSortColumnDimensionsDesc
+                    , iconShowSort = css.iconShowSort
+                    , iconHideSort = css.iconHideSort
                     }
                 }
 
@@ -715,7 +726,7 @@ viewHeader b c rdims cdims cols st =
                 [ viewColumnDimensions cdimcfg cdims q ]
 
         rdimhdr =
-            th []
+            th [ style "white-space" "nowrap" ]
                 [ viewRowDimensions rdimcfg rdims q ]
 
         colhdrs =

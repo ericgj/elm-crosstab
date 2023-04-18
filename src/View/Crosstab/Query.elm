@@ -33,6 +33,8 @@ type alias StateData =
     , columnDimensions : Maybe Int
     , rowSort : SortState
     , columnSort : SortState
+    , showRowSort : Bool
+    , showColumnSort : Bool
     }
 
 
@@ -48,6 +50,8 @@ init =
         , columnDimensions = Nothing
         , rowSort = ByLevels Query.Asc
         , columnSort = ByLevels Query.Asc
+        , showRowSort = False
+        , showColumnSort = False
         }
 
 
@@ -89,6 +93,16 @@ columnSortDir st =
 
         ByValue _ dir ->
             dir
+
+
+showRowSort : State -> Bool
+showRowSort (State st) =
+    st.showRowSort
+
+
+showColumnSort : State -> Bool
+showColumnSort (State st) =
+    st.showColumnSort
 
 
 
@@ -161,6 +175,8 @@ type alias CssConfig =
     , iconSeparator : Maybe String
     , iconSortAsc : Maybe String
     , iconSortDesc : Maybe String
+    , iconShowSort : Maybe String
+    , iconHideSort : Maybe String
     }
 
 
@@ -189,6 +205,10 @@ cssConfig (Config c) =
     c.css
 
 
+
+-- GETTERS
+
+
 sortIcon : CssConfig -> SortDir -> Maybe String
 sortIcon css dir =
     case dir of
@@ -212,6 +232,8 @@ type Msg
     | SetRowSortByValue Int SortDir
     | SetColumnSortByLevels SortDir
     | SetColumnSortByValue Int SortDir
+    | ToggleShowRowSort
+    | ToggleShowColumnSort
 
 
 update : Msg -> State -> State
@@ -235,6 +257,12 @@ update msg (State st) =
         SetColumnSortByValue i dir ->
             State { st | columnSort = ByValue i dir }
 
+        ToggleShowRowSort ->
+            State { st | showRowSort = not st.showRowSort }
+
+        ToggleShowColumnSort ->
+            State { st | showColumnSort = not st.showColumnSort }
+
 
 
 --------------------------------------------------------------------------------
@@ -248,6 +276,8 @@ viewRowDimensions c dims st =
         "row"
         rowDimensions
         SetRowDimensions
+        showRowSort
+        ToggleShowRowSort
         rowSort
         SetRowSortByLevels
         SetRowSortByValue
@@ -262,6 +292,8 @@ viewColumnDimensions c dims st =
         "column"
         columnDimensions
         SetColumnDimensions
+        showColumnSort
+        ToggleShowColumnSort
         columnSort
         SetColumnSortByLevels
         SetColumnSortByValue
@@ -274,6 +306,8 @@ viewDimensions :
     String
     -> (State -> Maybe Int)
     -> (Maybe Int -> Msg)
+    -> (State -> Bool)
+    -> Msg
     -> (State -> SortState)
     -> (SortDir -> Msg)
     -> (Int -> SortDir -> Msg)
@@ -281,8 +315,8 @@ viewDimensions :
     -> List String
     -> State
     -> Html msg
-viewDimensions etype getDims setDims getSort sortLvls sortVals c dims st =
-    viewDimensionsInner etype getDims setDims getSort sortLvls sortVals c dims st
+viewDimensions etype getDims setDims getShow toggleShow getSort sortLvls sortVals c dims st =
+    viewDimensionsInner etype getDims setDims getShow toggleShow getSort sortLvls sortVals c dims st
         |> Html.map (\msg -> update msg st |> newState c)
 
 
@@ -290,6 +324,8 @@ viewDimensionsInner :
     String
     -> (State -> Maybe Int)
     -> (Maybe Int -> Msg)
+    -> (State -> Bool)
+    -> Msg
     -> (State -> SortState)
     -> (SortDir -> Msg)
     -> (Int -> SortDir -> Msg)
@@ -297,13 +333,16 @@ viewDimensionsInner :
     -> List String
     -> State
     -> Html Msg
-viewDimensionsInner etype getDims setDims getSort sortLvls sortVals c dims st =
+viewDimensionsInner etype getDims setDims getShow toggleShow getSort sortLvls sortVals c dims st =
     let
         b =
             Bem.init css.block
 
         e =
             b.element "dimensions"
+
+        es =
+            b.element "dimensions-select"
 
         sumlbl =
             summaryLabel c
@@ -328,13 +367,26 @@ viewDimensionsInner etype getDims setDims getSort sortLvls sortVals c dims st =
                     , iconSeparator = css.iconSeparator
                     }
                 }
+
+        isshow =
+            getShow st
     in
     div
         [ e |> elementOf "type" etype
         ]
-        [ Breadcrumbs.view bconfig cur dims
-        , viewSort b etype css getSort sortLvls sortVals vsorts st
-        ]
+        ([ div
+            [ es |> elementOf "type" etype ]
+            [ Breadcrumbs.view bconfig cur dims
+            , viewShowSort b etype css toggleShow isshow
+            ]
+         ]
+            ++ (if isshow then
+                    [ viewSort b etype css getSort sortLvls sortVals vsorts st ]
+
+                else
+                    []
+               )
+        )
 
 
 unlessMaxDimension : List String -> Int -> Maybe Int
@@ -344,6 +396,34 @@ unlessMaxDimension dims i =
 
     else
         Just i
+
+
+viewShowSort :
+    Bem.Block
+    -> String
+    -> CssConfig
+    -> Msg
+    -> Bool
+    -> Html Msg
+viewShowSort b etype css msg cur =
+    let
+        e =
+            b.element "sort-toggle"
+
+        micon =
+            if cur then
+                css.iconShowSort
+
+            else
+                css.iconHideSort
+    in
+    span
+        [ e |> elementOf "type" etype
+        , e |> elementList [ ( "show", cur ), ( "hide", not cur ) ]
+        , micon |> Maybe.unwrap Attributes.empty class
+        , onClick msg
+        ]
+        []
 
 
 viewSort :
