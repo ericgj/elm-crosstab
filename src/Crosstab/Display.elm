@@ -194,7 +194,8 @@ could be specified as
 
     [ ( "Count", String.fromInt >> Html.text ) ]
 
-More about value columns specification in `Crosstab.View.Selectable`.
+More about value columns specification in
+[View.Crosstab.Selectable].
 
 -}
 labelledTable : List ( String, a -> b ) -> Table a -> LabelledTable b

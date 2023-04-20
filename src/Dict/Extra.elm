@@ -6,10 +6,16 @@ module Dict.Extra exposing
     , leftJoinOn
     , leftOuterJoin
     , leftOuterJoinOn
+    , repeat
     )
 
 import Dict exposing (Dict)
 import List.Extra as List
+
+
+repeat : List comparable -> a -> Dict comparable a
+repeat keys v =
+    keys |> List.foldr (\k -> Dict.insert k v) Dict.empty
 
 
 leftInnerJoin :

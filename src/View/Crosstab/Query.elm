@@ -351,13 +351,12 @@ viewDimensionsInner etype getDims setDims getShow toggleShow getSort sortLvls so
     div
         [ e |> elementOf "type" etype
         ]
-        ([ div
+        (div
             [ es |> elementOf "type" etype ]
             [ Breadcrumbs.view bconfig cur dims
             , viewShowSort b etype css toggleShow isshow
             ]
-         ]
-            ++ (if isshow then
+            :: (if isshow then
                     [ viewSort b etype css getSort sortLvls sortVals (valueSorts c) st ]
 
                 else

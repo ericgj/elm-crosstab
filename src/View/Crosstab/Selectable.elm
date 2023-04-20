@@ -35,12 +35,13 @@ import Crosstab.Display as Display exposing (Table)
 import Crosstab.Levels exposing (Levels, LevelsPair)
 import Crosstab.Spec as Spec exposing (Spec)
 import Html exposing (..)
-import Html.Attributes exposing (colspan, style)
+import Html.Attributes exposing (colspan, rowspan, style)
 import Html.Bem as Bem exposing (blockList, elementList, elementOf, elementOfList)
 import Html.Events.Extra.Mouse as Mouse
 import List.Extra as List
 import Maybe.Extra as Maybe
 import Set exposing (Set)
+import View.Crosstab.Header exposing (labelOrSummary, toHeaderRowCells)
 import View.Crosstab.Query exposing (viewColumnDimensions, viewRowDimensions)
 
 
@@ -646,17 +647,26 @@ viewTable c tab st =
         b =
             Bem.init <| .block <| cssConfig c
 
-        ltab =
-            tab |> Display.labelledTable (valueColumnLabelsAndRenders c)
+        clevels =
+            Display.tableColumnLabels tab
 
         rdims =
             Display.tableRowDimensions tab
 
         cdims =
             Display.tableColumnDimensions tab
+
+        vcols =
+            valueColumnLabelsAndRenders c
+
+        nvcols =
+            vcols |> List.length
+
+        ltab =
+            tab |> Display.labelledTable vcols
     in
     table [ b |> blockList [ ( "selected", not <| noneSelected st ) ] ]
-        [ viewHeader b c rdims cdims ltab.columns st
+        [ viewHeader b c rdims cdims nvcols clevels ltab.columns st
         , viewBody b c ltab.rows st
         ]
 
@@ -672,10 +682,12 @@ viewHeader :
     -> Config a comparable
     -> List String
     -> List String
+    -> Int
+    -> List Levels
     -> List Display.ColumnLabel
     -> State
     -> Html Msg
-viewHeader b c rdims cdims cols st =
+viewHeader b c rdims cdims nvals clvls clbls st =
     let
         css =
             cssConfig c
@@ -714,7 +726,7 @@ viewHeader b c rdims cdims cols st =
                 }
 
         cdimhdr =
-            th [ colspan <| List.length cols ]
+            th [ colspan <| List.length clbls ]
                 [ viewColumnDimensions cdimcfg cdims q ]
 
         rdimhdr =
@@ -722,7 +734,7 @@ viewHeader b c rdims cdims cols st =
                 [ viewRowDimensions rdimcfg rdims q ]
 
         colhdrs =
-            viewHeaderRows b rdimhdr (rowSummary c) cols st
+            viewHeaderRows b rdimhdr (rowSummary c) nvals clvls clbls st
     in
     thead []
         (tr []
@@ -737,114 +749,92 @@ viewHeaderRows :
     Bem.Block
     -> Html Msg
     -> String
+    -> Int
+    -> List Levels
     -> List Display.ColumnLabel
     -> State
     -> List (Html Msg)
-viewHeaderRows b rdimHdr rsum cols st =
+viewHeaderRows b rdimHdr rsum nvals clvls clbls st =
     let
+        er =
+            b.element "header-row"
+
+        eh =
+            b.element "header"
+
         maxdims =
-            cols
-                |> List.map (.level >> List.length)
+            clvls
+                |> List.map List.length
                 |> List.maximum
                 |> Maybe.withDefault 1
 
-        e =
-            b.element "header-row"
+        crows =
+            clvls
+                |> toHeaderRowCells nvals
+                    (\hdr ->
+                        viewHeaderCell
+                            eh
+                            "column"
+                            maxdims
+                            hdr.rowspan
+                            hdr.colspan
+                            hdr.levels
+                            (labelOrSummary rsum hdr)
+                            st
+                    )
+                |> List.map (wrapHeaderRow er "column" [])
+
+        vrow =
+            clbls
+                |> List.map
+                    (\clbl ->
+                        viewHeaderCell
+                            eh
+                            "value"
+                            maxdims
+                            1
+                            1
+                            clbl.level
+                            (Just clbl.value)
+                            st
+                    )
+                |> wrapHeaderRow er "value" [ rdimHdr ]
     in
-    cols
-        |> List.foldl
-            (updateHeaderValueAndColRows b maxdims rsum st)
-            ( Nothing, [], List.repeat maxdims [] )
-        |> (\( _, vh, chs ) ->
-                (chs |> List.map (viewHeaderRow e "column" (th [] [])))
-                    ++ [ vh |> viewHeaderRow e "value" rdimHdr ]
-           )
+    crows ++ [ vrow ]
 
 
-viewHeaderRow :
+wrapHeaderRow :
     Bem.Element
     -> String
-    -> Html Msg
+    -> List (Html Msg)
     -> List (Html Msg)
     -> Html Msg
-viewHeaderRow e rtype prefix cols =
+wrapHeaderRow e rtype prefix cols =
     tr
         [ e |> elementOf "type" rtype ]
-        (prefix :: cols)
-
-
-updateHeaderValueAndColRows :
-    Bem.Block
-    -> Int
-    -> String
-    -> State
-    -> Display.ColumnLabel
-    -> ( Maybe Display.ColumnLabel, List (Html Msg), List (List (Html Msg)) )
-    -> ( Maybe Display.ColumnLabel, List (Html Msg), List (List (Html Msg)) )
-updateHeaderValueAndColRows b maxdims rsum st next ( mprev, vrow, crows ) =
-    let
-        e =
-            b.element "header"
-
-        mprevl =
-            mprev |> Maybe.map .level
-
-        nextl =
-            next.level
-
-        issel =
-            isColumnSelected nextl st
-
-        isselind =
-            isAncestorColumnSelected nextl st
-    in
-    ( Just <| next
-    , vrow
-        ++ [ viewHeaderCell
-                e
-                "value"
-                maxdims
-                issel
-                isselind
-                nextl
-                (Just next.value)
-           ]
-    , nextl
-        |> headerLabelOrSummaryNonRepeat rsum maxdims mprevl
-        |> List.map2
-            (\crow mlabel ->
-                updateHeaderColRow e maxdims issel isselind next.level mlabel crow
-            )
-            crows
-    )
-
-
-updateHeaderColRow :
-    Bem.Element
-    -> Int
-    -> Bool
-    -> Bool
-    -> Levels
-    -> Maybe String
-    -> List (Html Msg)
-    -> List (Html Msg)
-updateHeaderColRow e maxdims issel isselind lvl mlabel crow =
-    crow ++ [ viewHeaderCell e "column" maxdims issel isselind lvl mlabel ]
+        (prefix ++ cols)
 
 
 viewHeaderCell :
     Bem.Element
     -> String
     -> Int
-    -> Bool
-    -> Bool
+    -> Int
+    -> Int
     -> Levels
     -> Maybe String
+    -> State
     -> Html Msg
-viewHeaderCell e etype maxdims issel isselind lvl mlabel =
+viewHeaderCell e etype maxdims rspan cspan lvls mlabel st =
     let
         n =
-            lvl |> List.length
+            lvls |> List.length
+
+        issel =
+            isColumnSelected lvls st
+
+        isselind =
+            isAncestorColumnSelected lvls st
     in
     th
         [ e
@@ -860,36 +850,11 @@ viewHeaderCell e etype maxdims issel isselind lvl mlabel =
                 [ ( "type", etype )
                 , ( "dimension", n |> String.fromInt )
                 ]
-        , Mouse.onClick (toggleSelectColumn lvl)
+        , rowspan rspan
+        , colspan cspan
+        , Mouse.onClick (toggleSelectColumn lvls)
         ]
         [ text <| Maybe.withDefault "" <| mlabel ]
-
-
-headerLabelOrSummaryNonRepeat :
-    String
-    -> Int
-    -> Maybe Levels
-    -> Levels
-    -> List (Maybe String)
-headerLabelOrSummaryNonRepeat rsum maxdims mprev next =
-    let
-        next_ =
-            next |> labelOrSummary rsum
-    in
-    mprev
-        |> Maybe.map (labelOrSummary rsum)
-        |> Maybe.map (\prev -> padRightNonRepeat maxdims prev next_)
-        |> Maybe.withDefault (padRight maxdims next_)
-
-
-labelOrSummary : String -> Levels -> Levels
-labelOrSummary rsum lvl =
-    case lvl of
-        [] ->
-            [ rsum ]
-
-        _ ->
-            lvl
 
 
 
@@ -974,7 +939,7 @@ viewRowHeader e csum rmaxdims lvl =
         ndim =
             rmaxdims - (rmaxdims - (lvl |> List.length))
     in
-    td
+    th
         [ e
             |> elementOfList
                 [ ( "type", "row" )
